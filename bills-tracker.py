@@ -28,6 +28,7 @@ def input_required(prompt):
         if value:
             return value
         else:
+            clear_console()
             print("This field is required. Please enter a value or type 'cancel' to cancel.")
 
 # Helper function to input with cancel option
@@ -41,21 +42,30 @@ def input_with_cancel(prompt):
     print("This field is required. Please enter a value or type 'cancel' to cancel.")
     return value
 
-# Function to add a bill
+# Function to add a bill with duplicate check
 def add_bill():
     print("\n--- Add a New Bill ---")
     print("Type 'cancel' at any time to cancel.\n")
 
-    # Collect bill details
-    name = input_required("Enter the name of the bill:")
-    if name.lower() == 'cancel':
-        print("Bill addition cancelled.")
-        clear_console()
-        return
-    
+    # Ask for bill name and check for duplicates
+    while True:
+        name = input_required("Enter the name of the bill:")
+        if name.lower() == 'cancel':
+            print("Bill addition cancelled.")
+            clear_console()
+            return
+        # Check if a bill with the same name already exists
+        if any(bill['name'].lower() == name.lower() for bill in bills):
+            clear_console()
+            print(f"A bill with the name '{name}' already exists. Please enter a different name.")
+        else:
+            break
+
+    # Continue asking for other details
     due_date = input_required("Enter the due date of the bill (YYYY-MM-DD):")
     if due_date.lower() == 'cancel':
         print("Bill addition cancelled.")
+        clear_console()
         return
     
     web_page = input("Enter the web page for the bill:")
@@ -133,6 +143,7 @@ def pay_bill():
         if 1 <= choice <= len(bills):
             bill = bills[choice - 1]
             if bill.get("paid", False):
+                clear_console()
                 print("This bill has already been paid.")
                 return
             # Mark the bill as paid
@@ -143,11 +154,14 @@ def pay_bill():
                 next_month = current_due_date.replace(day=1) + timedelta(days=32)
                 new_due_date = next_month.replace(day=1)
                 bill['due_date'] = new_due_date.strftime('%Y-%m-%d')
+                clear_console()
                 print(f"Bill '{bill['name']}' marked as paid. Next due date set to {bill['due_date']}.")
             except ValueError:
+                clear_console()
                 print("Invalid date format, Cannot update due date.")
             save_bills()
         else:
+            clear_console()
             print("Invalid selection.")
     except ValueError:
         print("Invalid input. Please enter a number.")
@@ -194,8 +208,10 @@ def edit_bill():
                 bill['paid'] = False
 
             save_bills()
+            clear_console()
             print(f"Bill '{bill['name']}' updated successfully.")
         else:
+            clear_console()
             print("Invalid selection.")
     except ValueError:
         print("Invalid input. Please enter a number.")
