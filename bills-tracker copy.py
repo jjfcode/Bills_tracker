@@ -3,140 +3,74 @@ import os
 import shutil
 from datetime import datetime, timedelta
 
-# Configuration constants
-BILLS_FILE = 'bills.json'
-BACKUP_DIR = 'backups'
-MAX_BACKUPS = 5
-DATE_FORMAT = '%Y-%m-%d'
-
+bills_file = 'bills.json'
 bills = []
 
-# Improved backup function with better error handling
+# Function to backup bills data
 def backup_bills():
     try:
-        if not os.path.exists(BACKUP_DIR):
-            os.makedirs(BACKUP_DIR)
+        # Verify if the backup directory exists, if not create it
+        backup_dir = 'backups'
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+        # Verify if the bills file exists
+        if os.path.exists(bills_file):
+            # Create a backup file with a timestamp
+            backup_name = f"bills_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            backup_path = os.path.join(backup_dir, backup_name)
+            shutil.copy2(bills_file, backup_path)
+            print(f"Backup created: {backup_path}")
         
-        if not os.path.exists(BILLS_FILE):
-            print("No bills.json found. No backup needed.")
-            return
-            
-        # Create backup with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        backup_name = f"bills_backup_{timestamp}.json"
-        backup_path = os.path.join(BACKUP_DIR, backup_name)
-        
-        shutil.copy2(BILLS_FILE, backup_path)
-        print(f"✓ Backup created: {backup_name}")
-        
-        # Clean up old backups
-        cleanup_old_backups()
-        
+            # Verify quantity of backups and delete older ones if more than 5
+            backups = sorted([f for f in os.listdir(backup_dir) if f.startswith('bills_backup_')],
+            key=lambda x: os.path.getmtime(os.path.join(backup_dir, x)))
+            while len(backups) > 5:
+                oldest_backup = backups.pop(0)
+                os.remove(os.path.join(backup_dir, oldest_backup))
+                print(f"Old backup removed: {oldest_backup}")
+        else:
+            print("No bills.json found. No backup created.")
     except Exception as e:
-        print(f"⚠ Backup error: {e}")
+        print(f"Error creating backup: {e}")
 
-def cleanup_old_backups():
-    """Remove old backups, keeping only the most recent ones."""
-    try:
-        backup_files = [f for f in os.listdir(BACKUP_DIR) 
-                       if f.startswith('bills_backup_')]
-        backup_files.sort(key=lambda x: os.path.getmtime(
-            os.path.join(BACKUP_DIR, x)))
-        
-        while len(backup_files) > MAX_BACKUPS:
-            oldest = backup_files.pop(0)
-            os.remove(os.path.join(BACKUP_DIR, oldest))
-            print(f"🗑 Removed old backup: {oldest}")
-            
-    except Exception as e:
-        print(f"⚠ Cleanup error: {e}")
+# Function to clear the console
+def clear_console():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-# Improved load function
-def load_bills():
-    """Load bills from JSON file with error handling."""
-    global bills
-    try:
-        with open(BILLS_FILE, 'r') as f:
-            bills = json.load(f)
-        print(f"✓ Loaded {len(bills)} bills")
-    except FileNotFoundError:
-        bills = []
-        print("📝 Starting with empty bills list")
-    except json.JSONDecodeError:
-        bills = []
-        print("⚠ Corrupted bills file. Starting fresh.")
+#Load existing bills from a file JSON
+try:
+    with open(bills_file, 'r') as f: 
+        bills = json.load(f)
+except FileNotFoundError:
+    bills = []
 
-# Improved save function
+# Function to save bills to a file JSON
 def save_bills():
-    """Save bills to JSON file with backup."""
-    try:
-        backup_bills()
-        with open(BILLS_FILE, 'w') as f:
-            json.dump(bills, f, indent=2)  # Use 2 spaces for cleaner format
-        print("✓ Bills saved successfully")
-    except Exception as e:
-        print(f"⚠ Save error: {e}")
-
-def get_required_input(prompt):
-    """Get required input with cancel option."""
-    while True:
-        value = input(f"{prompt}: ").strip()
-        if value.lower() == 'cancel':
-            return None
-        if value:
-            return value
-        print("❌ This field is required. Please enter a value or type 'cancel' to cancel.\n")
-
-def get_valid_date(prompt):
-    """Get a valid date input."""
-    while True:
-        date_str = get_required_input(prompt)
-        if date_str.lower() == 'cancel':
-            return None
-        try:
-            datetime.strptime(date_str, DATE_FORMAT)
-            return date_str
-        except ValueError:
-            print(f"Invalid date format. Please use {DATE_FORMAT}")
-
-def get_valid_choice(prompt, min_val, max_val):
-    """Get a valid integer choice within range."""
-    while True:
-        try:
-            choice = int(input(prompt))
-            if min_val <= choice <= max_val:
-                return choice
-            print(f"Please enter a number between {min_val} and {max_val}")
-        except ValueError:
-            print("Please enter a valid number")
-
-def get_yes_no(prompt):
-    """Get yes/no input."""
-    while True:
-        response = input(prompt).strip().lower()
-        if response in ['yes', 'y']:
-            return True
-        elif response in ['no', 'n']:
-            return False
-        print("Please enter 'yes' or 'no'")
+    # Create a backup of the bills data at the start
+    backup_bills()
+    with open(bills_file, 'w') as f:
+        json.dump(bills, f, indent=4)
 
 # Function input required
-def get_optional_input(prompt):
-    """Get optional input with cancel option."""
-    value = input(f"{prompt} (optional): ").strip()
-    if value.lower() == 'cancel':
-        return None
-    return value or ""
+def input_required(prompt):
+    while True:
+        value = input(prompt).strip()
+        if value:
+            return value
+        else:
+            clear_console()
+            print("This field is required. Please enter a value or type 'cancel' to cancel.")
 
 # Helper function to input with cancel option
 def input_with_cancel(prompt):
-    while True:  # Add loop for validation
-        value = input(prompt).strip()
-        if value.lower() == 'cancel':
-            return None
-        if value:
-            return value
-        print("This field is required. Please enter a value or type 'cancel' to cancel.")
+    value = input(prompt).strip()
+    if value.lower() == 'cancel':
+        clear_console()
+        return None
+    if value:
+        return value
+    print("This field is required. Please enter a value or type 'cancel' to cancel.")
+    return value
 
 # Function to add a bill with duplicate check
 def add_bill():
@@ -145,40 +79,44 @@ def add_bill():
 
     # Ask for bill name and check for duplicates
     while True:
-        name = get_required_input("Enter the name of the bill")
-        if name is None:
+        name = input_required("Enter the name of the bill:")
+        if name.lower() == 'cancel':
             print("Bill addition cancelled.")
+            clear_console()
             return
-        
-        # Check for duplicates
+        # Check if a bill with the same name already exists
         if any(bill['name'].lower() == name.lower() for bill in bills):
-            print(f"❌ A bill with the name '{name}' already exists. Please enter a different name.\n")
+            clear_console()
+            print(f"A bill with the name '{name}' already exists. Please enter a different name.")
         else:
             break
 
-    # Get due date
-    due_date = get_required_input("Enter the due date of the bill (YYYY-MM-DD)")
-    if due_date is None:
+    # Continue asking for other details
+    due_date = input_required("Enter the due date of the bill (YYYY-MM-DD):")
+    if due_date.lower() == 'cancel':
         print("Bill addition cancelled.")
+        clear_console()
         return
     
-    # Get optional fields
-    web_page = get_optional_input("Enter the web page for the bill")
-    if web_page is None:
+    web_page = input("Enter the web page for the bill:")
+    if web_page.lower() == 'cancel':
         print("Bill addition cancelled.")
+        clear_console()
         return
     
-    login_info = get_optional_input("Enter the login information for the bill")
-    if login_info is None:
+    login_info = input_with_cancel("Enter the login information for the bill:")
+    if login_info.lower() == 'cancel':
         print("Bill addition cancelled.")
+        clear_console()
         return
-
-    password = get_optional_input("Enter the password for the bill")
+    
+    password = input_with_cancel("Enter the password for the bill:")
     if password is None:
         print("Bill addition cancelled.")
+        clear_console()
         return
 
-    # Create and save bill
+    # Add the bill if all fields are provided
     bill = {
         "name": name,
         "due_date": due_date,
@@ -189,8 +127,8 @@ def add_bill():
     }
     bills.append(bill)
     save_bills()
-    print(f"✅ Bill '{name}' added successfully!")
-    input("Press Enter to continue...")
+    print(f"Bill '{name}' added successfully!")
+    clear_console()
 
 # Function to view all bills
 def view_bills():
@@ -235,6 +173,7 @@ def pay_bill():
         if 1 <= choice <= len(bills):
             bill = bills[choice - 1]
             if bill.get("paid", False):
+                clear_console()
                 print("This bill has already been paid.")
                 return
             # Mark the bill as paid
@@ -245,11 +184,14 @@ def pay_bill():
                 next_month = current_due_date.replace(day=1) + timedelta(days=32)
                 new_due_date = next_month.replace(day=1)
                 bill['due_date'] = new_due_date.strftime('%Y-%m-%d')
+                clear_console()
                 print(f"Bill '{bill['name']}' marked as paid. Next due date set to {bill['due_date']}.")
             except ValueError:
+                clear_console()
                 print("Invalid date format, Cannot update due date.")
             save_bills()
         else:
+            clear_console()
             print("Invalid selection.")
     except ValueError:
         print("Invalid input. Please enter a number.")
@@ -296,8 +238,10 @@ def edit_bill():
                 bill['paid'] = False
 
             save_bills()
+            clear_console()
             print(f"Bill '{bill['name']}' updated successfully.")
         else:
+            clear_console()
             print("Invalid selection.")
     except ValueError:
         print("Invalid input. Please enter a number.")
@@ -316,65 +260,59 @@ def delete_bill():
             if confirm in ['yes', 'y']:
                 bills.remove(bill)
                 save_bills()
+                clear_console()
                 print(f"Bill '{bill['name']}' has been deleted.")
             else:
+                clear_console()
                 print("Deletion cancelled.")
         else:
+            clear_console()
             print("Invalid selection.")
     except ValueError:
-        print("Invalid input.")
+        clear_console()
         print("Invalid input. Please enter a number.")
 
 # Function Principal
-def display_menu():
-    """Display the main menu."""
-    print("\n" + "="*40)
-    print("           BILLS TRACKER")
-    print("="*40)
-    print("1. 📝 Add a bill")
-    print("2. 📋 View all bills")
-    print("3. ⏰ Check due bills")
-    print("4. 💰 Pay a bill")
-    print("5. ✏️  Edit a bill")
-    print("6. 🗑️  Delete a bill")
-    print("7. 🚪 Exit")
-    print("="*40)
-
 def main():
-    """Main application loop."""
-    print("Welcome to Bills Tracker! 🏠💳")
-    
-    # Load existing bills
-    load_bills()
-    
-    # Create initial backup
-    if bills:  # Only backup if there are bills
-        backup_bills()
+    clear_console()
+    # Create a backup of the bills data at the start
+    backup_bills()
 
     while True:
-        display_menu()
-        choice = input("Choose an option (1-7): ").strip()
-        
-        if choice == '1':
+        print("--- Bills Tracker ---")
+        print("1. Add a bill")
+        print("2. View all bills")
+        print("3. Verify due bills")
+        print("4. Pay a bill")
+        print("5. Edit a bill")
+        print("6. Delete a bill")
+        print("7. Exit")
+        option = input("Choose an option: ")
+
+        if option == '1':
+            clear_console()
             add_bill()
-        elif choice == '2':
+        elif option == '2':
+            clear_console()
             view_bills()
-            input("\n📖 Press Enter to continue...")
-        elif choice == '3':
+        elif option == '3':
+            clear_console()
             verify_due_bills()
-            input("\n📖 Press Enter to continue...")
-        elif choice == '4':
+        elif option == '4':
+            clear_console()
             pay_bill()
-        elif choice == '5':
+        elif option == '5':
+            clear_console()
             edit_bill()
-        elif choice == '6':
+        elif option == '6':
+            clear_console()
             delete_bill()
-        elif choice == '7':
-            print("\n👋 Thank you for using Bills Tracker!")
+        elif option == '7':
+            print("Exiting the program.")
+            clear_console()
             break
         else:
-            print("❌ Invalid option. Please choose 1-7.")
-            input("Press Enter to continue...")
+            print("Invalid option. Please try again.")
 
 if __name__ == "__main__":
     main()
