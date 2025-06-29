@@ -1,9 +1,10 @@
+# 1. Imports
 import json
 import os
 import shutil
 from datetime import datetime, timedelta
 
-# Configuration constants
+# 2. Configuration
 BILLS_FILE = 'bills.json'
 BACKUP_DIR = 'backups'
 MAX_BACKUPS = 5
@@ -11,12 +12,12 @@ DATE_FORMAT = '%Y-%m-%d'
 
 bills = []
 
-# Add this function near the top with your other utility functions
+# 3. Utility functions
 def clear_console():
     """Clear the console screen."""
     os.system('cls' if os.name == 'nt' else 'clear')
 
-# Improved backup function with better error handling
+# 4. File operations
 def backup_bills():
     try:
         if not os.path.exists(BACKUP_DIR):
@@ -56,7 +57,6 @@ def cleanup_old_backups():
     except Exception as e:
         print(f"⚠ Cleanup error: {e}")
 
-# Improved load function
 def load_bills():
     """Load bills from JSON file with error handling."""
     global bills
@@ -71,7 +71,6 @@ def load_bills():
         bills = []
         print("⚠ Corrupted bills file. Starting fresh.")
 
-# Improved save function
 def save_bills():
     """Save bills to JSON file with backup."""
     try:
@@ -82,6 +81,7 @@ def save_bills():
     except Exception as e:
         print(f"⚠ Save error: {e}")
 
+# 5. Input validation functions
 def get_required_input(prompt):
     """Get required input with cancel option."""
     while True:
@@ -92,28 +92,24 @@ def get_required_input(prompt):
             return value
         print("❌ This field is required. Please enter a value or type 'cancel' to cancel.\n")
 
+def get_optional_input(prompt):
+    """Get optional input with cancel option."""
+    value = input(f"{prompt} (optional): ").strip()
+    if value.lower() == 'cancel':
+        return None
+    return value or ""  # Return empty string if nothing entered
+
 def get_valid_date(prompt):
     """Get a valid date input."""
     while True:
         date_str = get_required_input(prompt)
-        if date_str.lower() == 'cancel':
+        if date_str is None:  # User cancelled
             return None
         try:
             datetime.strptime(date_str, DATE_FORMAT)
             return date_str
         except ValueError:
-            print(f"Invalid date format. Please use {DATE_FORMAT}")
-
-def get_valid_choice(prompt, min_val, max_val):
-    """Get a valid integer choice within range."""
-    while True:
-        try:
-            choice = int(input(prompt))
-            if min_val <= choice <= max_val:
-                return choice
-            print(f"Please enter a number between {min_val} and {max_val}")
-        except ValueError:
-            print("Please enter a valid number")
+            print(f"❌ Invalid date format. Please use {DATE_FORMAT}")
 
 def get_yes_no(prompt):
     """Get yes/no input."""
@@ -125,25 +121,7 @@ def get_yes_no(prompt):
             return False
         print("Please enter 'yes' or 'no'")
 
-# Function input required
-def get_optional_input(prompt):
-    """Get optional input with cancel option."""
-    value = input(f"{prompt} (optional): ").strip()
-    if value.lower() == 'cancel':
-        return None
-    return value or ""
-
-# Helper function to input with cancel option
-def input_with_cancel(prompt):
-    while True:  # Add loop for validation
-        value = input(prompt).strip()
-        if value.lower() == 'cancel':
-            return None
-        if value:
-            return value
-        print("This field is required. Please enter a value or type 'cancel' to cancel.")
-
-# Function to add a bill with duplicate check
+# 6. Core bill management functions
 def add_bill():
     print("\n--- Add a New Bill ---")
     print("Type 'cancel' at any time to cancel.\n")
@@ -197,7 +175,6 @@ def add_bill():
     print(f"✅ Bill '{name}' added successfully!")
     input("Press Enter to continue...")
 
-# Function to view all bills
 def view_bills():
     print("\n--- All Bills ---")
     if not bills:
@@ -210,56 +187,6 @@ def view_bills():
         print(f"   Login Info: {bll['login_info']}")
         print(f"   Password: {bll['password']}\n")
 
-# Function to Verify Due Bills
-def verify_due_bills(days=7):
-    print("\n--- Due Bills ---")
-    today = datetime.now()
-    due_now = False
-    for bill in bills:
-        try:
-            date_due = datetime.strptime(bill['due_date'], '%Y-%m-%d')
-            delta = date_due - today
-            if 0 <= delta.days <= days:
-                print(f"Bill '{bill['name']}' is due on {delta.days} days {bill['due_date']}")
-                due_now = True
-        except ValueError:
-            print(f"Invalid date format for bill {bill['name']}: {bill['due_date']}")
-    if not due_now:
-        print("No bills are due in the specified timeframe.\n")
-    else:
-        print()
-
-# Function to Pay a Bill
-def pay_bill():
-    print("\n--- Pay a Bill ---")
-    view_bills()
-    if not bills:
-        return
-    try:
-        choice = int(input("Enter the number of the bill you want to pay:"))
-        if 1 <= choice <= len(bills):
-            bill = bills[choice - 1]
-            if bill.get("paid", False):
-                print("This bill has already been paid.")
-                return
-            # Mark the bill as paid
-            bill["paid"] = True
-            # Update the due date to next month (simple logic)
-            try:
-                current_due_date = datetime.strptime(bill['due_date'], '%Y-%m-%d')
-                next_month = current_due_date.replace(day=1) + timedelta(days=32)
-                new_due_date = next_month.replace(day=1)
-                bill['due_date'] = new_due_date.strftime('%Y-%m-%d')
-                print(f"Bill '{bill['name']}' marked as paid. Next due date set to {bill['due_date']}.")
-            except ValueError:
-                print("Invalid date format, Cannot update due date.")
-            save_bills()
-        else:
-            print("Invalid selection.")
-    except ValueError:
-        print("Invalid input. Please enter a number.")
-
-# Function to Edit a Bill
 def edit_bill():
     print("\n--- Edit a Bill ---")
     view_bills()
@@ -307,7 +234,6 @@ def edit_bill():
     except ValueError:
         print("Invalid input. Please enter a number.")
 
-# Function to Delete a Bill
 def delete_bill():
     print("\n--- Delete a Bill ---")
     view_bills()
@@ -330,7 +256,54 @@ def delete_bill():
         print("Invalid input.")
         print("Invalid input. Please enter a number.")
 
-# Function to Search Bills
+def pay_bill():
+    print("\n--- Pay a Bill ---")
+    view_bills()
+    if not bills:
+        return
+    try:
+        choice = int(input("Enter the number of the bill you want to pay:"))
+        if 1 <= choice <= len(bills):
+            bill = bills[choice - 1]
+            if bill.get("paid", False):
+                print("This bill has already been paid.")
+                return
+            # Mark the bill as paid
+            bill["paid"] = True
+            # Update the due date to next month (simple logic)
+            try:
+                current_due_date = datetime.strptime(bill['due_date'], '%Y-%m-%d')
+                next_month = current_due_date.replace(day=1) + timedelta(days=32)
+                new_due_date = next_month.replace(day=1)
+                bill['due_date'] = new_due_date.strftime('%Y-%m-%d')
+                print(f"Bill '{bill['name']}' marked as paid. Next due date set to {bill['due_date']}.")
+            except ValueError:
+                print("Invalid date format, Cannot update due date.")
+            save_bills()
+        else:
+            print("Invalid selection.")
+    except ValueError:
+        print("Invalid input. Please enter a number.")
+
+def verify_due_bills(days=7):
+    print("\n--- Due Bills ---")
+    today = datetime.now()
+    due_now = False
+    for bill in bills:
+        try:
+            date_due = datetime.strptime(bill['due_date'], '%Y-%m-%d')
+            delta = date_due - today
+            if 0 <= delta.days <= days:
+                print(f"Bill '{bill['name']}' is due on {delta.days} days {bill['due_date']}")
+                due_now = True
+        except ValueError:
+            print(f"Invalid date format for bill {bill['name']}: {bill['due_date']}")
+    if not due_now:
+        print("No bills are due in the specified timeframe.\n")
+    else:
+        print()
+
+# 7. Search functions
 def search_bills():
     """Search bills by name, due date, or website."""
     print("\n--- Search Bills ---")
@@ -528,92 +501,161 @@ def pay_bill_from_search(results):
     
     input("\nPress Enter to continue...")
 
-# Function for Advanced Search
-def advanced_search():
-    """Advanced search with multiple filters."""
-    print("\n--- Advanced Search ---")
-    
-    filters = {}
-    
-    # Name filter
-    name_filter = input("Filter by name (leave empty to skip): ").strip()
-    if name_filter:
-        filters['name'] = name_filter.lower()
-    
-    # Status filter
-    status_choice = input("Filter by status (paid/unpaid/all): ").strip().lower()
-    if status_choice in ['paid', 'unpaid']:
-        filters['paid'] = (status_choice == 'paid')
-    
-    # Date range filter
-    date_from = input("From date (YYYY-MM-DD, leave empty to skip): ").strip()
-    date_to = input("To date (YYYY-MM-DD, leave empty to skip): ").strip()
-    
-    # Apply filters
-    results = bills.copy()
-    
-    # Name filter
-    if 'name' in filters:
-        results = [bill for bill in results 
-                  if filters['name'] in bill['name'].lower()]
-    
-    # Status filter
-    if 'paid' in filters:
-        results = [bill for bill in results 
-                  if bill.get('paid', False) == filters['paid']]
-    
-    # Date range filter
-    if date_from or date_to:
-        filtered_results = []
-        for bill in results:
-            try:
-                bill_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
-                
-                if date_from:
-                    from_date = datetime.strptime(date_from, DATE_FORMAT)
-                    if bill_date < from_date:
-                        continue
-                
-                if date_to:
-                    to_date = datetime.strptime(date_to, DATE_FORMAT)
-                    if bill_date > to_date:
-                        continue
-                
-                filtered_results.append(bill)
-            except ValueError:
-                continue  # Skip bills with invalid dates
-        
-        results = filtered_results
-    
-    display_search_results(results, "Advanced Search Results")
-
-# Add fuzzy search capability
-def fuzzy_search():
-    """Search with typo tolerance."""
+# 8. Sort functions (PUT ALL SORT FUNCTIONS HERE)
+def sort_bills():
+    """Sort bills by different criteria."""
     if not bills:
-        print("No bills found.")
+        print("❌ No bills found to sort.")
+        input("Press Enter to continue...")
         return
     
-    search_term = input("Enter search term (fuzzy search): ").strip().lower()
-    if not search_term:
-        print("Search term cannot be empty.")
+    print("\n--- Sort Bills ---")
+    print("Sort options:")
+    print("1. 📅 Sort by due date (earliest first)")
+    print("2. 📅 Sort by due date (latest first)")
+    print("3. 🔤 Sort by name (A-Z)")
+    print("4. 🔤 Sort by name (Z-A)")
+    print("5. ✅ Sort by payment status (unpaid first)")
+    print("6. ✅ Sort by payment status (paid first)")
+    print("7. 🔄 Reset to original order")
+    print("8. 🚪 Back to main menu")
+    
+    choice = input("\nChoose sort option (1-8): ").strip()
+    
+    if choice == '1':
+        sort_by_due_date_asc()
+    elif choice == '2':
+        sort_by_due_date_desc()
+    elif choice == '3':
+        sort_by_name_asc()
+    elif choice == '4':
+        sort_by_name_desc()
+    elif choice == '5':
+        sort_by_status_unpaid_first()
+    elif choice == '6':
+        sort_by_status_paid_first()
+    elif choice == '7':
+        reset_bill_order()
+    elif choice == '8':
         return
-    
-    results = []
-    for bill in bills:
-        # Simple fuzzy matching - check if most characters match
-        bill_name = bill['name'].lower()
-        
-        # Calculate similarity (simple version)
-        matches = sum(1 for char in search_term if char in bill_name)
-        similarity = matches / len(search_term)
-        
-        if similarity >= 0.6:  # 60% similarity threshold
-            results.append(bill)
-    
-    display_search_results(results, f"Fuzzy search results for '{search_term}'")
+    else:
+        print("❌ Invalid option. Please choose 1-8.")
+        input("Press Enter to continue...")
+        sort_bills()
 
-# Function Principal
+def sort_by_due_date_asc():
+    """Sort bills by due date (earliest first)."""
+    global bills
+    try:
+        bills.sort(key=lambda bill: datetime.strptime(bill['due_date'], DATE_FORMAT))
+        print("✅ Bills sorted by due date (earliest first)")
+        display_sorted_bills("Bills Sorted by Due Date (Earliest First)")
+    except ValueError as e:
+        print(f"❌ Error sorting by date: Invalid date format found")
+        input("Press Enter to continue...")
+
+def sort_by_due_date_desc():
+    """Sort bills by due date (latest first)."""
+    global bills
+    try:
+        bills.sort(key=lambda bill: datetime.strptime(bill['due_date'], DATE_FORMAT), reverse=True)
+        print("✅ Bills sorted by due date (latest first)")
+        display_sorted_bills("Bills Sorted by Due Date (Latest First)")
+    except ValueError as e:
+        print(f"❌ Error sorting by date: Invalid date format found")
+        input("Press Enter to continue...")
+
+def sort_by_name_asc():
+    """Sort bills by name (A-Z)."""
+    global bills
+    bills.sort(key=lambda bill: bill['name'].lower())
+    print("✅ Bills sorted by name (A-Z)")
+    display_sorted_bills("Bills Sorted by Name (A-Z)")
+
+def sort_by_name_desc():
+    """Sort bills by name (Z-A)."""
+    global bills
+    bills.sort(key=lambda bill: bill['name'].lower(), reverse=True)
+    print("✅ Bills sorted by name (Z-A)")
+    display_sorted_bills("Bills Sorted by Name (Z-A)")
+
+def sort_by_status_unpaid_first():
+    """Sort bills by payment status (unpaid first)."""
+    global bills
+    bills.sort(key=lambda bill: bill.get('paid', False))
+    print("✅ Bills sorted by status (unpaid first)")
+    display_sorted_bills("Bills Sorted by Status (Unpaid First)")
+
+def sort_by_status_paid_first():
+    """Sort bills by payment status (paid first)."""
+    global bills
+    bills.sort(key=lambda bill: bill.get('paid', False), reverse=True)
+    print("✅ Bills sorted by status (paid first)")
+    display_sorted_bills("Bills Sorted by Status (Paid First)")
+
+def reset_bill_order():
+    """Reset bills to original order (reload from file)."""
+    global bills
+    load_bills()
+    print("✅ Bills reset to original order")
+    display_sorted_bills("Bills in Original Order")
+
+def display_sorted_bills(title):
+    """Display sorted bills with formatting."""
+    print(f"\n--- {title} ---")
+    
+    if not bills:
+        print("❌ No bills to display.")
+        input("Press Enter to continue...")
+        return
+    
+    for idx, bill in enumerate(bills, 1):
+        status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+        
+        # Add due date info for better context
+        try:
+            due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
+            today = datetime.now()
+            days_diff = (due_date - today).days
+            
+            if days_diff < 0:
+                date_info = f"(Overdue by {abs(days_diff)} days)"
+            elif days_diff == 0:
+                date_info = "(Due today!)"
+            elif days_diff <= 7:
+                date_info = f"(Due in {days_diff} days)"
+            else:
+                date_info = ""
+        except ValueError:
+            date_info = ""
+        
+        print(f"{idx:2}. {bill['name']} [{status}]")
+        print(f"    Due: {bill['due_date']} {date_info}")
+        if bill.get('web_page'):
+            print(f"    Website: {bill['web_page']}")
+        print()
+    
+    # Options after viewing sorted bills
+    print("Options:")
+    print("1. 💾 Save this sort order permanently")
+    print("2. 🔄 Sort again with different criteria")
+    print("3. 🚪 Back to main menu")
+    
+    choice = input("Choose option (1-3): ").strip()
+    
+    if choice == '1':
+        save_bills()
+        print("✅ Sort order saved!")
+        input("Press Enter to continue...")
+    elif choice == '2':
+        sort_bills()
+    elif choice == '3':
+        return
+    else:
+        print("❌ Invalid option.")
+        input("Press Enter to continue...")
+
+# 9. Main application
 def display_menu():
     """Display the main menu."""
     print("\n" + "="*40)
@@ -621,12 +663,13 @@ def display_menu():
     print("="*40)
     print("1. 📝 Add a bill")
     print("2. 📋 View all bills")
-    print("3. 🔍 Search bills")  # New option
-    print("4. ⏰ Check due bills")
-    print("5. 💰 Pay a bill")
-    print("6. ✏️  Edit a bill")
-    print("7. 🗑️  Delete a bill")
-    print("8. 🚪 Exit")
+    print("3. 🔍 Search bills")
+    print("4. 🔄 Sort bills")  # New option
+    print("5. ⏰ Check due bills")
+    print("6. 💰 Pay a bill")
+    print("7. ✏️  Edit a bill")
+    print("8. 🗑️  Delete a bill")
+    print("9. 🚪 Exit")
     print("="*40)
 
 def main():
@@ -639,7 +682,7 @@ def main():
 
     while True:
         display_menu()
-        choice = input("Choose an option (1-8): ").strip()
+        choice = input("Choose an option (1-9): ").strip()
         
         if choice == '1':
             clear_console()
@@ -648,28 +691,32 @@ def main():
             clear_console()
             view_bills()
             input("\n📖 Press Enter to continue...")
-        elif choice == '3':  # New search option
+        elif choice == '3':
             clear_console()
             search_bills()
-        elif choice == '4':
+        elif choice == '4':  # New sort option
+            clear_console()
+            sort_bills()
+        elif choice == '5':
             clear_console()
             verify_due_bills()
             input("\n📖 Press Enter to continue...")
-        elif choice == '5':
-            clear_console()
-            pay_bill()
         elif choice == '6':
             clear_console()
-            edit_bill()
+            pay_bill()
         elif choice == '7':
             clear_console()
-            delete_bill()
+            edit_bill()
         elif choice == '8':
+            clear_console()
+            delete_bill()
+        elif choice == '9':
             print("\n👋 Thank you for using Bills Tracker!")
             break
         else:
-            print("❌ Invalid option. Please choose 1-8.")
+            print("❌ Invalid option. Please choose 1-9.")
             input("Press Enter to continue...")
 
+# 10. Entry point
 if __name__ == "__main__":
     main()
