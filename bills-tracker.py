@@ -1,9 +1,37 @@
 import json
 import os
+import shutil
 from datetime import datetime, timedelta
 
 bills_file = 'bills.json'
 bills = []
+
+# Function to backup bills data
+def backup_bills():
+    try:
+        # Verify if the backup directory exists, if not create it
+        backup_dir = 'backups'
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+        # Verify if the bills file exists
+        if os.path.exists(bills_file):
+            # Create a backup file with a timestamp
+            backup_name = f"bills_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            backup_path = os.path.join(backup_dir, backup_name)
+            shutil.copy2(bills_file, backup_path)
+            print(f"Backup created: {backup_path}")
+        
+            # Verify quantity of backups and delete older ones if more than 5
+            backups = sorted([f for f in os.listdir(backup_dir) if f.startswith('bills_backup_')],
+            key=lambda x: os.path.getmtime(os.path.join(backup_dir, x)))
+            while len(backups) > 5:
+                oldest_backup = backups.pop(0)
+                os.remove(os.path.join(backup_dir, oldest_backup))
+                print(f"Old backup removed: {oldest_backup}")
+        else:
+            print("No bills.json found. No backup created.")
+    except Exception as e:
+        print(f"Error creating backup: {e}")
 
 # Function to clear the console
 def clear_console():
@@ -18,6 +46,8 @@ except FileNotFoundError:
 
 # Function to save bills to a file JSON
 def save_bills():
+    # Create a backup of the bills data at the start
+    backup_bills()
     with open(bills_file, 'w') as f:
         json.dump(bills, f, indent=4)
 
@@ -216,9 +246,38 @@ def edit_bill():
     except ValueError:
         print("Invalid input. Please enter a number.")
 
+# Function to Delete a Bill
+def delete_bill():
+    print("\n--- Delete a Bill ---")
+    view_bills()
+    if not bills:
+        return
+    try:
+        choice = int(input("Enter the number of the bill to delete:"))
+        if 1 <= choice <= len(bills):
+            bill = bills[choice - 1]
+            confirm = input(f"Are you sure you want to delete '{bill['name']}'? (yes/no): ").strip().lower()
+            if confirm in ['yes', 'y']:
+                bills.remove(bill)
+                save_bills()
+                clear_console()
+                print(f"Bill '{bill['name']}' has been deleted.")
+            else:
+                clear_console()
+                print("Deletion cancelled.")
+        else:
+            clear_console()
+            print("Invalid selection.")
+    except ValueError:
+        clear_console()
+        print("Invalid input. Please enter a number.")
+
 # Function Principal
 def main():
     clear_console()
+    # Create a backup of the bills data at the start
+    backup_bills()
+
     while True:
         print("--- Bills Tracker ---")
         print("1. Add a bill")
@@ -226,7 +285,8 @@ def main():
         print("3. Verify due bills")
         print("4. Pay a bill")
         print("5. Edit a bill")
-        print("6. Exit")
+        print("6. Delete a bill")
+        print("7. Exit")
         option = input("Choose an option: ")
 
         if option == '1':
@@ -245,6 +305,9 @@ def main():
             clear_console()
             edit_bill()
         elif option == '6':
+            clear_console()
+            delete_bill()
+        elif option == '7':
             print("Exiting the program.")
             clear_console()
             break
