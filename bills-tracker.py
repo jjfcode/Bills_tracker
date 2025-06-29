@@ -145,7 +145,7 @@ def pay_bill():
                 bill['due_date'] = new_due_date.strftime('%Y-%m-%d')
                 print(f"Bill '{bill['name']}' marked as paid. Next due date set to {bill['due_date']}.")
             except ValueError:
-                print("nvalid date format, Cannot update due date.")
+                print("Invalid date format, Cannot update due date.")
             save_bills()
         else:
             print("Invalid selection.")
