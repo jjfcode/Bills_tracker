@@ -3,6 +3,10 @@ import json
 import os
 import shutil
 from datetime import datetime, timedelta
+from colorama import Fore, Back, Style, init
+
+# Initialize colorama for Windows compatibility
+init(autoreset=True)
 
 # 2. Configuration
 BILLS_FILE = 'bills.json'
@@ -12,19 +16,94 @@ DATE_FORMAT = '%Y-%m-%d'
 
 bills = []
 
-# 3. Utility functions
+# 3. Color utility functions
+class Colors:
+    """Color constants and helper functions."""
+    
+    # Status colors
+    SUCCESS = Fore.GREEN
+    ERROR = Fore.RED
+    WARNING = Fore.YELLOW
+    INFO = Fore.CYAN
+    TITLE = Fore.MAGENTA
+    
+    # Bill status colors
+    PAID = Fore.GREEN
+    UNPAID = Fore.YELLOW
+    OVERDUE = Fore.RED + Style.BRIGHT
+    DUE_SOON = Fore.YELLOW + Style.BRIGHT
+    
+    # UI colors
+    MENU = Fore.BLUE + Style.BRIGHT
+    PROMPT = Fore.WHITE + Style.BRIGHT
+    RESET = Style.RESET_ALL
+
+def colored_print(text, color=Colors.RESET):
+    """Print text with color."""
+    print(f"{color}{text}{Colors.RESET}")
+
+def colored_input(prompt, color=Colors.PROMPT):
+    """Get input with colored prompt."""
+    return input(f"{color}{prompt}{Colors.RESET}")
+
+def success_msg(message):
+    """Print success message."""
+    colored_print(f"✅ {message}", Colors.SUCCESS)
+
+def error_msg(message):
+    """Print error message."""
+    colored_print(f"❌ {message}", Colors.ERROR)
+
+def warning_msg(message):
+    """Print warning message."""
+    colored_print(f"⚠️  {message}", Colors.WARNING)
+
+def info_msg(message):
+    """Print info message."""
+    colored_print(f"ℹ️  {message}", Colors.INFO)
+
+def title_msg(message):
+    """Print title message."""
+    colored_print(f"🏠 {message}", Colors.TITLE + Style.BRIGHT)
+
+# 4. Utility functions
 def clear_console():
     """Clear the console screen."""
     os.system('cls' if os.name == 'nt' else 'clear')
 
-# 4. File operations
+# 5. File operations
+def load_bills():
+    """Load bills from JSON file with colored feedback."""
+    global bills
+    try:
+        with open(BILLS_FILE, 'r') as f:
+            bills = json.load(f)
+        success_msg(f"Loaded {len(bills)} bills")
+    except FileNotFoundError:
+        bills = []
+        info_msg("Starting with empty bills list")
+    except json.JSONDecodeError:
+        bills = []
+        error_msg("Corrupted bills file. Starting fresh.")
+
+def save_bills():
+    """Save bills to JSON file with colored feedback."""
+    try:
+        backup_bills()
+        with open(BILLS_FILE, 'w') as f:
+            json.dump(bills, f, indent=2)
+        success_msg("Bills saved successfully")
+    except Exception as e:
+        error_msg(f"Save error: {e}")
+
 def backup_bills():
+    """Create backup with colored feedback."""
     try:
         if not os.path.exists(BACKUP_DIR):
             os.makedirs(BACKUP_DIR)
         
         if not os.path.exists(BILLS_FILE):
-            print("No bills.json found. No backup needed.")
+            info_msg("No bills.json found. No backup needed.")
             return
             
         # Create backup with timestamp
@@ -33,16 +112,16 @@ def backup_bills():
         backup_path = os.path.join(BACKUP_DIR, backup_name)
         
         shutil.copy2(BILLS_FILE, backup_path)
-        print(f"✓ Backup created: {backup_name}")
+        success_msg(f"Backup created: {backup_name}")
         
         # Clean up old backups
         cleanup_old_backups()
         
     except Exception as e:
-        print(f"⚠ Backup error: {e}")
+        error_msg(f"Backup error: {e}")
 
 def cleanup_old_backups():
-    """Remove old backups, keeping only the most recent ones."""
+    """Remove old backups with colored feedback."""
     try:
         backup_files = [f for f in os.listdir(BACKUP_DIR) 
                        if f.startswith('bills_backup_')]
@@ -52,52 +131,28 @@ def cleanup_old_backups():
         while len(backup_files) > MAX_BACKUPS:
             oldest = backup_files.pop(0)
             os.remove(os.path.join(BACKUP_DIR, oldest))
-            print(f"🗑 Removed old backup: {oldest}")
+            info_msg(f"Removed old backup: {oldest}")
             
     except Exception as e:
-        print(f"⚠ Cleanup error: {e}")
+        warning_msg(f"Cleanup error: {e}")
 
-def load_bills():
-    """Load bills from JSON file with error handling."""
-    global bills
-    try:
-        with open(BILLS_FILE, 'r') as f:
-            bills = json.load(f)
-        print(f"✓ Loaded {len(bills)} bills")
-    except FileNotFoundError:
-        bills = []
-        print("📝 Starting with empty bills list")
-    except json.JSONDecodeError:
-        bills = []
-        print("⚠ Corrupted bills file. Starting fresh.")
-
-def save_bills():
-    """Save bills to JSON file with backup."""
-    try:
-        backup_bills()
-        with open(BILLS_FILE, 'w') as f:
-            json.dump(bills, f, indent=2)  # Use 2 spaces for cleaner format
-        print("✓ Bills saved successfully")
-    except Exception as e:
-        print(f"⚠ Save error: {e}")
-
-# 5. Input validation functions
+# 6. Input validation functions
 def get_required_input(prompt):
-    """Get required input with cancel option."""
+    """Get required input with cancel option and colors."""
     while True:
-        value = input(f"{prompt}: ").strip()
+        value = colored_input(f"{prompt}: ", Colors.PROMPT).strip()
         if value.lower() == 'cancel':
             return None
         if value:
             return value
-        print("❌ This field is required. Please enter a value or type 'cancel' to cancel.\n")
+        error_msg("This field is required. Please enter a value or type 'cancel' to cancel.")
 
 def get_optional_input(prompt):
-    """Get optional input with cancel option."""
-    value = input(f"{prompt} (optional): ").strip()
+    """Get optional input with cancel option and colors."""
+    value = colored_input(f"{prompt} (optional): ", Colors.PROMPT).strip()
     if value.lower() == 'cancel':
         return None
-    return value or ""  # Return empty string if nothing entered
+    return value or ""
 
 def get_valid_date(prompt):
     """Get a valid date input."""
@@ -121,44 +176,52 @@ def get_yes_no(prompt):
             return False
         print("Please enter 'yes' or 'no'")
 
-# 6. Core bill management functions
+# 7. Core bill management functions
 def add_bill():
-    print("\n--- Add a New Bill ---")
-    print("Type 'cancel' at any time to cancel.\n")
-
+    """Add a new bill with colored feedback."""
+    title_msg("Add a New Bill")
+    info_msg("Type 'cancel' at any time to cancel.")
+    
     # Ask for bill name and check for duplicates
     while True:
         name = get_required_input("Enter the name of the bill")
         if name is None:
-            print("Bill addition cancelled.")
+            warning_msg("Bill addition cancelled.")
             return
         
         # Check for duplicates
         if any(bill['name'].lower() == name.lower() for bill in bills):
-            print(f"❌ A bill with the name '{name}' already exists. Please enter a different name.\n")
+            error_msg(f"A bill with the name '{name}' already exists. Please enter a different name.")
         else:
             break
 
     # Get due date
     due_date = get_required_input("Enter the due date of the bill (YYYY-MM-DD)")
     if due_date is None:
-        print("Bill addition cancelled.")
+        warning_msg("Bill addition cancelled.")
+        return
+    
+    # Validate date format
+    try:
+        datetime.strptime(due_date, DATE_FORMAT)
+    except ValueError:
+        error_msg("Invalid date format. Please use YYYY-MM-DD.")
         return
     
     # Get optional fields
     web_page = get_optional_input("Enter the web page for the bill")
     if web_page is None:
-        print("Bill addition cancelled.")
+        warning_msg("Bill addition cancelled.")
         return
     
     login_info = get_optional_input("Enter the login information for the bill")
     if login_info is None:
-        print("Bill addition cancelled.")
+        warning_msg("Bill addition cancelled.")
         return
 
     password = get_optional_input("Enter the password for the bill")
     if password is None:
-        print("Bill addition cancelled.")
+        warning_msg("Bill addition cancelled.")
         return
 
     # Create and save bill
@@ -172,20 +235,69 @@ def add_bill():
     }
     bills.append(bill)
     save_bills()
-    print(f"✅ Bill '{name}' added successfully!")
-    input("Press Enter to continue...")
+    success_msg(f"Bill '{name}' added successfully!")
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def display_menu():
+    """Display the main menu with colors."""
+    print("\n" + Colors.MENU + "="*40)
+    title_msg("BILLS TRACKER")
+    print(Colors.MENU + "="*40 + Colors.RESET)
+    
+    print(f"{Colors.MENU}1.{Colors.RESET} 📝 Add a bill")
+    print(f"{Colors.MENU}2.{Colors.RESET} 📋 View all bills")
+    print(f"{Colors.MENU}3.{Colors.RESET} 🔍 Search bills")
+    print(f"{Colors.MENU}4.{Colors.RESET} 🔄 Sort bills")
+    print(f"{Colors.MENU}5.{Colors.RESET} ⏰ Check due bills")
+    print(f"{Colors.MENU}6.{Colors.RESET} 💰 Pay a bill")
+    print(f"{Colors.MENU}7.{Colors.RESET} ✏️  Edit a bill")
+    print(f"{Colors.MENU}8.{Colors.RESET} 🗑️  Delete a bill")
+    print(f"{Colors.MENU}9.{Colors.RESET} 🚪 Exit")
+    print(Colors.MENU + "="*40 + Colors.RESET)
 
 def view_bills():
-    print("\n--- All Bills ---")
+    """View all bills with color coding."""
+    title_msg("All Bills")
+    
     if not bills:
-        print("No bills found.\n")
+        warning_msg("No bills found.")
         return
-    for idx, bll in enumerate(bills, start=1):
-        print(f"{idx}. {bll['name']}")
-        print(f"   Due Date: {bll['due_date']}")
-        print(f"   Web Page: {bll['web_page']}")
-        print(f"   Login Info: {bll['login_info']}")
-        print(f"   Password: {bll['password']}\n")
+    
+    today = datetime.now()
+    
+    for idx, bill in enumerate(bills, 1):
+        # Determine bill status and color
+        if bill.get('paid', False):
+            status = f"{Colors.PAID}✓ Paid{Colors.RESET}"
+        else:
+            status = f"{Colors.UNPAID}○ Unpaid{Colors.RESET}"
+        
+        # Calculate days until due
+        try:
+            due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
+            days_diff = (due_date - today).days
+            
+            if days_diff < 0:
+                date_info = f"{Colors.OVERDUE}(Overdue by {abs(days_diff)} days!){Colors.RESET}"
+                status = f"{Colors.OVERDUE}! OVERDUE{Colors.RESET}"
+            elif days_diff == 0:
+                date_info = f"{Colors.DUE_SOON}(Due TODAY!){Colors.RESET}"
+            elif days_diff <= 7:
+                date_info = f"{Colors.DUE_SOON}(Due in {days_diff} days){Colors.RESET}"
+            else:
+                date_info = ""
+        except ValueError:
+            date_info = f"{Colors.ERROR}(Invalid date){Colors.RESET}"
+        
+        # Print bill info with colors
+        print(f"{Colors.INFO}{idx:2}.{Colors.RESET} {Colors.TITLE}{bill['name']}{Colors.RESET} [{status}]")
+        print(f"    Due: {Colors.INFO}{bill['due_date']}{Colors.RESET} {date_info}")
+        
+        if bill.get('web_page'):
+            print(f"    Website: {Colors.INFO}{bill['web_page']}{Colors.RESET}")
+        if bill.get('login_info'):
+            print(f"    Login: {Colors.INFO}{bill['login_info']}{Colors.RESET}")
+        print()
 
 def edit_bill():
     print("\n--- Edit a Bill ---")
@@ -286,24 +398,44 @@ def pay_bill():
         print("Invalid input. Please enter a number.")
 
 def verify_due_bills(days=7):
-    print("\n--- Due Bills ---")
+    """Check for due bills with color highlighting."""
+    title_msg(f"Bills Due Within {days} Days")
+    
     today = datetime.now()
-    due_now = False
+    due_bills = []
+    
     for bill in bills:
+        if bill.get('paid', False):
+            continue  # Skip paid bills
+            
         try:
-            date_due = datetime.strptime(bill['due_date'], '%Y-%m-%d')
-            delta = date_due - today
-            if 0 <= delta.days <= days:
-                print(f"Bill '{bill['name']}' is due on {delta.days} days {bill['due_date']}")
-                due_now = True
+            due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
+            days_diff = (due_date - today).days
+            
+            if days_diff <= days:
+                due_bills.append((bill, days_diff))
         except ValueError:
-            print(f"Invalid date format for bill {bill['name']}: {bill['due_date']}")
-    if not due_now:
-        print("No bills are due in the specified timeframe.\n")
-    else:
-        print()
+            continue
+    
+    if not due_bills:
+        success_msg("No bills are due soon! 🎉")
+        return
+    
+    # Sort by days until due
+    due_bills.sort(key=lambda x: x[1])
+    
+    for bill, days_diff in due_bills:
+        if days_diff < 0:
+            colored_print(f"🚨 {bill['name']} - OVERDUE by {abs(days_diff)} days!", Colors.OVERDUE)
+        elif days_diff == 0:
+            colored_print(f"🔥 {bill['name']} - DUE TODAY!", Colors.DUE_SOON)
+        elif days_diff <= 3:
+            colored_print(f"⚠️  {bill['name']} - Due in {days_diff} days", Colors.WARNING)
+        else:
+            colored_print(f"📅 {bill['name']} - Due in {days_diff} days", Colors.INFO)
+    print()
 
-# 7. Search functions
+# 8. Search functions
 def search_bills():
     """Search bills by name, due date, or website."""
     print("\n--- Search Bills ---")
@@ -501,7 +633,7 @@ def pay_bill_from_search(results):
     
     input("\nPress Enter to continue...")
 
-# 8. Sort functions (PUT ALL SORT FUNCTIONS HERE)
+# 9. Sort functions (PUT ALL SORT FUNCTIONS HERE)
 def sort_bills():
     """Sort bills by different criteria."""
     if not bills:
@@ -655,34 +787,18 @@ def display_sorted_bills(title):
         print("❌ Invalid option.")
         input("Press Enter to continue...")
 
-# 9. Main application
-def display_menu():
-    """Display the main menu."""
-    print("\n" + "="*40)
-    print("           BILLS TRACKER")
-    print("="*40)
-    print("1. 📝 Add a bill")
-    print("2. 📋 View all bills")
-    print("3. 🔍 Search bills")
-    print("4. 🔄 Sort bills")  # New option
-    print("5. ⏰ Check due bills")
-    print("6. 💰 Pay a bill")
-    print("7. ✏️  Edit a bill")
-    print("8. 🗑️  Delete a bill")
-    print("9. 🚪 Exit")
-    print("="*40)
-
+# 10. Main application
 def main():
-    """Main application loop."""
+    """Main application loop with colors."""
     clear_console()
-    print("Welcome to Bills Tracker! 🏠💳")
+    title_msg("Welcome to Bills Tracker! 🏠💳")
     
     # Load existing bills
     load_bills()
 
     while True:
         display_menu()
-        choice = input("Choose an option (1-9): ").strip()
+        choice = colored_input("Choose an option (1-9): ", Colors.PROMPT).strip()
         
         if choice == '1':
             clear_console()
@@ -690,17 +806,17 @@ def main():
         elif choice == '2':
             clear_console()
             view_bills()
-            input("\n📖 Press Enter to continue...")
+            colored_input("\n📖 Press Enter to continue...", Colors.INFO)
         elif choice == '3':
             clear_console()
             search_bills()
-        elif choice == '4':  # New sort option
+        elif choice == '4':
             clear_console()
             sort_bills()
         elif choice == '5':
             clear_console()
             verify_due_bills()
-            input("\n📖 Press Enter to continue...")
+            colored_input("\n📖 Press Enter to continue...", Colors.INFO)
         elif choice == '6':
             clear_console()
             pay_bill()
@@ -711,12 +827,12 @@ def main():
             clear_console()
             delete_bill()
         elif choice == '9':
-            print("\n👋 Thank you for using Bills Tracker!")
+            success_msg("Thank you for using Bills Tracker! 👋")
             break
         else:
-            print("❌ Invalid option. Please choose 1-9.")
-            input("Press Enter to continue...")
+            error_msg("Invalid option. Please choose 1-9.")
+            colored_input("Press Enter to continue...", Colors.WARNING)
 
-# 10. Entry point
+# 11. Entry point
 if __name__ == "__main__":
     main()

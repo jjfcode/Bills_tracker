@@ -18,7 +18,7 @@ This document outlines planned and potential future updates for the Bills Tracke
 ### 1.1 Enhanced User Experience
 - [x] **Search functionality** - Find bills by name, due date, or website
 - [x] **Sort options** - Sort bills by due date, name, or payment status
-- [ ] **Colored output** - Use `colorama` library for better visual feedback
+- [x] **Colored output** - Use `colorama` library for better visual feedback
 - [ ] **Progress indicators** - Show loading bars for backup operations
 - [ ] **Pagination** - Handle large numbers of bills efficiently
 
