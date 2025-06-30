@@ -1192,7 +1192,7 @@ def display_search_results(results, title):
 
 def display_search_results_simple(results, title):
     """Display search results without pagination (for small result sets)."""
-    print(f"\n--- {title} ---")
+    colored_print(f"\n--- {title} ---", Colors.TITLE)
     
     if not results:
         error_msg("No bills found matching your search.")
@@ -1202,14 +1202,40 @@ def display_search_results_simple(results, title):
     success_msg(f"Found {len(results)} bill(s):")
     print()
     
+    today = datetime.now()
+    
     for idx, bill in enumerate(results, 1):
-        status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
-        print(f"{idx:2}. {bill['name']} [{status}]")
-        print(f"    Due: {bill['due_date']}")
+        # Determine bill status and color (same logic as view_bills)
+        if bill.get('paid', False):
+            status = f"{Colors.PAID}✓ Paid{Colors.RESET}"
+        else:
+            status = f"{Colors.UNPAID}○ Unpaid{Colors.RESET}"
+        
+        # Calculate days until due
+        try:
+            due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
+            days_diff = (due_date - today).days
+            
+            if days_diff < 0:
+                date_info = f"{Colors.OVERDUE}(Overdue by {abs(days_diff)} days!){Colors.RESET}"
+                status = f"{Colors.OVERDUE}! OVERDUE{Colors.RESET}"
+            elif days_diff == 0:
+                date_info = f"{Colors.DUE_SOON}(Due TODAY!){Colors.RESET}"
+            elif days_diff <= 7:
+                date_info = f"{Colors.DUE_SOON}(Due in {days_diff} days){Colors.RESET}"
+            else:
+                date_info = ""
+        except ValueError:
+            date_info = f"{Colors.ERROR}(Invalid date){Colors.RESET}"
+        
+        # Display bill with colors (same format as view_bills)
+        print(f"{Colors.INFO}{idx:2}.{Colors.RESET} {Colors.TITLE}{bill['name']}{Colors.RESET} [{status}]")
+        print(f"    Due: {Colors.INFO}{bill['due_date']}{Colors.RESET} {date_info}")
+        
         if bill.get('web_page'):
-            print(f"    Website: {bill['web_page']}")
+            print(f"    Website: {Colors.INFO}{bill['web_page']}{Colors.RESET}")
         if bill.get('login_info'):
-            print(f"    Login: {bill['login_info']}")
+            print(f"    Login: {Colors.INFO}{bill['login_info']}{Colors.RESET}")
         print()
     
     # Keep the existing options for simple display
@@ -1283,19 +1309,44 @@ def display_search_results_paginated(results, title, items_per_page=10):
             input("Press Enter to continue...")
 
 def display_search_results_page(current_results, paginator):
-    """Display a page of search results."""
+    """Display a page of search results with proper color coding."""
     page_info = paginator.get_page_info()
     
     success_msg(f"Found {page_info['total_items']} bill(s) total:")
     print()
     
+    today = datetime.now()
+    
     for idx, bill in enumerate(current_results, 1):
         # Calculate actual bill number across all pages
         actual_number = (paginator.current_page - 1) * paginator.items_per_page + idx
         
-        status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+        # Determine bill status and color (same logic as view_bills)
+        if bill.get('paid', False):
+            status = f"{Colors.PAID}✓ Paid{Colors.RESET}"
+        else:
+            status = f"{Colors.UNPAID}○ Unpaid{Colors.RESET}"
+        
+        # Calculate days until due
+        try:
+            due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
+            days_diff = (due_date - today).days
+            
+            if days_diff < 0:
+                date_info = f"{Colors.OVERDUE}(Overdue by {abs(days_diff)} days!){Colors.RESET}"
+                status = f"{Colors.OVERDUE}! OVERDUE{Colors.RESET}"
+            elif days_diff == 0:
+                date_info = f"{Colors.DUE_SOON}(Due TODAY!){Colors.RESET}"
+            elif days_diff <= 7:
+                date_info = f"{Colors.DUE_SOON}(Due in {days_diff} days){Colors.RESET}"
+            else:
+                date_info = ""
+        except ValueError:
+            date_info = f"{Colors.ERROR}(Invalid date){Colors.RESET}"
+        
+        # Display bill with colors (same format as view_bills)
         print(f"{Colors.INFO}{actual_number:3}.{Colors.RESET} {Colors.TITLE}{bill['name']}{Colors.RESET} [{status}]")
-        print(f"     Due: {Colors.INFO}{bill['due_date']}{Colors.RESET}")
+        print(f"     Due: {Colors.INFO}{bill['due_date']}{Colors.RESET} {date_info}")
         
         if bill.get('web_page'):
             print(f"     Website: {Colors.INFO}{bill['web_page'][:50]}{'...' if len(bill.get('web_page', '')) > 50 else ''}{Colors.RESET}")
