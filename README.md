@@ -1,13 +1,13 @@
 # Bills Tracker 🏠💳
 
-A comprehensi- **Data Integrity** - Comprehensive input validation and data recovery optionse command-line application for managing household bills with advanced features like flexible billing cycles, custom reminder periods, search, sorting, pagination, colored output, and automatic backups.
+A comprehensive command-line application for managing household bills with advanced features like flexible billing cycles, custom reminder periods, bill templates, contact information management, CSV import/export, search, sorting, pagination, colored output, and automatic backups.
 
 ## ✨ Features
 
 ### Core Functionality
-- **Add Bills** - Create new bills with name, due date, website, login info, password, and custom billing cycles
-- **View Bills** - Display all bills with color-coded status, due date information, and pagination
-- **Edit Bills** - Modify existing bill information including billing cycles and reminder periods
+- **Add Bills** - Create new bills with name, due date, website, login info, password, custom billing cycles, and comprehensive contact information
+- **View Bills** - Display all bills with color-coded status, due date information, contact details, and pagination
+- **Edit Bills** - Modify existing bill information including billing cycles, reminder periods, and contact details
 - **Delete Bills** - Remove bills with confirmation
 - **Pay Bills** - Mark bills as paid and automatically update due dates based on billing cycles
 
@@ -18,176 +18,124 @@ A comprehensi- **Data Integrity** - Comprehensive input validation and data reco
 - **🗓️ Calendar Integration** - View upcoming bills in calendar format
 - **🚨 Overdue Tracking** - Highlight overdue bills with urgency indicators
 
+### Bill Templates & Quick Actions
+- **📋 Bill Templates** - Save and reuse bill configurations for quick bill creation
+- **💾 Save as Template** - Convert existing bills into reusable templates
+- **🚀 Quick Bill Creation** - Use templates to add bills with minimal input (just due date)
+- **✏️ Template Management** - Edit, delete, and organize templates
+- **📝 Manual Template Creation** - Create templates from scratch with all details
+
+### Contact Information Management
+- **📧 Customer Service Email** - Store company support email addresses
+- **📞 Support Phone Numbers** - Separate support and billing phone numbers
+- **🕒 Service Hours** - Track customer service availability
+- **🆔 Account Information** - Store account numbers and reference IDs
+- **💬 Live Chat Support** - URLs for online chat support
+- **📱 Mobile App Information** - Details about mobile applications
+- **🔍 Contact Search** - Search bills by contact information
+
+### CSV Import/Export System
+- **📥 Bulk Import** - Import multiple bills from CSV files with validation
+- **📤 Data Export** - Export all bills to CSV format for backup and analysis
+- **📋 Sample Templates** - Generate sample CSV files with correct format
+- **✅ Comprehensive Validation** - URL, email, date, and billing cycle validation
+- **🔄 Duplicate Detection** - Prevent importing duplicate bills
+- **📊 Import Reports** - Detailed feedback on import success and errors
+
 ### Search & Organization
-- **🔍 Smart Search** - Search bills by name, due date, website, or across all fields with pagination
+- **🔍 Smart Search** - Search bills by name, due date, website, contact information, or across all fields with pagination
 - **🔄 Flexible Sorting** - Sort by due date, name, payment status, billing cycle (ascending/descending)
 - **📄 Pagination** - Handle large numbers of bills efficiently with configurable page sizes
-- **� Smart Filtering** - Filter bills based on custom reminder periods or specific day ranges
+- **🎯 Smart Filtering** - Filter bills based on custom reminder periods or specific day ranges
+- **💡 Auto-complete** - Smart suggestions while typing bill names and websites
 
-### Visual & User Experience
-- **�🌈 Colored Output** - Visual feedback with color-coded status, urgency indicators, and billing cycles
-- **📊 Progress Indicators** - Loading bars for backup operations and data processing
-- **🎨 Visual Bill Status** - Emojis and colors for quick status recognition
-- **� Clean Interface** - Clear console functionality for better navigation
-- **❌ Cancel Operations** - Type 'cancel' at any time to abort operations
+### Bill Templates
 
-### Data Management
-- **💾 Advanced Backup System** - Creates timestamped backups with retention management and progress tracking
-- **🛡️ Input Validation** - Prevents duplicates and validates date formats, URLs, and ranges
-- **🔄 Automatic Migration** - Seamless upgrade of existing data with new features
-- **💽 Data Integrity** - Comprehensive error management with data recovery options
+**Template Features:**
+- **Save Existing Bills** - Convert any bill into a reusable template
+- **Manual Creation** - Create templates from scratch with all details
+- **Quick Bill Creation** - Use templates to add bills with just a due date
+- **Template Management** - Edit, delete, and organize templates
+- **Duplicate Prevention** - Templates with same names are overwritten with confirmation
 
-## 🎨 Color Scheme & Visual Indicators
+**Template Information:**
+- **Name** - Template name (required)
+- **Billing cycle** - Recurring pattern for bills created from template
+- **Reminder period** - Default reminder days for new bills
+- **Website & Login** - Pre-filled account information
+- **Contact details** - All customer service information
+- **No due dates** - Templates don't include due dates (set when creating bills)
 
-### Status Colors
-- 🟢 **Green** - Success messages, paid bills, completed operations
-- 🔴 **Red** - Errors, overdue bills (urgent attention needed)
-- 🟡 **Yellow** - Warnings, unpaid bills, due soon alerts, due today
-- 🔵 **Blue** - Menu items, navigation, information details
-- 🟣 **Magenta** - Titles, bill names, section headers
-- 🔵 **Cyan** - General information, due dates, website details
-- ⚪ **White** - User input prompts
+**Using Templates:**
+1. Choose "Bill templates" from main menu
+2. Select "Use template to add bill"
+3. Choose template from list
+4. Enter only the due date
+5. Bill is created with all template details automatically
 
-### Billing Cycle Colors
-- 🟡 **Yellow** - Weekly and bi-weekly cycles (frequent)
-- 🔵 **Cyan** - Monthly cycles (standard)
-- 🟢 **Green** - Quarterly cycles (seasonal)
-- 🟣 **Magenta** - Semi-annual cycles (insurance, etc.)
-- 🔵 **Blue** - Annual cycles (memberships, renewals)
-- 🔴 **Red** - One-time bills (no recurrence)
+### Contact Information Management
 
-### Urgency Indicators
-- 🚨 **Red Flashing** - OVERDUE bills (immediate action required)
-- 🔥 **Bright Yellow** - DUE TODAY (urgent)
-- ⚠️ **Yellow** - Due within 3 days (high priority)
-- 📅 **Cyan** - Due within custom reminder period (normal)
-- ⏰ **White** - Reminder period information
+**Comprehensive Contact Details:**
+- **Customer Service Email** - Primary contact email with validation
+- **Support Phone** - General customer support number
+- **Billing Phone** - Dedicated billing department number
+- **Service Hours** - When customer service is available
+- **Account Number** - Your unique account identifier
+- **Reference ID** - Policy number or reference code
+- **Live Chat URL** - Online chat support link with validation
+- **Mobile App** - Mobile application details and platforms
 
-## 📋 Requirements
+**Contact Features:**
+- **Search by Contact** - Find bills using any contact information
+- **Validation** - Email and URL format validation
+- **Display Integration** - Contact info shown in bill listings
+- **Quick Access** - Easy access to support information
+- **Comprehensive Storage** - All customer service details in one place
 
-- **Python 3.6 or higher**
-- **colorama** library for colored output
-- **tqdm** library for progress indicators  
-- No other external dependencies required
+### CSV Import/Export System
 
-## 🚀 Installation
+**Import Features:**
+- **Bulk Import** - Add multiple bills at once from CSV files
+- **Format Validation** - Automatic validation of CSV structure
+- **Data Validation** - URL, email, date, and billing cycle validation
+- **Duplicate Detection** - Prevents importing duplicate bill names
+- **Error Reporting** - Detailed feedback on import success and issues
+- **Sample Templates** - Generate sample CSV files with correct format
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/jjfcode/Bills_tracker.git
-   cd Bills_tracker
-   ```
+**Export Features:**
+- **Complete Export** - Export all bills with all fields to CSV
+- **Timestamped Files** - Automatic filename generation with timestamps
+- **Data Portability** - Easy backup and migration to other systems
+- **Analysis Ready** - CSV format compatible with Excel, Google Sheets, etc.
 
-2. **Install required dependencies:**
-   ```bash
-   pip install colorama tqdm
-   ```
+**CSV Format Requirements:**
+- **Required Columns**: name, due_date
+- **Optional Columns**: billing_cycle, reminder_days, web_page, login_info, password, company_email, support_phone, billing_phone, customer_service_hours, account_number, reference_id, support_chat_url, mobile_app
+- **Date Format**: YYYY-MM-DD
+- **Headers**: Case-insensitive column names
 
-3. **Run the application:**
-   ```bash
-   python bills-tracker.py
-   ```
+**Import Process:**
+1. Prepare CSV file with correct format
+2. Choose "CSV Import/Export" from main menu
+3. Select "Import bills from CSV"
+4. Enter file path
+5. Review validation results
+6. Confirm import
 
-## 📖 Usage
-
-### Main Menu Options
-
-1. **📝 Add a bill** - Create new bills with comprehensive information and billing cycles
-2. **📋 View all bills** - Display all bills with color-coded status and pagination
-3. **🔍 Search bills** - Find bills using various search criteria with paginated results
-4. **🔄 Sort bills** - Organize bills by different attributes with multiple sort options
-5. **⏰ Check due bills** - View bills using custom reminder periods or specific day ranges
-6. **💰 Pay a bill** - Mark bills as paid and automatically advance due dates
-7. **✏️ Edit a bill** - Modify existing bill information including billing cycles
-8. **🗑️ Delete a bill** - Remove bills with confirmation
-9. **🚪 Exit** - Close the application
-
-### Adding a Bill
-
-When adding a bill, you'll be prompted for:
-- **Bill name** (required) - Duplicate names are automatically detected
-- **Due date** (required) - Format: YYYY-MM-DD with validation
-- **Billing cycle** (required) - Choose from 7 options:
-  - Weekly (every 7 days)
-  - Bi-weekly (every 14 days)  
-  - Monthly (every month)
-  - Quarterly (every 3 months)
-  - Semi-annually (every 6 months)
-  - Annually (every 12 months)
-  - One-time (no recurrence)
-- **Reminder period** (required) - Set custom reminder days (1-365 or default 7)
-- **Website** (optional) - Bill provider's website
-- **Login information** (optional) - Username or account details
-- **Password** (optional) - Account password
-
-**Features:**
-- Type `cancel` at any time to abort the operation
-- Automatic duplicate detection prevents duplicate bill names
-- Date format validation ensures proper due date entry
-- Smart billing cycle selection with descriptions
-- Custom reminder periods for personalized notifications
-- All optional fields can be skipped
-
-### Billing Cycles & Due Date Management
-
-**Supported Billing Cycles:**
-- **Weekly**: Perfect for weekly services (cleaning, lawn care)
-- **Bi-weekly**: Great for bi-weekly payments (some salaries, newspapers)
-- **Monthly**: Most common billing cycle (utilities, subscriptions, rent)
-- **Quarterly**: Seasonal services (estimated taxes, some insurance)
-- **Semi-annually**: Insurance premiums, some memberships
-- **Annually**: Annual subscriptions, domain registrations, memberships
-- **One-time**: Single payments that don't recur
-
-**Smart Due Date Updates:**
-- When you pay a bill, the due date automatically advances based on its billing cycle
-- Monthly bills: January 15 → February 15 → March 15
-- Quarterly bills: January 15 → April 15 → July 15
-- Handles month-end dates properly (Jan 31 → Feb 28/29)
-- One-time bills stay marked as paid and don't recur
-
-### Custom Reminder Periods
-
-**How It Works:**
-- Each bill can have its own reminder period (1-365 days)
-- High-priority bills (rent, utilities) can have shorter periods (3-5 days)
-- Less urgent bills (annual renewals) can have longer periods (30-60 days)
-- Default is 7 days for all new bills
-
-**Due Bills Menu Options:**
-1. **Custom Reminder Periods** - Shows bills based on their individual reminder settings
-2. **Specific Days** - Traditional view of bills due within X days (1-365)
-
-**Example Scenarios:**
-- Rent (3 days): Get reminded 3 days before rent is due
-- Credit card (7 days): Standard weekly reminder
-- Car insurance (14 days): Two-week notice for expensive bills
-- Annual subscription (30 days): Month-long planning time
-
-### Search Functionality
-
-**Search Options:**
-1. **Search by name** - Find bills containing specific text in the name
-2. **Search by due date** - Find bills by exact date, month/year, or year
-3. **Search by website** - Find bills by website URL
-4. **Search all fields** - Global search across all bill information
-
-**Search Results Features:**
-- **Pagination** - Handle large search results efficiently
-- **Detailed View** - View complete bill information from search results
-- **Direct Actions** - Pay or edit bills directly from search results
-- **Navigation** - Easy browsing through multiple pages of results
-- **Interactive Menu** - Return to search menu for new searches
+**Export Process:**
+1. Choose "CSV Import/Export" from main menu
+2. Select "Export bills to CSV"
+3. Enter filename (or use default)
+4. Confirm export
+5. File saved with all bill data
 
 ### Sorting & Organization
-
-**Sorting Options:**
-1. **📅 Sort by due date** - Earliest or latest first with urgency indicators
-2. **🔤 Sort by name** - Alphabetical (A-Z or Z-A) 
-3. **✅ Sort by payment status** - Paid or unpaid first
-4. **🔄 Sort by billing cycle** - Group by cycle type (weekly, monthly, etc.)
-5. **⚡ Multi-level sorting** - Combine multiple sort criteria
-6. **📄 Reset to original order** - Restore file order
+- **📅 Sort by due date** - Earliest or latest first with urgency indicators
+- **🔤 Sort by name** - Alphabetical (A-Z or Z-A) 
+- **✅ Sort by payment status** - Paid or unpaid first
+- **🔄 Sort by billing cycle** - Group by cycle type (weekly, monthly, etc.)
+- **⚡ Multi-level sorting** - Combine multiple sort criteria
+- **📄 Reset to original order** - Restore file order
 
 **Enhanced Features:**
 - **Pagination** - Handle large sorted lists efficiently  
@@ -272,6 +220,7 @@ When adding a bill, you'll be prompted for:
 Bills_tracker/
 ├── bills-tracker.py                    # Main application file with all features
 ├── bills.json                         # Bills data storage (auto-created)
+├── bill_templates.json                # Bill templates storage (auto-created)
 ├── backups/                           # Automatic backup directory
 │   ├── bills_backup_20250629_143022.json
 │   ├── bills_backup_20250629_143045.json
@@ -683,7 +632,16 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 🎯 Version History
 
-### Version 3.1 (Current - June 29, 2025)
+### Version 3.2 (Current - June 29, 2025)
+- ✅ **Bill Templates** - Save and reuse bill configurations for quick bill creation
+- ✅ **Contact Information Management** - Comprehensive customer service details storage
+- ✅ **CSV Import/Export** - Bulk import/export with validation and sample templates
+- ✅ **Comprehensive Help System** - Built-in help with detailed documentation
+- ✅ **Auto-complete Features** - Smart suggestions for bill names and websites
+- ✅ **Enhanced Search** - Search by contact information and improved auto-complete
+- ✅ **Data Portability** - Import/export capabilities for data migration
+
+### Version 3.1 (June 29, 2025)
 - ✅ **Enhanced Input Validation** - URL auto-correction, email validation, date range checks, reminder period limits
 - ✅ **Smart Error Handling** - User-friendly error messages with helpful suggestions and retry options
 - ✅ **Data Quality Improvements** - Automatic input correction and validation for better data integrity
@@ -719,25 +677,31 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 🏆 Feature Comparison
 
-| Feature | v1.0 | v2.0 | v3.0 |
-|---------|------|------|------|
-| Basic Bill Management | ✅ | ✅ | ✅ |
-| Search Functionality | ❌ | ✅ | ✅ |
-| Sorting Options | ❌ | ✅ | ✅ |
-| Colored Output | ❌ | ✅ | ✅ |
-| Billing Cycles | ❌ | ❌ | ✅ |
-| Custom Reminders | ❌ | ❌ | ✅ |
-| Pagination | ❌ | ❌ | ✅ |
-| Progress Indicators | ❌ | ❌ | ✅ |
-| Calendar View | ❌ | ❌ | ✅ |
-| Multi-level Sorting | ❌ | ❌ | ✅ |
-| Smart Date Handling | ❌ | ❌ | ✅ |
+| Feature | v1.0 | v2.0 | v3.0 | v3.2 |
+|---------|------|------|------|------|
+| Basic Bill Management | ✅ | ✅ | ✅ | ✅ |
+| Search Functionality | ❌ | ✅ | ✅ | ✅ |
+| Sorting Options | ❌ | ✅ | ✅ | ✅ |
+| Colored Output | ❌ | ✅ | ✅ | ✅ |
+| Billing Cycles | ❌ | ❌ | ✅ | ✅ |
+| Custom Reminders | ❌ | ❌ | ✅ | ✅ |
+| Pagination | ❌ | ❌ | ✅ | ✅ |
+| Progress Indicators | ❌ | ❌ | ✅ | ✅ |
+| Calendar View | ❌ | ❌ | ✅ | ✅ |
+| Multi-level Sorting | ❌ | ❌ | ✅ | ✅ |
+| Smart Date Handling | ❌ | ❌ | ✅ | ✅ |
+| Enhanced Validation | ❌ | ❌ | ❌ | ✅ |
+| Bill Templates | ❌ | ❌ | ❌ | ✅ |
+| Contact Information | ❌ | ❌ | ❌ | ✅ |
+| CSV Import/Export | ❌ | ❌ | ❌ | ✅ |
+| Help System | ❌ | ❌ | ❌ | ✅ |
+| Auto-complete | ❌ | ❌ | ❌ | ✅ |
 
 ---
 
 **Made with ❤️ for better bill management**
 
-*Last updated: June 29, 2025 - Version 3.0*
+*Last updated: June 29, 2025 - Version 3.2*
 *Next major release planned: September 2025*
 
 ---
@@ -747,23 +711,29 @@ This project is open source and available under the [MIT License](LICENSE).
 **New Users:**
 1. Install: `pip install colorama tqdm`
 2. Run: `python bills-tracker.py`
-3. Add your first bill with option 1
-4. Explore custom billing cycles and reminder periods
-5. Check due bills with option 5 to see the new menu system
+3. Add your first bill with option 1 (includes contact information)
+4. Explore bill templates with option 9 for quick bill creation
+5. Try CSV import/export with option 10 for bulk operations
+6. Access help system with option 11 for detailed guidance
+7. Check due bills with option 5 to see the enhanced menu system
 
 **Existing Users Upgrading:**
 1. Your data will be automatically migrated to include new features
 2. All existing bills will get 7-day default reminder periods
 3. Billing cycles will be set to "monthly" for existing bills
-4. You can edit bills to customize billing cycles and reminder periods
-5. Enjoy the new pagination, calendar view, and enhanced search features!
+4. You can edit bills to add contact information and customize settings
+5. Create templates from existing bills for quick future bill creation
+6. Export your data to CSV for backup and analysis
+7. Enjoy the new help system and auto-complete features!
 
 **Power Users:**
 - Try the demo scripts: `python demo/demo_flexible_billing.py`
 - Test edge cases: `python test/test_edge_cases.py`
-- Explore the implementation docs for technical details
+- Create templates for recurring bills
+- Use CSV import for bulk data migration
+- Explore the comprehensive help system
 - Contribute to future development via GitHub issues and PRs
 
 ---
 
-*🏠 Bills Tracker v3.0 - The Complete Personal Finance Bill Management Solution 💳*
+*🏠 Bills Tracker v3.2 - The Complete Personal Finance Bill Management Solution 💳*
