@@ -1,3 +1,4 @@
+
 # Bills Tracker 🏠💳
 
 A comprehensive command-line application for managing household bills with advanced features like flexible billing cycles, custom reminder periods, bill templates, contact information management, CSV import/export, search, sorting, pagination, colored output, and automatic backups.
