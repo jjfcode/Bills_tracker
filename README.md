@@ -276,16 +276,21 @@ Bills_tracker/
 │   ├── bills_backup_20250629_143022.json
 │   ├── bills_backup_20250629_143045.json
 │   └── ... (up to 5 most recent backups)
+├── demo/                              # Demonstration scripts
+│   ├── README.md                      # Demo scripts documentation
+│   ├── demo_flexible_billing.py       # Billing cycles demonstration script
+│   ├── demo_custom_reminders.py      # Custom reminders demonstration script
+│   └── demo_enhanced_validation.py   # Enhanced validation features demonstration
+├── test/                              # Test scripts
+│   ├── README.md                      # Test scripts documentation
+│   ├── test_billing_cycles.py        # Billing cycles testing script
+│   ├── test_edge_cases.py            # Date handling edge cases testing
+│   ├── test_menu_options.py          # Menu options functionality testing
+│   └── test_validation.py            # Validation functions testing script
 ├── README.md                          # This comprehensive documentation
 ├── Future_Update.md                   # Planned enhancements and roadmap
 ├── BILLING_CYCLES_IMPLEMENTATION.md   # Billing cycles feature documentation
 ├── CUSTOM_REMINDERS_IMPLEMENTATION.md # Custom reminder periods documentation
-├── demo_flexible_billing.py           # Billing cycles demonstration script
-├── demo_custom_reminders.py          # Custom reminders demonstration script
-├── demo_enhanced_validation.py       # Enhanced validation features demonstration
-├── test_billing_cycles.py            # Billing cycles testing script
-├── test_edge_cases.py                # Date handling edge cases testing
-├── test_validation.py                # Validation functions testing script
 └── .gitignore                        # Git ignore file
 ```
 
@@ -579,9 +584,9 @@ This project is open source and available under the [MIT License](LICENSE).
 **Troubleshooting:**
 1. Check the troubleshooting section above for common issues
 2. Try the demonstration scripts to verify functionality:
-   - `python demo_flexible_billing.py` - Billing cycles demo
-   - `python demo_custom_reminders.py` - Custom reminders demo
-3. Test with edge cases using: `python test_edge_cases.py`
+   - `python demo/demo_flexible_billing.py` - Billing cycles demo
+   - `python demo/demo_custom_reminders.py` - Custom reminders demo
+3. Test with edge cases using: `python test/test_edge_cases.py`
 
 **Community Support:**
 1. Review existing issues on GitHub before creating new ones
@@ -754,8 +759,8 @@ This project is open source and available under the [MIT License](LICENSE).
 5. Enjoy the new pagination, calendar view, and enhanced search features!
 
 **Power Users:**
-- Try the demo scripts: `python demo_flexible_billing.py`
-- Test edge cases: `python test_edge_cases.py`
+- Try the demo scripts: `python demo/demo_flexible_billing.py`
+- Test edge cases: `python test/test_edge_cases.py`
 - Explore the implementation docs for technical details
 - Contribute to future development via GitHub issues and PRs
 
