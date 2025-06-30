@@ -23,11 +23,11 @@ This document outlines planned and potential future updates for the Bills Tracke
 - [x] **Pagination** - Handle large numbers of bills efficiently
 
 ### 1.2 Better Date Management
-- [ ] **Flexible due dates** - Support weekly, monthly, quarterly billing cycles
-- [ ] **Smart date updates** - Handle different month lengths properly (30, 31, 28/29 days)
+- [x] **Flexible due dates** - Support weekly, monthly, quarterly billing cycles
+- [x] **Smart date updates** - Handle different month lengths properly (30, 31, 28/29 days)
 - [ ] **Custom reminder periods** - Set different warning days per bill
-- [ ] **Overdue tracking** - Highlight overdue bills in red
-- [ ] **Calendar integration** - Show bills in a monthly calendar view
+- [x] **Overdue tracking** - Highlight overdue bills in red
+- [x] **Calendar integration** - Show bills in a monthly calendar view
 
 ### 1.3 Input Improvements
 - [ ] **Better validation** - Validate URLs, email formats, date ranges

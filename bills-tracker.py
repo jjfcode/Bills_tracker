@@ -247,6 +247,123 @@ def get_yes_no(prompt):
             return False
         print("Please enter 'yes' or 'no'")
 
+# 6.1 Billing cycle constants and functions
+class BillingCycle:
+    """Billing cycle constants and utilities."""
+    WEEKLY = "weekly"
+    BI_WEEKLY = "bi-weekly"
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    SEMI_ANNUALLY = "semi-annually"
+    ANNUALLY = "annually"
+    ONE_TIME = "one-time"
+    
+    @staticmethod
+    def get_all_cycles():
+        return [
+            BillingCycle.WEEKLY,
+            BillingCycle.BI_WEEKLY,
+            BillingCycle.MONTHLY,
+            BillingCycle.QUARTERLY,
+            BillingCycle.SEMI_ANNUALLY,
+            BillingCycle.ANNUALLY,
+            BillingCycle.ONE_TIME
+        ]
+    
+    @staticmethod
+    def get_cycle_description(cycle):
+        descriptions = {
+            BillingCycle.WEEKLY: "Every 7 days",
+            BillingCycle.BI_WEEKLY: "Every 14 days",
+            BillingCycle.MONTHLY: "Every month",
+            BillingCycle.QUARTERLY: "Every 3 months",
+            BillingCycle.SEMI_ANNUALLY: "Every 6 months",
+            BillingCycle.ANNUALLY: "Every 12 months",
+            BillingCycle.ONE_TIME: "One-time payment (no recurrence)"
+        }
+        return descriptions.get(cycle, "Unknown cycle")
+
+def get_billing_cycle():
+    """Get billing cycle from user input."""
+    print("\n--- Select Billing Cycle ---")
+    cycles = BillingCycle.get_all_cycles()
+    
+    for idx, cycle in enumerate(cycles, 1):
+        description = BillingCycle.get_cycle_description(cycle)
+        print(f"{idx}. {cycle.title()} - {description}")
+    
+    while True:
+        try:
+            choice = colored_input(f"\nChoose billing cycle (1-{len(cycles)}) or 'cancel': ", Colors.PROMPT).strip()
+            
+            if choice.lower() == 'cancel':
+                return None
+            
+            choice_num = int(choice)
+            if 1 <= choice_num <= len(cycles):
+                selected_cycle = cycles[choice_num - 1]
+                success_msg(f"Selected: {selected_cycle.title()}")
+                return selected_cycle
+            else:
+                error_msg(f"Please choose a number between 1 and {len(cycles)}")
+        except ValueError:
+            error_msg("Please enter a valid number or 'cancel'")
+
+def calculate_next_due_date(current_due_date, billing_cycle):
+    """Calculate the next due date based on billing cycle."""
+    try:
+        current_date = datetime.strptime(current_due_date, DATE_FORMAT)
+    except ValueError:
+        return current_due_date  # Return original if can't parse
+    
+    if billing_cycle == BillingCycle.WEEKLY:
+        next_date = current_date + timedelta(days=7)
+    elif billing_cycle == BillingCycle.BI_WEEKLY:
+        next_date = current_date + timedelta(days=14)
+    elif billing_cycle == BillingCycle.MONTHLY:
+        # Handle month rollover properly
+        next_date = add_months(current_date, 1)
+    elif billing_cycle == BillingCycle.QUARTERLY:
+        next_date = add_months(current_date, 3)
+    elif billing_cycle == BillingCycle.SEMI_ANNUALLY:
+        next_date = add_months(current_date, 6)
+    elif billing_cycle == BillingCycle.ANNUALLY:
+        next_date = add_months(current_date, 12)
+    elif billing_cycle == BillingCycle.ONE_TIME:
+        return current_due_date  # No change for one-time bills
+    else:
+        return current_due_date  # Unknown cycle, no change
+    
+    return next_date.strftime(DATE_FORMAT)
+
+def add_months(date, months):
+    """Add months to a date, handling month/year rollover properly."""
+    month = date.month - 1 + months
+    year = date.year + month // 12
+    month = month % 12 + 1
+    
+    # Handle day overflow (e.g., Jan 31 + 1 month should be Feb 28/29)
+    day = date.day
+    import calendar
+    max_day = calendar.monthrange(year, month)[1]
+    if day > max_day:
+        day = max_day
+    
+    return date.replace(year=year, month=month, day=day)
+
+def get_billing_cycle_color(cycle):
+    """Get color for billing cycle display."""
+    color_map = {
+        BillingCycle.WEEKLY: Colors.DUE_SOON,
+        BillingCycle.BI_WEEKLY: Colors.WARNING,
+        BillingCycle.MONTHLY: Colors.INFO,
+        BillingCycle.QUARTERLY: Colors.SUCCESS,
+        BillingCycle.SEMI_ANNUALLY: Colors.TITLE,
+        BillingCycle.ANNUALLY: Colors.MENU,
+        BillingCycle.ONE_TIME: Colors.ERROR
+    }
+    return color_map.get(cycle, Colors.RESET)
+
 # 7. Core bill management functions
 def add_bill():
     """Add a new bill with colored feedback."""
@@ -279,6 +396,12 @@ def add_bill():
         error_msg("Invalid date format. Please use YYYY-MM-DD.")
         return
     
+    # Get billing cycle
+    billing_cycle = get_billing_cycle()
+    if billing_cycle is None:
+        warning_msg("Bill addition cancelled.")
+        return
+    
     # Get optional fields
     web_page = get_optional_input("Enter the web page for the bill")
     if web_page is None:
@@ -302,11 +425,12 @@ def add_bill():
         "web_page": web_page,
         "login_info": login_info,
         "password": password,
-        "paid": False
+        "paid": False,
+        "billing_cycle": billing_cycle
     }
     bills.append(bill)
     save_bills()
-    success_msg(f"Bill '{name}' added successfully!")
+    success_msg(f"Bill '{name}' added successfully with {billing_cycle} billing cycle!")
     colored_input("Press Enter to continue...", Colors.INFO)
 
 def display_menu():
@@ -364,6 +488,11 @@ def view_bills():
         print(f"{Colors.INFO}{idx:2}.{Colors.RESET} {Colors.TITLE}{bill['name']}{Colors.RESET} [{status}]")
         print(f"    Due: {Colors.INFO}{bill['due_date']}{Colors.RESET} {date_info}")
         
+        # Show billing cycle
+        cycle = bill.get('billing_cycle', 'monthly')
+        cycle_color = get_billing_cycle_color(cycle)
+        print(f"    Cycle: {cycle_color}{cycle.title()}{Colors.RESET}")
+        
         if bill.get('web_page'):
             print(f"    Website: {Colors.INFO}{bill['web_page']}{Colors.RESET}")
         if bill.get('login_info'):
@@ -410,8 +539,18 @@ def edit_bill():
             elif paid_status in ['no', 'n']:
                 bill['paid'] = False
 
+            # Billing cycle
+            current_cycle = bill.get('billing_cycle', 'monthly')
+            print(f"\nCurrent billing cycle: {current_cycle.title()}")
+            change_cycle = input("Change billing cycle? (yes/no): ").strip().lower()
+            if change_cycle in ['yes', 'y']:
+                new_billing_cycle = get_billing_cycle()
+                if new_billing_cycle is not None:
+                    bill['billing_cycle'] = new_billing_cycle
+                    success_msg(f"Billing cycle updated to {new_billing_cycle}")
+
             save_bills()
-            print(f"Bill '{bill['name']}' updated successfully.")
+            success_msg(f"Bill '{bill['name']}' updated successfully.")
         else:
             print("Invalid selection.")
     except ValueError:
@@ -453,15 +592,22 @@ def pay_bill():
                 return
             # Mark the bill as paid
             bill["paid"] = True
-            # Update the due date to next month (simple logic)
-            try:
-                current_due_date = datetime.strptime(bill['due_date'], '%Y-%m-%d')
-                next_month = current_due_date.replace(day=1) + timedelta(days=32)
-                new_due_date = next_month.replace(day=1)
-                bill['due_date'] = new_due_date.strftime('%Y-%m-%d')
-                print(f"Bill '{bill['name']}' marked as paid. Next due date set to {bill['due_date']}.")
-            except ValueError:
-                print("Invalid date format, Cannot update due date.")
+            
+            # Update the due date based on billing cycle
+            billing_cycle = bill.get('billing_cycle', BillingCycle.MONTHLY)
+            if billing_cycle != BillingCycle.ONE_TIME:
+                old_due_date = bill['due_date']
+                new_due_date = calculate_next_due_date(bill['due_date'], billing_cycle)
+                bill['due_date'] = new_due_date
+                
+                # Reset paid status for recurring bills
+                bill["paid"] = False
+                
+                success_msg(f"Bill '{bill['name']}' marked as paid!")
+                info_msg(f"Next due date ({billing_cycle}): {new_due_date}")
+            else:
+                success_msg(f"One-time bill '{bill['name']}' marked as paid and completed!")
+            
             save_bills()
         else:
             print("Invalid selection.")
@@ -600,6 +746,16 @@ def display_due_bills_page(current_due_bills, paginator):
     for idx, (bill, days_diff) in enumerate(current_due_bills, 1):
         actual_number = (paginator.current_page - 1) * paginator.items_per_page + idx
         
+        # Determine bill status and color
+        if bill.get('paid', False):
+            status = f"{Colors.PAID}✓ Paid{Colors.RESET}"
+        else:
+            status = f"{Colors.UNPAID}○ Unpaid{Colors.RESET}"
+        
+        # Override status for overdue bills
+        if days_diff < 0:
+            status = f"{Colors.OVERDUE}! OVERDUE{Colors.RESET}"
+        
         # Determine urgency and color
         if days_diff < 0:
             urgency = f"{Colors.OVERDUE}🚨 OVERDUE by {abs(days_diff)} days!{Colors.RESET}"
@@ -610,7 +766,7 @@ def display_due_bills_page(current_due_bills, paginator):
         else:
             urgency = f"{Colors.INFO}📅 Due in {days_diff} days{Colors.RESET}"
         
-        print(f"{Colors.INFO}{actual_number:3}.{Colors.RESET} {Colors.TITLE}{bill['name']}{Colors.RESET}")
+        print(f"{Colors.INFO}{actual_number:3}.{Colors.RESET} {Colors.TITLE}{bill['name']}{Colors.RESET} [{status}]")
         print(f"     {urgency}")
         print(f"     Due Date: {Colors.INFO}{bill['due_date']}{Colors.RESET}")
         if bill.get('web_page'):
@@ -1331,6 +1487,11 @@ def edit_bill_details(bill):
     elif paid_status in ['no', 'n']:
         bill['paid'] = False
 
+    # Billing cycle
+    billing_cycle = get_billing_cycle()
+    if billing_cycle is not None:
+        bill['billing_cycle'] = billing_cycle
+
     save_bills()
     success_msg(f"Bill '{bill['name']}' updated successfully.")
     input("Press Enter to continue...")
@@ -1538,3 +1699,196 @@ def display_sorted_bills(title):
     else:
         error_msg("Invalid option.")
         input("Press Enter to continue...")
+
+def migrate_bills_to_billing_cycles():
+    """Add billing cycle to existing bills that don't have it."""
+    migrated_count = 0
+    for bill in bills:
+        if 'billing_cycle' not in bill:
+            bill['billing_cycle'] = BillingCycle.MONTHLY  # Default to monthly
+            migrated_count += 1
+    
+    if migrated_count > 0:
+        save_bills()
+        info_msg(f"Migrated {migrated_count} bills to include billing cycles (defaulted to monthly)")
+
+def show_billing_cycle_summary():
+    """Show a summary of bills by billing cycle."""
+    if not bills:
+        warning_msg("No bills found.")
+        return
+    
+    title_msg("Bills by Billing Cycle")
+    
+    # Group bills by cycle
+    cycle_groups = {}
+    for bill in bills:
+        cycle = bill.get('billing_cycle', BillingCycle.MONTHLY)
+        if cycle not in cycle_groups:
+            cycle_groups[cycle] = []
+        cycle_groups[cycle].append(bill)
+    
+    # Display each group
+    for cycle in BillingCycle.get_all_cycles():
+        if cycle in cycle_groups:
+            cycle_color = get_billing_cycle_color(cycle)
+            bills_in_cycle = cycle_groups[cycle]
+            
+            print(f"\n{cycle_color}📅 {cycle.title()} ({len(bills_in_cycle)} bills){Colors.RESET}")
+            print(f"   {BillingCycle.get_cycle_description(cycle)}")
+            
+            for bill in bills_in_cycle:
+                status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+                print(f"   • {bill['name']} - Due: {bill['due_date']} [{status}]")
+    
+    input("\nPress Enter to continue...")
+
+def calculate_upcoming_bills(days=30):
+    """Calculate all upcoming bill occurrences within the specified days."""
+    upcoming = []
+    today = datetime.now()
+    end_date = today + timedelta(days=days)
+    
+    for bill in bills:
+        if bill.get('billing_cycle') == BillingCycle.ONE_TIME and bill.get('paid', False):
+            continue  # Skip completed one-time bills
+        
+        try:
+            current_due = datetime.strptime(bill['due_date'], DATE_FORMAT)
+            cycle = bill.get('billing_cycle', BillingCycle.MONTHLY)
+            
+            # Generate occurrences for this billing cycle
+            occurrence_date = current_due
+            occurrences = 0
+            max_occurrences = 20  # Prevent infinite loops
+            
+            while occurrence_date <= end_date and occurrences < max_occurrences:
+                if occurrence_date >= today:
+                    days_until = (occurrence_date - today).days
+                    upcoming.append({
+                        'bill': bill,
+                        'due_date': occurrence_date,
+                        'days_until': days_until,
+                        'cycle': cycle
+                    })
+                
+                # Calculate next occurrence
+                if cycle == BillingCycle.ONE_TIME:
+                    break  # One-time bills don't repeat
+                
+                next_due_str = calculate_next_due_date(
+                    occurrence_date.strftime(DATE_FORMAT), 
+                    cycle
+                )
+                occurrence_date = datetime.strptime(next_due_str, DATE_FORMAT)
+                occurrences += 1
+                
+        except ValueError:
+            continue  # Skip bills with invalid dates
+    
+    return sorted(upcoming, key=lambda x: x['days_until'])
+
+def show_upcoming_bills_calendar():
+    """Show upcoming bills in a calendar-like view."""
+    title_msg("Upcoming Bills Calendar (Next 30 Days)")
+    
+    upcoming = calculate_upcoming_bills(30)
+    
+    if not upcoming:
+        info_msg("No upcoming bills in the next 30 days!")
+        input("Press Enter to continue...")
+        return
+    
+    # Group by weeks
+    current_week = []
+    current_week_start = None
+    
+    for occurrence in upcoming:
+        due_date = occurrence['due_date']
+        
+        # Start new week if needed
+        week_start = due_date - timedelta(days=due_date.weekday())
+        if current_week_start != week_start:
+            if current_week:
+                display_week(current_week_start, current_week)
+            current_week = []
+            current_week_start = week_start
+        
+        current_week.append(occurrence)
+    
+    # Display last week
+    if current_week:
+        display_week(current_week_start, current_week)
+    
+    input("\nPress Enter to continue...")
+
+def display_week(week_start, occurrences):
+    """Display a week of bill occurrences."""
+    week_end = week_start + timedelta(days=6)
+    print(f"\n📅 Week of {week_start.strftime('%B %d')} - {week_end.strftime('%B %d, %Y')}")
+    print("=" * 60)
+    
+    # Group occurrences by day
+    days_dict = {}
+    for occurrence in occurrences:
+        day_key = occurrence['due_date'].strftime('%Y-%m-%d')
+        if day_key not in days_dict:
+            days_dict[day_key] = []
+        days_dict[day_key].append(occurrence)
+    
+    # Display each day of the week
+    for i in range(7):
+        day = week_start + timedelta(days=i)
+        day_key = day.strftime('%Y-%m-%d')
+        day_name = day.strftime('%A')
+        day_date = day.strftime('%m/%d')
+        
+        if day_key in days_dict:
+            day_occurrences = days_dict[day_key]
+            print(f"\n{Colors.INFO}{day_name} {day_date}:{Colors.RESET}")
+            
+            for occurrence in day_occurrences:
+                bill = occurrence['bill']
+                cycle = occurrence['cycle']
+                cycle_color = get_billing_cycle_color(cycle)
+                
+                days_until = occurrence['days_until']
+                if days_until == 0:
+                    urgency = f"{Colors.DUE_SOON}DUE TODAY!{Colors.RESET}"
+                elif days_until <= 3:
+                    urgency = f"{Colors.WARNING}Due in {days_until} days{Colors.RESET}"
+                else:
+                    urgency = f"{Colors.INFO}Due in {days_until} days{Colors.RESET}"
+                
+                print(f"  • {bill['name']} ({cycle_color}{cycle}{Colors.RESET}) - {urgency}")
+
+
+# Add to menu system
+def billing_cycle_menu():
+    """Show billing cycle management menu."""
+    while True:
+        clear_console()
+        title_msg("Billing Cycle Management")
+        
+        print(f"{Colors.MENU}1.{Colors.RESET} 📊 Show bills by billing cycle")
+        print(f"{Colors.MENU}2.{Colors.RESET} 📅 Show upcoming bills calendar")
+        print(f"{Colors.MENU}3.{Colors.RESET} 🔄 Migrate existing bills to billing cycles")
+        print(f"{Colors.MENU}4.{Colors.RESET} 🚪 Back to main menu")
+        
+        choice = colored_input("\nChoose option (1-4): ", Colors.PROMPT).strip()
+        
+        if choice == '1':
+            clear_console()
+            show_billing_cycle_summary()
+        elif choice == '2':
+            clear_console()
+            show_upcoming_bills_calendar()
+        elif choice == '3':
+            clear_console()
+            migrate_bills_to_billing_cycles()
+            input("Press Enter to continue...")
+        elif choice == '4':
+            break
+        else:
+            error_msg("Invalid option. Please choose 1-4.")
+            input("Press Enter to continue...")
