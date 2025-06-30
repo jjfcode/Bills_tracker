@@ -17,6 +17,7 @@ This document outlines planned and potential future updates for the Bills Tracke
 - ✅ Custom reminder periods per bill
 - ✅ **Bill templates** - Save and reuse bill configurations for quick adding
 - ✅ **Contact information** - Store company email, phone numbers, and support details for customer service
+- ✅ **Bulk import** - Import bills from CSV files with validation and export functionality
 
 ---
 
@@ -41,7 +42,7 @@ This document outlines planned and potential future updates for the Bills Tracke
 - [x] **Auto-complete** - Suggest bill names while typing
 - [x] **Templates** - Save bill templates for quick adding
 - [x] **Contact information** - Add company email, phone number, and support details for customer service
-- [ ] **Bulk import** - Import bills from CSV files
+- [x] **Bulk import** - Import bills from CSV files
 
 ### 1.4 Customer Support & Contact Management
 ```python

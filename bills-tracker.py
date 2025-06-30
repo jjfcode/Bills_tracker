@@ -7,6 +7,7 @@ import re
 import urllib.parse
 import calendar
 import difflib
+import csv
 from datetime import datetime, timedelta
 from colorama import Fore, Back, Style, init
 from tqdm import tqdm
@@ -881,8 +882,9 @@ def display_menu():
     print(f"{Colors.MENU}7.{Colors.RESET} ✏️  Edit a bill")
     print(f"{Colors.MENU}8.{Colors.RESET} 🗑️  Delete a bill")
     print(f"{Colors.MENU}9.{Colors.RESET} 📋 Bill templates")
-    print(f"{Colors.MENU}10.{Colors.RESET} 📖 Help")
-    print(f"{Colors.MENU}11.{Colors.RESET} 🚪 Exit")
+    print(f"{Colors.MENU}10.{Colors.RESET} 📥 CSV Import/Export")
+    print(f"{Colors.MENU}11.{Colors.RESET} 📖 Help")
+    print(f"{Colors.MENU}12.{Colors.RESET} 🚪 Exit")
     print(Colors.MENU + "="*40 + Colors.RESET)
 
 def view_bills():
@@ -2121,7 +2123,7 @@ def main():
 
     while True:
         display_menu()
-        choice = colored_input("Choose an option (1-11): ", Colors.PROMPT).strip()
+        choice = colored_input("Choose an option (1-12): ", Colors.PROMPT).strip()
         
         if choice == '1':
             clear_console()
@@ -2156,12 +2158,15 @@ def main():
             clear_console()
             templates_menu()
         elif choice == '10':
-            show_help_menu()
+            clear_console()
+            csv_import_export_menu()
         elif choice == '11':
+            show_help_menu()
+        elif choice == '12':
             success_msg("Thank you for using Bills Tracker! 👋")
             break
         else:
-            error_msg("Invalid option. Please choose 1-11.")
+            error_msg("Invalid option. Please choose 1-12.")
             colored_input("Press Enter to continue...", Colors.WARNING)
 
 # 10. Missing pagination helper functions
@@ -3251,12 +3256,371 @@ def templates_menu():
             error_msg("Invalid option. Please choose 1-4.")
             colored_input("Press Enter to continue...", Colors.WARNING)
 
+# 5.2 CSV Import/Export operations
+def import_bills_from_csv():
+    """Import bills from a CSV file."""
+    title_msg("Import Bills from CSV")
+    info_msg("This will import bills from a CSV file. Make sure your CSV has the correct format.")
+    
+    # Show CSV format requirements
+    print(f"\n{Colors.TITLE}📋 Required CSV Format:{Colors.RESET}")
+    print("Your CSV file should have these columns (headers are case-insensitive):")
+    print(f"{Colors.INFO}• name{Colors.RESET} - Bill name (required)")
+    print(f"{Colors.INFO}• due_date{Colors.RESET} - Due date in YYYY-MM-DD format (required)")
+    print(f"{Colors.INFO}• billing_cycle{Colors.RESET} - weekly, bi-weekly, monthly, quarterly, semi-annually, annually, one-time")
+    print(f"{Colors.INFO}• reminder_days{Colors.RESET} - Days before due date for reminders (default: 7)")
+    print(f"{Colors.INFO}• web_page{Colors.RESET} - Website URL (optional)")
+    print(f"{Colors.INFO}• login_info{Colors.RESET} - Login information (optional)")
+    print(f"{Colors.INFO}• password{Colors.RESET} - Password (optional)")
+    print(f"{Colors.INFO}• company_email{Colors.RESET} - Customer service email (optional)")
+    print(f"{Colors.INFO}• support_phone{Colors.RESET} - Support phone number (optional)")
+    print(f"{Colors.INFO}• billing_phone{Colors.RESET} - Billing phone number (optional)")
+    print(f"{Colors.INFO}• customer_service_hours{Colors.RESET} - Service hours (optional)")
+    print(f"{Colors.INFO}• account_number{Colors.RESET} - Account number (optional)")
+    print(f"{Colors.INFO}• reference_id{Colors.RESET} - Reference ID (optional)")
+    print(f"{Colors.INFO}• support_chat_url{Colors.RESET} - Live chat URL (optional)")
+    print(f"{Colors.INFO}• mobile_app{Colors.RESET} - Mobile app info (optional)")
+    
+    # Get CSV file path
+    csv_file = colored_input(f"\n{Colors.PROMPT}Enter the path to your CSV file: {Colors.RESET}").strip()
+    
+    if not csv_file:
+        warning_msg("Import cancelled.")
+        return
+    
+    # Check if file exists
+    if not os.path.exists(csv_file):
+        error_msg(f"File '{csv_file}' not found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Validate file extension
+    if not csv_file.lower().endswith('.csv'):
+        error_msg("File must have a .csv extension.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    try:
+        # Read and parse CSV file
+        imported_bills = []
+        skipped_bills = []
+        errors = []
+        
+        with open(csv_file, 'r', newline='', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            
+            # Validate headers
+            required_headers = ['name', 'due_date']
+            optional_headers = ['billing_cycle', 'reminder_days', 'web_page', 'login_info', 'password',
+                              'company_email', 'support_phone', 'billing_phone', 'customer_service_hours',
+                              'account_number', 'reference_id', 'support_chat_url', 'mobile_app']
+            
+            fieldnames = [field.lower() for field in reader.fieldnames] if reader.fieldnames else []
+            
+            missing_required = [h for h in required_headers if h not in fieldnames]
+            if missing_required:
+                error_msg(f"Missing required columns: {', '.join(missing_required)}")
+                colored_input("Press Enter to continue...", Colors.INFO)
+                return
+            
+            # Process each row
+            row_count = 0
+            for row in reader:
+                row_count += 1
+                try:
+                    # Validate required fields
+                    name = row.get('name', '').strip()
+                    due_date = row.get('due_date', '').strip()
+                    
+                    if not name:
+                        errors.append(f"Row {row_count}: Missing bill name")
+                        continue
+                    
+                    if not due_date:
+                        errors.append(f"Row {row_count}: Missing due date")
+                        continue
+                    
+                    # Validate date format
+                    try:
+                        datetime.strptime(due_date, DATE_FORMAT)
+                    except ValueError:
+                        errors.append(f"Row {row_count}: Invalid date format '{due_date}' (use YYYY-MM-DD)")
+                        continue
+                    
+                    # Check for duplicate names
+                    if any(bill['name'].lower() == name.lower() for bill in bills):
+                        skipped_bills.append(f"Row {row_count}: '{name}' (duplicate name)")
+                        continue
+                    
+                    # Create bill object
+                    bill = {
+                        'name': name,
+                        'due_date': due_date,
+                        'paid': False,
+                        'billing_cycle': row.get('billing_cycle', 'monthly').strip().lower(),
+                        'reminder_days': int(row.get('reminder_days', 7)),
+                        'web_page': row.get('web_page', '').strip(),
+                        'login_info': row.get('login_info', '').strip(),
+                        'password': row.get('password', '').strip(),
+                        'company_email': row.get('company_email', '').strip(),
+                        'support_phone': row.get('support_phone', '').strip(),
+                        'billing_phone': row.get('billing_phone', '').strip(),
+                        'customer_service_hours': row.get('customer_service_hours', '').strip(),
+                        'account_number': row.get('account_number', '').strip(),
+                        'reference_id': row.get('reference_id', '').strip(),
+                        'support_chat_url': row.get('support_chat_url', '').strip(),
+                        'mobile_app': row.get('mobile_app', '').strip()
+                    }
+                    
+                    # Validate billing cycle
+                    valid_cycles = BillingCycle.get_all_cycles()
+                    if bill['billing_cycle'] not in valid_cycles:
+                        bill['billing_cycle'] = 'monthly'  # Default to monthly
+                        warning_msg(f"Row {row_count}: Invalid billing cycle, defaulting to monthly")
+                    
+                    # Validate reminder days
+                    if not (1 <= bill['reminder_days'] <= 365):
+                        bill['reminder_days'] = 7  # Default to 7 days
+                        warning_msg(f"Row {row_count}: Invalid reminder days, defaulting to 7")
+                    
+                    # Validate URLs
+                    if bill['web_page']:
+                        validated_url = validate_url(bill['web_page'])
+                        if validated_url is not None:
+                            bill['web_page'] = validated_url
+                        else:
+                            warning_msg(f"Row {row_count}: Invalid website URL, keeping as-is")
+                    
+                    if bill['support_chat_url']:
+                        validated_url = validate_url(bill['support_chat_url'])
+                        if validated_url is not None:
+                            bill['support_chat_url'] = validated_url
+                        else:
+                            warning_msg(f"Row {row_count}: Invalid support chat URL, keeping as-is")
+                    
+                    # Validate email
+                    if bill['company_email']:
+                        validated_email = validate_email(bill['company_email'])
+                        if validated_email is not None:
+                            bill['company_email'] = validated_email
+                        else:
+                            warning_msg(f"Row {row_count}: Invalid email format, keeping as-is")
+                    
+                    imported_bills.append(bill)
+                    
+                except Exception as e:
+                    errors.append(f"Row {row_count}: {str(e)}")
+        
+        # Show import results
+        print(f"\n{Colors.TITLE}📊 Import Results:{Colors.RESET}")
+        success_msg(f"Successfully imported {len(imported_bills)} bills")
+        
+        if skipped_bills:
+            warning_msg(f"Skipped {len(skipped_bills)} bills (duplicates)")
+            for skipped in skipped_bills[:5]:  # Show first 5
+                print(f"  • {skipped}")
+            if len(skipped_bills) > 5:
+                print(f"  ... and {len(skipped_bills) - 5} more")
+        
+        if errors:
+            error_msg(f"Found {len(errors)} errors")
+            for error in errors[:5]:  # Show first 5
+                print(f"  • {error}")
+            if len(errors) > 5:
+                print(f"  ... and {len(errors) - 5} more")
+        
+        # Ask user to confirm import
+        if imported_bills:
+            confirm = colored_input(f"\n{Colors.WARNING}Import {len(imported_bills)} bills? (yes/no): {Colors.RESET}").strip().lower()
+            if confirm in ['yes', 'y']:
+                # Add bills to the main list
+                bills.extend(imported_bills)
+                save_bills()
+                success_msg(f"Successfully imported {len(imported_bills)} bills!")
+                
+                # Show sample of imported bills
+                print(f"\n{Colors.INFO}📋 Sample of imported bills:{Colors.RESET}")
+                for i, bill in enumerate(imported_bills[:3], 1):
+                    print(f"  {i}. {bill['name']} - Due: {bill['due_date']} ({bill['billing_cycle']})")
+                if len(imported_bills) > 3:
+                    print(f"  ... and {len(imported_bills) - 3} more bills")
+            else:
+                info_msg("Import cancelled.")
+        else:
+            warning_msg("No bills to import.")
+        
+    except Exception as e:
+        error_msg(f"Error reading CSV file: {str(e)}")
+    
+    colored_input("\nPress Enter to continue...", Colors.INFO)
+
+def export_bills_to_csv():
+    """Export bills to a CSV file."""
+    title_msg("Export Bills to CSV")
+    
+    if not bills:
+        warning_msg("No bills to export.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Get export file path
+    default_filename = f"bills_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    csv_file = colored_input(f"{Colors.PROMPT}Enter export filename [{default_filename}]: {Colors.RESET}").strip()
+    
+    if not csv_file:
+        csv_file = default_filename
+    
+    # Ensure .csv extension
+    if not csv_file.lower().endswith('.csv'):
+        csv_file += '.csv'
+    
+    try:
+        with open(csv_file, 'w', newline='', encoding='utf-8') as file:
+            # Define fieldnames for CSV
+            fieldnames = [
+                'name', 'due_date', 'paid', 'billing_cycle', 'reminder_days',
+                'web_page', 'login_info', 'password', 'company_email',
+                'support_phone', 'billing_phone', 'customer_service_hours',
+                'account_number', 'reference_id', 'support_chat_url', 'mobile_app'
+            ]
+            
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            
+            # Write each bill
+            for bill in bills:
+                row = {
+                    'name': bill.get('name', ''),
+                    'due_date': bill.get('due_date', ''),
+                    'paid': 'yes' if bill.get('paid', False) else 'no',
+                    'billing_cycle': bill.get('billing_cycle', 'monthly'),
+                    'reminder_days': bill.get('reminder_days', 7),
+                    'web_page': bill.get('web_page', ''),
+                    'login_info': bill.get('login_info', ''),
+                    'password': bill.get('password', ''),
+                    'company_email': bill.get('company_email', ''),
+                    'support_phone': bill.get('support_phone', ''),
+                    'billing_phone': bill.get('billing_phone', ''),
+                    'customer_service_hours': bill.get('customer_service_hours', ''),
+                    'account_number': bill.get('account_number', ''),
+                    'reference_id': bill.get('reference_id', ''),
+                    'support_chat_url': bill.get('support_chat_url', ''),
+                    'mobile_app': bill.get('mobile_app', '')
+                }
+                writer.writerow(row)
+        
+        success_msg(f"Successfully exported {len(bills)} bills to '{csv_file}'")
+        info_msg(f"File location: {os.path.abspath(csv_file)}")
+        
+    except Exception as e:
+        error_msg(f"Error exporting to CSV: {str(e)}")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def create_sample_csv():
+    """Create a sample CSV file with the correct format."""
+    sample_filename = "sample_bills_import.csv"
+    
+    try:
+        with open(sample_filename, 'w', newline='', encoding='utf-8') as file:
+            fieldnames = [
+                'name', 'due_date', 'billing_cycle', 'reminder_days',
+                'web_page', 'login_info', 'password', 'company_email',
+                'support_phone', 'billing_phone', 'customer_service_hours',
+                'account_number', 'reference_id', 'support_chat_url', 'mobile_app'
+            ]
+            
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            
+            # Add sample data
+            sample_bills = [
+                {
+                    'name': 'Netflix Subscription',
+                    'due_date': '2024-02-15',
+                    'billing_cycle': 'monthly',
+                    'reminder_days': '7',
+                    'web_page': 'https://netflix.com',
+                    'login_info': 'user@example.com',
+                    'password': 'your_password',
+                    'company_email': 'support@netflix.com',
+                    'support_phone': '1-800-123-4567',
+                    'billing_phone': '1-800-123-4568',
+                    'customer_service_hours': '24/7',
+                    'account_number': 'NF123456789',
+                    'reference_id': '',
+                    'support_chat_url': 'https://netflix.com/help',
+                    'mobile_app': 'Netflix App - iOS/Android'
+                },
+                {
+                    'name': 'Electric Bill',
+                    'due_date': '2024-02-20',
+                    'billing_cycle': 'monthly',
+                    'reminder_days': '10',
+                    'web_page': 'https://electriccompany.com',
+                    'login_info': 'account123',
+                    'password': 'your_password',
+                    'company_email': 'billing@electriccompany.com',
+                    'support_phone': '1-800-555-0123',
+                    'billing_phone': '1-800-555-0124',
+                    'customer_service_hours': 'Mon-Fri 8AM-6PM',
+                    'account_number': 'ELEC789012',
+                    'reference_id': 'INV-2024-001',
+                    'support_chat_url': '',
+                    'mobile_app': 'Electric Company App'
+                }
+            ]
+            
+            for bill in sample_bills:
+                writer.writerow(bill)
+        
+        success_msg(f"Sample CSV file created: '{sample_filename}'")
+        info_msg(f"File location: {os.path.abspath(sample_filename)}")
+        print(f"\n{Colors.INFO}📋 Sample file includes:{Colors.RESET}")
+        print("  • Netflix Subscription (monthly)")
+        print("  • Electric Bill (monthly)")
+        print("  • All contact information fields")
+        print("  • Proper date format (YYYY-MM-DD)")
+        
+    except Exception as e:
+        error_msg(f"Error creating sample file: {str(e)}")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def csv_import_export_menu():
+    """Display CSV import/export menu."""
+    while True:
+        clear_console()
+        title_msg("CSV Import/Export")
+        
+        print(f"{Colors.MENU}1.{Colors.RESET} 📥 Import bills from CSV")
+        print(f"{Colors.MENU}2.{Colors.RESET} 📤 Export bills to CSV")
+        print(f"{Colors.MENU}3.{Colors.RESET} 📋 Create sample CSV file")
+        print(f"{Colors.MENU}4.{Colors.RESET} 🚪 Back to main menu")
+        
+        choice = colored_input("\nChoose option (1-4): ", Colors.PROMPT).strip()
+        
+        if choice == '1':
+            clear_console()
+            import_bills_from_csv()
+        elif choice == '2':
+            clear_console()
+            export_bills_to_csv()
+        elif choice == '3':
+            clear_console()
+            create_sample_csv()
+        elif choice == '4':
+            break
+        else:
+            error_msg("Invalid option. Please choose 1-4.")
+            colored_input("Press Enter to continue...", Colors.WARNING)
+
 # 13. Help System
 def show_help_menu():
     """Display the main help menu."""
     while True:
         clear_console()
-        title_msg("Bills Tracker Help & Documentation")
+        title_msg("Help & Documentation")
         
         print(f"{Colors.MENU}1.{Colors.RESET} 📖 What is Bills Tracker?")
         print(f"{Colors.MENU}2.{Colors.RESET} 🚀 Getting Started Guide")
@@ -3265,31 +3629,43 @@ def show_help_menu():
         print(f"{Colors.MENU}5.{Colors.RESET} ⏰ Due Bills & Reminders")
         print(f"{Colors.MENU}6.{Colors.RESET} 💰 Paying Bills")
         print(f"{Colors.MENU}7.{Colors.RESET} 📋 Bill Templates")
-        print(f"{Colors.MENU}8.{Colors.RESET} 🔧 Tips & Tricks")
-        print(f"{Colors.MENU}9.{Colors.RESET} 🚪 Back to main menu")
+        print(f"{Colors.MENU}8.{Colors.RESET} 📥 CSV Import/Export")
+        print(f"{Colors.MENU}9.{Colors.RESET} 🔧 Tips & Troubleshooting")
+        print(f"{Colors.MENU}10.{Colors.RESET} 🚪 Back to main menu")
         
-        choice = colored_input("\nChoose help topic (1-9): ", Colors.PROMPT).strip()
+        choice = colored_input("\nChoose help topic (1-10): ", Colors.PROMPT).strip()
         
         if choice == '1':
+            clear_console()
             show_what_is_bills_tracker()
         elif choice == '2':
+            clear_console()
             show_getting_started_guide()
         elif choice == '3':
+            clear_console()
             show_adding_managing_bills()
         elif choice == '4':
+            clear_console()
             show_searching_sorting()
         elif choice == '5':
+            clear_console()
             show_due_bills_reminders()
         elif choice == '6':
+            clear_console()
             show_paying_bills()
         elif choice == '7':
+            clear_console()
             show_bill_templates_help()
         elif choice == '8':
-            show_tips_tricks()
+            clear_console()
+            show_csv_import_export_help()
         elif choice == '9':
+            clear_console()
+            show_tips_troubleshooting()
+        elif choice == '10':
             break
         else:
-            error_msg("Invalid option. Please choose 1-9.")
+            error_msg("Invalid option. Please choose 1-10.")
             colored_input("Press Enter to continue...", Colors.WARNING)
 
 def show_what_is_bills_tracker():
@@ -3671,10 +4047,10 @@ def show_bill_templates_help():
     
     colored_input("Press Enter to continue...", Colors.INFO)
 
-def show_tips_tricks():
+def show_tips_troubleshooting():
     """Show helpful tips and tricks for using Bills Tracker."""
     clear_console()
-    title_msg("Tips & Tricks")
+    title_msg("Tips & Troubleshooting")
     
     print(f"{Colors.TITLE}⚡ Quick Actions{Colors.RESET}")
     print("• Type 'cancel' to exit any input")
@@ -3689,6 +4065,7 @@ def show_tips_tricks():
     print("3. Use templates for new bills")
     print("4. Search when you need to find something")
     print("5. Sort bills when organizing")
+    print("6. Use CSV import for bulk operations")
     print()
     
     print(f"{Colors.TITLE}📅 Date Management{Colors.RESET}")
@@ -3703,6 +4080,7 @@ def show_tips_tricks():
     print("• Search by website for company-specific bills")
     print("• Use date searches for monthly planning")
     print("• Search all fields when unsure")
+    print("• Use auto-complete for faster input")
     print()
     
     print(f"{Colors.TITLE}📋 Template Strategy{Colors.RESET}")
@@ -3710,13 +4088,31 @@ def show_tips_tricks():
     print("• Include website and login information")
     print("• Use descriptive template names")
     print("• Update templates when information changes")
+    print("• Save existing bills as templates")
+    print()
+    
+    print(f"{Colors.TITLE}📥 CSV Import/Export Tips{Colors.RESET}")
+    print("• Use the sample CSV file as a template")
+    print("• Export your data regularly for backup")
+    print("• Import is great for migrating from other systems")
+    print("• Validate your CSV format before importing")
+    print("• Use Excel or Google Sheets to create CSV files")
+    print()
+    
+    print(f"{Colors.TITLE}📞 Contact Information{Colors.RESET}")
+    print("• Add customer service details for easy access")
+    print("• Include account numbers for quick reference")
+    print("• Store support phone numbers for emergencies")
+    print("• Add mobile app information for convenience")
+    print("• Use live chat URLs when available")
     print()
     
     print(f"{Colors.TITLE}💾 Data Safety{Colors.RESET}")
     print("• Backups are created automatically")
     print("• Keep backup files in a safe location")
     print("• Don't delete the bills.json file")
-    print("• Export data if needed")
+    print("• Export data regularly for additional backup")
+    print("• Use CSV export for data portability")
     print()
     
     print(f"{Colors.TITLE}🎨 Interface Tips{Colors.RESET}")
@@ -3724,6 +4120,7 @@ def show_tips_tricks():
     print("• Use pagination for large lists")
     print("• Pay attention to warning messages")
     print("• Read success messages for confirmation")
+    print("• Use the help system for detailed guidance")
     print()
     
     print(f"{Colors.TITLE}🚨 Troubleshooting{Colors.RESET}")
@@ -3731,6 +4128,102 @@ def show_tips_tricks():
     print("• If bills don't load, check bills.json file")
     print("• If dates are wrong, use YYYY-MM-DD format")
     print("• If you see errors, check the backup files")
+    print("• If CSV import fails, check the file format")
+    print("• If URLs don't work, ensure they include http:// or https://")
+    print("• If emails are invalid, check the format (user@domain.com)")
+    print()
+    
+    print(f"{Colors.TITLE}🔄 Billing Cycles{Colors.RESET}")
+    print("• Choose the right billing cycle for each bill")
+    print("• One-time bills don't recur after payment")
+    print("• Recurring bills automatically update due dates")
+    print("• Use custom reminder periods for different bills")
+    print("• Check upcoming bills calendar for planning")
+    print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def show_csv_import_export_help():
+    """Explain CSV import/export functionality."""
+    clear_console()
+    title_msg("CSV Import/Export Help")
+    
+    print(f"{Colors.TITLE}📥 Importing Bills from CSV{Colors.RESET}")
+    print("The CSV import feature allows you to add multiple bills at once from a CSV file.")
+    print()
+    print(f"{Colors.INFO}Step-by-step process:{Colors.RESET}")
+    print("1. Prepare your CSV file with the correct format")
+    print("2. Choose 'CSV Import/Export' from the main menu")
+    print("3. Select 'Import bills from CSV'")
+    print("4. Enter the path to your CSV file")
+    print("5. Review the import results and confirm")
+    print()
+    
+    print(f"{Colors.TITLE}📤 Exporting Bills to CSV{Colors.RESET}")
+    print("Export your bills to a CSV file for backup, sharing, or analysis.")
+    print()
+    print(f"{Colors.INFO}How to export:{Colors.RESET}")
+    print("1. Choose 'CSV Import/Export' from the main menu")
+    print("2. Select 'Export bills to CSV'")
+    print("3. Enter a filename (or use the default)")
+    print("4. Confirm the export")
+    print()
+    
+    print(f"{Colors.TITLE}📋 Required CSV Format{Colors.RESET}")
+    print("Your CSV file must have these columns (headers are case-insensitive):")
+    print()
+    print(f"{Colors.WARNING}Required Columns:{Colors.RESET}")
+    print(f"  • {Colors.INFO}name{Colors.RESET} - Bill name (required)")
+    print(f"  • {Colors.INFO}due_date{Colors.RESET} - Due date in YYYY-MM-DD format (required)")
+    print()
+    print(f"{Colors.WARNING}Optional Columns:{Colors.RESET}")
+    print(f"  • {Colors.INFO}billing_cycle{Colors.RESET} - weekly, bi-weekly, monthly, quarterly, semi-annually, annually, one-time")
+    print(f"  • {Colors.INFO}reminder_days{Colors.RESET} - Days before due date for reminders (default: 7)")
+    print(f"  • {Colors.INFO}web_page{Colors.RESET} - Website URL")
+    print(f"  • {Colors.INFO}login_info{Colors.RESET} - Login information")
+    print(f"  • {Colors.INFO}password{Colors.RESET} - Password")
+    print(f"  • {Colors.INFO}company_email{Colors.RESET} - Customer service email")
+    print(f"  • {Colors.INFO}support_phone{Colors.RESET} - Support phone number")
+    print(f"  • {Colors.INFO}billing_phone{Colors.RESET} - Billing phone number")
+    print(f"  • {Colors.INFO}customer_service_hours{Colors.RESET} - Service hours")
+    print(f"  • {Colors.INFO}account_number{Colors.RESET} - Account number")
+    print(f"  • {Colors.INFO}reference_id{Colors.RESET} - Reference ID")
+    print(f"  • {Colors.INFO}support_chat_url{Colors.RESET} - Live chat URL")
+    print(f"  • {Colors.INFO}mobile_app{Colors.RESET} - Mobile app info")
+    print()
+    
+    print(f"{Colors.TITLE}✅ Validation Features{Colors.RESET}")
+    print("The import process includes comprehensive validation:")
+    print(f"  • {Colors.SUCCESS}Date format validation{Colors.RESET} - Ensures YYYY-MM-DD format")
+    print(f"  • {Colors.SUCCESS}URL validation{Colors.RESET} - Validates and corrects website URLs")
+    print(f"  • {Colors.SUCCESS}Email validation{Colors.RESET} - Validates email formats")
+    print(f"  • {Colors.SUCCESS}Duplicate detection{Colors.RESET} - Prevents importing duplicate bills")
+    print(f"  • {Colors.SUCCESS}Billing cycle validation{Colors.RESET} - Defaults to monthly if invalid")
+    print(f"  • {Colors.SUCCESS}Reminder days validation{Colors.RESET} - Ensures 1-365 day range")
+    print()
+    
+    print(f"{Colors.TITLE}📋 Sample CSV File{Colors.RESET}")
+    print("Use the 'Create sample CSV file' option to generate a template with:")
+    print("  • Correct column headers")
+    print("  • Example data for all fields")
+    print("  • Proper date format")
+    print("  • Contact information examples")
+    print()
+    
+    print(f"{Colors.TITLE}💡 Tips{Colors.RESET}")
+    print("  • Use Excel or Google Sheets to create your CSV file")
+    print("  • Save as CSV format (not Excel format)")
+    print("  • Use UTF-8 encoding for special characters")
+    print("  • Test with a small file first")
+    print("  • Backup your data before importing")
+    print()
+    
+    print(f"{Colors.TITLE}🚨 Common Issues{Colors.RESET}")
+    print("  • Wrong date format - Use YYYY-MM-DD")
+    print("  • Missing required columns - name and due_date are required")
+    print("  • Duplicate bill names - Each bill must have a unique name")
+    print("  • Invalid URLs - Must be valid website addresses")
+    print("  • Invalid email format - Must be a valid email address")
     print()
     
     colored_input("Press Enter to continue...", Colors.INFO)
