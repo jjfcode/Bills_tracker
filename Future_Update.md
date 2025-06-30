@@ -16,6 +16,7 @@ This document outlines planned and potential future updates for the Bills Tracke
 - ✅ Flexible billing cycles (weekly, monthly, quarterly, etc.)
 - ✅ Custom reminder periods per bill
 - ✅ **Bill templates** - Save and reuse bill configurations for quick adding
+- ✅ **Contact information** - Store company email, phone numbers, and support details for customer service
 
 ---
 
@@ -39,7 +40,7 @@ This document outlines planned and potential future updates for the Bills Tracke
 - [x] **Better validation** - Validate URLs, email formats, date ranges
 - [x] **Auto-complete** - Suggest bill names while typing
 - [x] **Templates** - Save bill templates for quick adding
-- [ ] **Contact information** - Add company email, phone number, and support details for customer service
+- [x] **Contact information** - Add company email, phone number, and support details for customer service
 - [ ] **Bulk import** - Import bills from CSV files
 
 ### 1.4 Customer Support & Contact Management
@@ -62,14 +63,14 @@ class EnhancedBill:
         self.support_chat_url = ""        # Live chat support URL
         self.mobile_app = ""              # Company mobile app info
 ```
-- [ ] **Company contact details** - Store customer service email addresses for billing inquiries
-- [ ] **Support phone numbers** - Add main support and billing-specific phone numbers
-- [ ] **Service hours tracking** - Record customer service availability hours
-- [ ] **Account information** - Store account numbers, reference IDs, and policy numbers
-- [ ] **Multi-channel support** - Track various contact methods (email, phone, chat, app)
-- [ ] **Emergency contacts** - Quick access to urgent support numbers for service outages
-- [ ] **Contact validation** - Validate phone number formats and email addresses
-- [ ] **Contact auto-complete** - Suggest contact information based on company names
+- [x] **Company contact details** - Store customer service email addresses for billing inquiries
+- [x] **Support phone numbers** - Add main support and billing-specific phone numbers
+- [x] **Service hours tracking** - Record customer service availability hours
+- [x] **Account information** - Store account numbers, reference IDs, and policy numbers
+- [x] **Multi-channel support** - Track various contact methods (email, phone, chat, app)
+- [x] **Emergency contacts** - Quick access to urgent support numbers for service outages
+- [x] **Contact validation** - Validate phone number formats and email addresses
+- [x] **Contact auto-complete** - Suggest contact information based on company names
 
 ---
 

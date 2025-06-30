@@ -797,6 +797,50 @@ def add_bill():
         warning_msg("Bill addition cancelled.")
         return
 
+    # Get contact information
+    print(f"\n{Colors.TITLE}📞 Contact Information (Optional){Colors.RESET}")
+    print(f"{Colors.INFO}Add customer service contact details for this bill:{Colors.RESET}")
+    
+    company_email = get_valid_email("Enter company customer service email")
+    if company_email is None:
+        warning_msg("Bill addition cancelled.")
+        return
+    
+    support_phone = get_optional_input("Enter customer support phone number")
+    if support_phone is None:
+        warning_msg("Bill addition cancelled.")
+        return
+    
+    billing_phone = get_optional_input("Enter billing department phone number")
+    if billing_phone is None:
+        warning_msg("Bill addition cancelled.")
+        return
+    
+    customer_service_hours = get_optional_input("Enter customer service hours (e.g., Mon-Fri 9AM-5PM)")
+    if customer_service_hours is None:
+        warning_msg("Bill addition cancelled.")
+        return
+    
+    account_number = get_optional_input("Enter account/customer number")
+    if account_number is None:
+        warning_msg("Bill addition cancelled.")
+        return
+    
+    reference_id = get_optional_input("Enter reference/policy number")
+    if reference_id is None:
+        warning_msg("Bill addition cancelled.")
+        return
+    
+    support_chat_url = get_valid_url("Enter live chat support URL (optional)")
+    if support_chat_url is None:
+        warning_msg("Bill addition cancelled.")
+        return
+    
+    mobile_app = get_optional_input("Enter mobile app information (e.g., 'Netflix App - iOS/Android')")
+    if mobile_app is None:
+        warning_msg("Bill addition cancelled.")
+        return
+
     # Create and save bill
     bill = {
         "name": name,
@@ -806,7 +850,16 @@ def add_bill():
         "password": password,
         "paid": False,
         "billing_cycle": billing_cycle,
-        "reminder_days": reminder_days
+        "reminder_days": reminder_days,
+        # Contact information
+        "company_email": company_email,
+        "support_phone": support_phone,
+        "billing_phone": billing_phone,
+        "customer_service_hours": customer_service_hours,
+        "account_number": account_number,
+        "reference_id": reference_id,
+        "support_chat_url": support_chat_url,
+        "mobile_app": mobile_app
     }
     bills.append(bill)
     save_bills()
@@ -828,7 +881,8 @@ def display_menu():
     print(f"{Colors.MENU}7.{Colors.RESET} ✏️  Edit a bill")
     print(f"{Colors.MENU}8.{Colors.RESET} 🗑️  Delete a bill")
     print(f"{Colors.MENU}9.{Colors.RESET} 📋 Bill templates")
-    print(f"{Colors.MENU}10.{Colors.RESET} 🚪 Exit")
+    print(f"{Colors.MENU}10.{Colors.RESET} 📖 Help")
+    print(f"{Colors.MENU}11.{Colors.RESET} 🚪 Exit")
     print(Colors.MENU + "="*40 + Colors.RESET)
 
 def view_bills():
@@ -886,6 +940,21 @@ def view_bills():
             print(f"    Website: {Colors.INFO}{bill['web_page']}{Colors.RESET}")
         if bill.get('login_info'):
             print(f"    Login: {Colors.INFO}{bill['login_info']}{Colors.RESET}")
+        
+        # Show contact information if available
+        contact_info = []
+        if bill.get('company_email'):
+            contact_info.append(f"📧 {bill['company_email']}")
+        if bill.get('support_phone'):
+            contact_info.append(f"📞 Support: {bill['support_phone']}")
+        if bill.get('billing_phone'):
+            contact_info.append(f"💰 Billing: {bill['billing_phone']}")
+        if bill.get('account_number'):
+            contact_info.append(f"🆔 Account: {bill['account_number']}")
+        
+        if contact_info:
+            print(f"    {Colors.INFO}📞 Contact: {', '.join(contact_info[:2])}{'...' if len(contact_info) > 2 else ''}{Colors.RESET}")
+        
         print()
 
 def edit_bill():
@@ -964,6 +1033,57 @@ def edit_bill():
                 if new_reminder_days is not None:
                     bill['reminder_days'] = new_reminder_days
                     success_msg(f"Reminder period updated to {new_reminder_days} days")
+
+            # Contact Information
+            print(f"\n{Colors.TITLE}📞 Contact Information{Colors.RESET}")
+            
+            new_company_email = colored_input(f"Company Email [{bill.get('company_email', '')}]: ", Colors.PROMPT).strip()
+            if new_company_email:
+                if new_company_email.lower() == 'clear':
+                    bill['company_email'] = ""
+                    success_msg("Company email cleared.")
+                else:
+                    validated_email = validate_email(new_company_email)
+                    if validated_email is not None:
+                        bill['company_email'] = validated_email
+                    else:
+                        error_msg("Invalid email format. Keeping the original email.")
+
+            new_support_phone = colored_input(f"Support Phone [{bill.get('support_phone', '')}]: ", Colors.PROMPT).strip()
+            if new_support_phone:
+                bill['support_phone'] = new_support_phone
+
+            new_billing_phone = colored_input(f"Billing Phone [{bill.get('billing_phone', '')}]: ", Colors.PROMPT).strip()
+            if new_billing_phone:
+                bill['billing_phone'] = new_billing_phone
+
+            new_service_hours = colored_input(f"Service Hours [{bill.get('customer_service_hours', '')}]: ", Colors.PROMPT).strip()
+            if new_service_hours:
+                bill['customer_service_hours'] = new_service_hours
+
+            new_account_number = colored_input(f"Account Number [{bill.get('account_number', '')}]: ", Colors.PROMPT).strip()
+            if new_account_number:
+                bill['account_number'] = new_account_number
+
+            new_reference_id = colored_input(f"Reference ID [{bill.get('reference_id', '')}]: ", Colors.PROMPT).strip()
+            if new_reference_id:
+                bill['reference_id'] = new_reference_id
+
+            new_support_chat_url = colored_input(f"Support Chat URL [{bill.get('support_chat_url', '')}]: ", Colors.PROMPT).strip()
+            if new_support_chat_url:
+                if new_support_chat_url.lower() == 'clear':
+                    bill['support_chat_url'] = ""
+                    success_msg("Support chat URL cleared.")
+                else:
+                    validated_url = validate_url(new_support_chat_url)
+                    if validated_url is not None:
+                        bill['support_chat_url'] = validated_url
+                    else:
+                        error_msg("Invalid URL format. Keeping the original URL.")
+
+            new_mobile_app = colored_input(f"Mobile App [{bill.get('mobile_app', '')}]: ", Colors.PROMPT).strip()
+            if new_mobile_app:
+                bill['mobile_app'] = new_mobile_app
 
             save_bills()
             success_msg(f"Bill '{bill['name']}' updated successfully.")
@@ -1275,10 +1395,11 @@ def search_bills():
     print("1. Search by name")
     print("2. Search by due date")
     print("3. Search by website")
-    print("4. Search all fields")
-    print("5. Back to main menu")
+    print("4. Search by contact information")
+    print("5. Search all fields")
+    print("6. Back to main menu")
     
-    choice = input("\nChoose search option (1-5): ").strip()
+    choice = input("\nChoose search option (1-6): ").strip()
     
     if choice == '1':
         search_by_name()
@@ -1287,11 +1408,13 @@ def search_bills():
     elif choice == '3':
         search_by_website()
     elif choice == '4':
-        search_all_fields()
+        search_by_contact_info()
     elif choice == '5':
+        search_all_fields()
+    elif choice == '6':
         return
     else:
-        print("❌ Invalid option. Please choose 1-5.")
+        print("❌ Invalid option. Please choose 1-6.")
         input("Press Enter to continue...")
         search_bills()
 
@@ -1388,6 +1511,53 @@ def search_by_website():
     
     display_search_results(results, f"Bills with website containing '{search_term}'")
 
+def search_by_contact_info():
+    """Search bills by contact information."""
+    if not bills:
+        warning_msg("No bills found.")
+        return
+    
+    print("\nSearch by Contact Information:")
+    print("1. Search by company email")
+    print("2. Search by phone number")
+    print("3. Search by account number")
+    print("4. Search by reference ID")
+    print("5. Back to search menu")
+    
+    choice = input("\nChoose option (1-5): ").strip()
+    
+    if choice == '1':
+        search_term = input("Enter company email to search: ").strip().lower()
+        results = [bill for bill in bills 
+                  if search_term in bill.get('company_email', '').lower()]
+        display_search_results(results, f"Bills with company email containing '{search_term}'")
+        
+    elif choice == '2':
+        search_term = input("Enter phone number to search: ").strip()
+        results = [bill for bill in bills 
+                  if (search_term in bill.get('support_phone', '') or 
+                      search_term in bill.get('billing_phone', ''))]
+        display_search_results(results, f"Bills with phone number containing '{search_term}'")
+        
+    elif choice == '3':
+        search_term = input("Enter account number to search: ").strip()
+        results = [bill for bill in bills 
+                  if search_term in bill.get('account_number', '')]
+        display_search_results(results, f"Bills with account number containing '{search_term}'")
+        
+    elif choice == '4':
+        search_term = input("Enter reference ID to search: ").strip()
+        results = [bill for bill in bills 
+                  if search_term in bill.get('reference_id', '')]
+        display_search_results(results, f"Bills with reference ID containing '{search_term}'")
+        
+    elif choice == '5':
+        return
+    else:
+        error_msg("Invalid option. Please choose 1-5.")
+        input("Press Enter to continue...")
+        search_by_contact_info()
+
 def search_all_fields_with_progress(search_term):
     """Search across all bill fields with progress."""
     if not bills:
@@ -1404,7 +1574,15 @@ def search_all_fields_with_progress(search_term):
                 bill.get('name', ''),
                 bill.get('due_date', ''),
                 bill.get('web_page', ''),
-                bill.get('login_info', '')
+                bill.get('login_info', ''),
+                bill.get('company_email', ''),
+                bill.get('support_phone', ''),
+                bill.get('billing_phone', ''),
+                bill.get('customer_service_hours', ''),
+                bill.get('account_number', ''),
+                bill.get('reference_id', ''),
+                bill.get('support_chat_url', ''),
+                bill.get('mobile_app', '')
             ]).lower()
             
             if search_term_lower in searchable_text:
@@ -1897,6 +2075,39 @@ def display_bill_details(bill):
     password = bill.get('password', '')
     password_display = '*' * len(password) if password else 'Not provided'
     print(f"Password: {Colors.INFO}{password_display}{Colors.RESET}")
+    
+    # Show billing cycle and reminder
+    cycle = bill.get('billing_cycle', 'monthly')
+    cycle_color = get_billing_cycle_color(cycle)
+    print(f"Billing Cycle: {cycle_color}{cycle.title()}{Colors.RESET}")
+    
+    reminder_days = bill.get('reminder_days', 7)
+    print(f"Reminder: {Colors.WARNING}{reminder_days} days before due date{Colors.RESET}")
+    
+    # Show contact information
+    print(f"\n{Colors.TITLE}📞 Contact Information:{Colors.RESET}")
+    if bill.get('company_email'):
+        print(f"  📧 Customer Service Email: {Colors.INFO}{bill['company_email']}{Colors.RESET}")
+    if bill.get('support_phone'):
+        print(f"  📞 Support Phone: {Colors.INFO}{bill['support_phone']}{Colors.RESET}")
+    if bill.get('billing_phone'):
+        print(f"  💰 Billing Phone: {Colors.INFO}{bill['billing_phone']}{Colors.RESET}")
+    if bill.get('customer_service_hours'):
+        print(f"  🕒 Service Hours: {Colors.INFO}{bill['customer_service_hours']}{Colors.RESET}")
+    if bill.get('account_number'):
+        print(f"  🆔 Account Number: {Colors.INFO}{bill['account_number']}{Colors.RESET}")
+    if bill.get('reference_id'):
+        print(f"  📋 Reference ID: {Colors.INFO}{bill['reference_id']}{Colors.RESET}")
+    if bill.get('support_chat_url'):
+        print(f"  💬 Live Chat: {Colors.INFO}{bill['support_chat_url']}{Colors.RESET}")
+    if bill.get('mobile_app'):
+        print(f"  📱 Mobile App: {Colors.INFO}{bill['mobile_app']}{Colors.RESET}")
+    
+    # Check if no contact info was provided
+    contact_fields = ['company_email', 'support_phone', 'billing_phone', 'customer_service_hours', 
+                     'account_number', 'reference_id', 'support_chat_url', 'mobile_app']
+    if not any(bill.get(field) for field in contact_fields):
+        print(f"  {Colors.WARNING}No contact information provided{Colors.RESET}")
 
 # 12. Main application
 def main():
@@ -1910,7 +2121,7 @@ def main():
 
     while True:
         display_menu()
-        choice = colored_input("Choose an option (1-10): ", Colors.PROMPT).strip()
+        choice = colored_input("Choose an option (1-11): ", Colors.PROMPT).strip()
         
         if choice == '1':
             clear_console()
@@ -1945,10 +2156,12 @@ def main():
             clear_console()
             templates_menu()
         elif choice == '10':
+            show_help_menu()
+        elif choice == '11':
             success_msg("Thank you for using Bills Tracker! 👋")
             break
         else:
-            error_msg("Invalid option. Please choose 1-10.")
+            error_msg("Invalid option. Please choose 1-11.")
             colored_input("Press Enter to continue...", Colors.WARNING)
 
 # 10. Missing pagination helper functions
@@ -2554,7 +2767,16 @@ def create_template_from_bill(bill):
         "login_info": bill.get('login_info', ''),
         "password": bill.get('password', ''),
         "billing_cycle": bill.get('billing_cycle', BillingCycle.MONTHLY),
-        "reminder_days": bill.get('reminder_days', 7)
+        "reminder_days": bill.get('reminder_days', 7),
+        # Contact information
+        "company_email": bill.get('company_email', ''),
+        "support_phone": bill.get('support_phone', ''),
+        "billing_phone": bill.get('billing_phone', ''),
+        "customer_service_hours": bill.get('customer_service_hours', ''),
+        "account_number": bill.get('account_number', ''),
+        "reference_id": bill.get('reference_id', ''),
+        "support_chat_url": bill.get('support_chat_url', ''),
+        "mobile_app": bill.get('mobile_app', '')
     }
     return template
 
@@ -2655,6 +2877,50 @@ def create_template_manually():
         warning_msg("Template creation cancelled.")
         return
 
+    # Get contact information
+    print(f"\n{Colors.TITLE}📞 Contact Information (Optional){Colors.RESET}")
+    print(f"{Colors.INFO}Add customer service contact details for this template:{Colors.RESET}")
+    
+    company_email = get_valid_email("Enter company customer service email: ")
+    if company_email is None:
+        warning_msg("Template creation cancelled.")
+        return
+    
+    support_phone = get_optional_input("Enter customer support phone number")
+    if support_phone is None:
+        warning_msg("Template creation cancelled.")
+        return
+    
+    billing_phone = get_optional_input("Enter billing department phone number")
+    if billing_phone is None:
+        warning_msg("Template creation cancelled.")
+        return
+    
+    customer_service_hours = get_optional_input("Enter customer service hours (e.g., Mon-Fri 9AM-5PM)")
+    if customer_service_hours is None:
+        warning_msg("Template creation cancelled.")
+        return
+    
+    account_number = get_optional_input("Enter account/customer number")
+    if account_number is None:
+        warning_msg("Template creation cancelled.")
+        return
+    
+    reference_id = get_optional_input("Enter reference/policy number")
+    if reference_id is None:
+        warning_msg("Template creation cancelled.")
+        return
+    
+    support_chat_url = get_valid_url("Enter live chat support URL (optional)")
+    if support_chat_url is None:
+        warning_msg("Template creation cancelled.")
+        return
+    
+    mobile_app = get_optional_input("Enter mobile app information (e.g., 'Netflix App - iOS/Android')")
+    if mobile_app is None:
+        warning_msg("Template creation cancelled.")
+        return
+
     # Create and save template
     template = {
         "name": name,
@@ -2662,7 +2928,16 @@ def create_template_manually():
         "login_info": login_info,
         "password": password,
         "billing_cycle": billing_cycle,
-        "reminder_days": reminder_days
+        "reminder_days": reminder_days,
+        # Contact information
+        "company_email": company_email,
+        "support_phone": support_phone,
+        "billing_phone": billing_phone,
+        "customer_service_hours": customer_service_hours,
+        "account_number": account_number,
+        "reference_id": reference_id,
+        "support_chat_url": support_chat_url,
+        "mobile_app": mobile_app
     }
     
     bill_templates.append(template)
@@ -2700,6 +2975,20 @@ def view_templates():
             print(f"    Website: {Colors.INFO}{template['web_page']}{Colors.RESET}")
         if template.get('login_info'):
             print(f"    Login: {Colors.INFO}{template['login_info']}{Colors.RESET}")
+        
+        # Show contact information if available
+        contact_info = []
+        if template.get('company_email'):
+            contact_info.append(f"📧 {template['company_email']}")
+        if template.get('support_phone'):
+            contact_info.append(f"📞 {template['support_phone']}")
+        if template.get('billing_phone'):
+            contact_info.append(f"💰 {template['billing_phone']}")
+        if template.get('account_number'):
+            contact_info.append(f"🆔 {template['account_number']}")
+        
+        if contact_info:
+            print(f"    {Colors.INFO}📞 Contact: {', '.join(contact_info[:2])}{'...' if len(contact_info) > 2 else ''}{Colors.RESET}")
     
     # Template management options
     print(f"\n{Colors.MENU}Template Options:{Colors.RESET}")
@@ -2783,6 +3072,57 @@ def edit_template():
             if new_password:
                 template['password'] = new_password
             
+            # Contact Information
+            print(f"\n{Colors.TITLE}📞 Contact Information{Colors.RESET}")
+            
+            new_company_email = colored_input(f"Company Email [{template.get('company_email', '')}]: ", Colors.PROMPT).strip()
+            if new_company_email:
+                if new_company_email.lower() == 'clear':
+                    template['company_email'] = ""
+                    success_msg("Company email cleared.")
+                else:
+                    validated_email = validate_email(new_company_email)
+                    if validated_email is not None:
+                        template['company_email'] = validated_email
+                    else:
+                        error_msg("Invalid email format. Keeping the original email.")
+
+            new_support_phone = colored_input(f"Support Phone [{template.get('support_phone', '')}]: ", Colors.PROMPT).strip()
+            if new_support_phone:
+                template['support_phone'] = new_support_phone
+
+            new_billing_phone = colored_input(f"Billing Phone [{template.get('billing_phone', '')}]: ", Colors.PROMPT).strip()
+            if new_billing_phone:
+                template['billing_phone'] = new_billing_phone
+
+            new_service_hours = colored_input(f"Service Hours [{template.get('customer_service_hours', '')}]: ", Colors.PROMPT).strip()
+            if new_service_hours:
+                template['customer_service_hours'] = new_service_hours
+
+            new_account_number = colored_input(f"Account Number [{template.get('account_number', '')}]: ", Colors.PROMPT).strip()
+            if new_account_number:
+                template['account_number'] = new_account_number
+
+            new_reference_id = colored_input(f"Reference ID [{template.get('reference_id', '')}]: ", Colors.PROMPT).strip()
+            if new_reference_id:
+                template['reference_id'] = new_reference_id
+
+            new_support_chat_url = colored_input(f"Support Chat URL [{template.get('support_chat_url', '')}]: ", Colors.PROMPT).strip()
+            if new_support_chat_url:
+                if new_support_chat_url.lower() == 'clear':
+                    template['support_chat_url'] = ""
+                    success_msg("Support chat URL cleared.")
+                else:
+                    validated_url = validate_url(new_support_chat_url)
+                    if validated_url is not None:
+                        template['support_chat_url'] = validated_url
+                    else:
+                        error_msg("Invalid URL format. Keeping the original URL.")
+
+            new_mobile_app = colored_input(f"Mobile App [{template.get('mobile_app', '')}]: ", Colors.PROMPT).strip()
+            if new_mobile_app:
+                template['mobile_app'] = new_mobile_app
+            
             save_templates()
             success_msg(f"Template '{template['name']}' updated successfully.")
         else:
@@ -2845,7 +3185,16 @@ def use_template_to_add_bill():
                 "password": template.get('password', ''),
                 "paid": False,
                 "billing_cycle": template.get('billing_cycle', BillingCycle.MONTHLY),
-                "reminder_days": template.get('reminder_days', 7)
+                "reminder_days": template.get('reminder_days', 7),
+                # Contact information from template
+                "company_email": template.get('company_email', ''),
+                "support_phone": template.get('support_phone', ''),
+                "billing_phone": template.get('billing_phone', ''),
+                "customer_service_hours": template.get('customer_service_hours', ''),
+                "account_number": template.get('account_number', ''),
+                "reference_id": template.get('reference_id', ''),
+                "support_chat_url": template.get('support_chat_url', ''),
+                "mobile_app": template.get('mobile_app', '')
             }
             
             bills.append(bill)
@@ -2854,6 +3203,18 @@ def use_template_to_add_bill():
             success_msg(f"Bill '{template['name']}' added successfully from template!")
             info_msg(f"Due date: {due_date}")
             info_msg(f"Billing cycle: {template.get('billing_cycle', BillingCycle.MONTHLY)}")
+            
+            # Show contact info if available
+            contact_info = []
+            if template.get('company_email'):
+                contact_info.append(f"📧 {template['company_email']}")
+            if template.get('support_phone'):
+                contact_info.append(f"📞 {template['support_phone']}")
+            if template.get('account_number'):
+                contact_info.append(f"🆔 {template['account_number']}")
+            
+            if contact_info:
+                info_msg(f"Contact info included: {', '.join(contact_info[:2])}{'...' if len(contact_info) > 2 else ''}")
             
         else:
             error_msg("Invalid selection.")
@@ -2889,6 +3250,490 @@ def templates_menu():
         else:
             error_msg("Invalid option. Please choose 1-4.")
             colored_input("Press Enter to continue...", Colors.WARNING)
+
+# 13. Help System
+def show_help_menu():
+    """Display the main help menu."""
+    while True:
+        clear_console()
+        title_msg("Bills Tracker Help & Documentation")
+        
+        print(f"{Colors.MENU}1.{Colors.RESET} 📖 What is Bills Tracker?")
+        print(f"{Colors.MENU}2.{Colors.RESET} 🚀 Getting Started Guide")
+        print(f"{Colors.MENU}3.{Colors.RESET} 📝 Adding & Managing Bills")
+        print(f"{Colors.MENU}4.{Colors.RESET} 🔍 Searching & Sorting")
+        print(f"{Colors.MENU}5.{Colors.RESET} ⏰ Due Bills & Reminders")
+        print(f"{Colors.MENU}6.{Colors.RESET} 💰 Paying Bills")
+        print(f"{Colors.MENU}7.{Colors.RESET} 📋 Bill Templates")
+        print(f"{Colors.MENU}8.{Colors.RESET} 🔧 Tips & Tricks")
+        print(f"{Colors.MENU}9.{Colors.RESET} 🚪 Back to main menu")
+        
+        choice = colored_input("\nChoose help topic (1-9): ", Colors.PROMPT).strip()
+        
+        if choice == '1':
+            show_what_is_bills_tracker()
+        elif choice == '2':
+            show_getting_started_guide()
+        elif choice == '3':
+            show_adding_managing_bills()
+        elif choice == '4':
+            show_searching_sorting()
+        elif choice == '5':
+            show_due_bills_reminders()
+        elif choice == '6':
+            show_paying_bills()
+        elif choice == '7':
+            show_bill_templates_help()
+        elif choice == '8':
+            show_tips_tricks()
+        elif choice == '9':
+            break
+        else:
+            error_msg("Invalid option. Please choose 1-9.")
+            colored_input("Press Enter to continue...", Colors.WARNING)
+
+def show_what_is_bills_tracker():
+    """Explain what Bills Tracker is and its purpose."""
+    clear_console()
+    title_msg("What is Bills Tracker?")
+    
+    print(f"{Colors.INFO}Bills Tracker is a comprehensive command-line application designed to help you manage your bills and payments efficiently.{Colors.RESET}")
+    print()
+    
+    print(f"{Colors.TITLE}🎯 Main Purpose:{Colors.RESET}")
+    print("• Keep track of all your bills in one place")
+    print("• Never miss a payment deadline")
+    print("• Organize billing information securely")
+    print("• Simplify bill management with templates")
+    print()
+    
+    print(f"{Colors.TITLE}✨ Key Features:{Colors.RESET}")
+    print("• 📝 Add, edit, and delete bills")
+    print("• 📅 Track due dates with custom reminders")
+    print("• 🔄 Handle different billing cycles (weekly, monthly, etc.)")
+    print("• 💰 Mark bills as paid with automatic due date updates")
+    print("• 🔍 Search and sort bills easily")
+    print("• 📋 Use templates for quick bill creation")
+    print("• 💾 Automatic backup system")
+    print("• 🎨 Color-coded interface for better visibility")
+    print()
+    
+    print(f"{Colors.TITLE}🔒 Data Security:{Colors.RESET}")
+    print("• All data is stored locally on your computer")
+    print("• Automatic backups protect against data loss")
+    print("• No internet connection required")
+    print("• Your information stays private")
+    print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def show_getting_started_guide():
+    """Show a step-by-step getting started guide."""
+    clear_console()
+    title_msg("Getting Started Guide")
+    
+    print(f"{Colors.TITLE}🚀 Step 1: First Launch{Colors.RESET}")
+    print("When you first run Bills Tracker, it will:")
+    print("• Create necessary files and folders")
+    print("• Set up the backup system")
+    print("• Load any existing bills (if any)")
+    print()
+    
+    print(f"{Colors.TITLE}📝 Step 2: Add Your First Bill{Colors.RESET}")
+    print("1. Choose option 1 from the main menu")
+    print("2. Enter the bill name (e.g., 'Netflix Subscription')")
+    print("3. Set the due date (YYYY-MM-DD format)")
+    print("4. Choose the billing cycle (monthly, weekly, etc.)")
+    print("5. Set reminder days (how many days before due date)")
+    print("6. Add optional information (website, login, password)")
+    print()
+    
+    print(f"{Colors.TITLE}⏰ Step 3: Check Due Bills{Colors.RESET}")
+    print("1. Choose option 5 from the main menu")
+    print("2. Select 'Check bills with custom reminder periods'")
+    print("3. View bills that are due soon")
+    print("4. Use this regularly to stay on top of payments")
+    print()
+    
+    print(f"{Colors.TITLE}💰 Step 4: Pay Bills{Colors.RESET}")
+    print("1. Choose option 6 from the main menu")
+    print("2. Select the bill you want to pay")
+    print("3. Choose payment option (advance cycle or mark as paid)")
+    print("4. The due date will update automatically")
+    print()
+    
+    print(f"{Colors.TITLE}📋 Step 5: Create Templates (Optional){Colors.RESET}")
+    print("1. Choose option 9 from the main menu")
+    print("2. Create templates for bills you add frequently")
+    print("3. Use templates to quickly add new bills")
+    print()
+    
+    print(f"{Colors.TITLE}💡 Pro Tips:{Colors.RESET}")
+    print("• Check due bills daily or weekly")
+    print("• Use templates for recurring bills")
+    print("• Set appropriate reminder periods")
+    print("• Keep backup files safe")
+    print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def show_adding_managing_bills():
+    """Explain how to add and manage bills."""
+    clear_console()
+    title_msg("Adding & Managing Bills")
+    
+    print(f"{Colors.TITLE}📝 Adding a New Bill{Colors.RESET}")
+    print("1. Choose 'Add a bill' from the main menu")
+    print("2. Enter the bill name (required)")
+    print("3. Set the due date in YYYY-MM-DD format")
+    print("4. Choose billing cycle:")
+    print("   • Weekly - Every 7 days")
+    print("   • Bi-weekly - Every 14 days")
+    print("   • Monthly - Every month")
+    print("   • Quarterly - Every 3 months")
+    print("   • Semi-annually - Every 6 months")
+    print("   • Annually - Every 12 months")
+    print("   • One-time - No recurrence")
+    print("5. Set reminder days (1-365 days before due)")
+    print("6. Add optional website URL")
+    print("7. Add optional login information")
+    print("8. Add optional password")
+    print()
+    
+    print(f"{Colors.TITLE}✏️ Editing Bills{Colors.RESET}")
+    print("1. Choose 'Edit a bill' from the main menu")
+    print("2. Select the bill to edit")
+    print("3. Modify any field (press Enter to keep current value)")
+    print("4. Changes are saved automatically")
+    print()
+    
+    print(f"{Colors.TITLE}🗑️ Deleting Bills{Colors.RESET}")
+    print("1. Choose 'Delete a bill' from the main menu")
+    print("2. Select the bill to delete")
+    print("3. Confirm deletion")
+    print("⚠️  Warning: Deletion cannot be undone")
+    print()
+    
+    print(f"{Colors.TITLE}📋 Viewing Bills{Colors.RESET}")
+    print("• Choose 'View all bills' to see all bills")
+    print("• Bills are color-coded by status:")
+    print("  🟢 Green - Paid bills")
+    print("  🟡 Yellow - Unpaid bills")
+    print("  🔴 Red - Overdue bills")
+    print("• Large lists use pagination for better navigation")
+    print()
+    
+    print(f"{Colors.TITLE}🔍 Auto-complete Features{Colors.RESET}")
+    print("• Type partial bill names to see suggestions")
+    print("• Use '?' to see all available options")
+    print("• Type 'cancel' to exit any input")
+    print("• Use 'help' for context-sensitive help")
+    print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def show_searching_sorting():
+    """Explain search and sort functionality."""
+    clear_console()
+    title_msg("Searching & Sorting Bills")
+    
+    print(f"{Colors.TITLE}🔍 Search Options{Colors.RESET}")
+    print("1. Search by name - Find bills by partial name match")
+    print("2. Search by due date - Find bills due on specific dates")
+    print("3. Search by website - Find bills by website URL")
+    print("4. Search by contact information")
+    print("5. Search all fields - Search across all bill information")
+    print()
+    
+    print(f"{Colors.TITLE}🔍 Search by Name{Colors.RESET}")
+    print("• Use auto-complete for bill name suggestions")
+    print("• Case-insensitive partial matching")
+    print("• Shows similar names if exact match not found")
+    print("• Can view, pay, or edit bills from search results")
+    print()
+    
+    print(f"{Colors.TITLE}📅 Search by Date{Colors.RESET}")
+    print("• Exact date (YYYY-MM-DD)")
+    print("• Month and year (YYYY-MM)")
+    print("• Year only (YYYY)")
+    print("• Useful for finding bills due in specific periods")
+    print()
+    
+    print(f"{Colors.TITLE}🌐 Search by Website{Colors.RESET}")
+    print("• Search by website URL or domain")
+    print("• Auto-complete shows previously used websites")
+    print("• Useful for finding bills from the same company")
+    print()
+    
+    print(f"{Colors.TITLE}🔄 Sort Options{Colors.RESET}")
+    print("1. Sort by due date (earliest first)")
+    print("2. Sort by due date (latest first)")
+    print("3. Sort by name (A-Z)")
+    print("4. Sort by name (Z-A)")
+    print("5. Sort by payment status (unpaid first)")
+    print("6. Sort by payment status (paid first)")
+    print("7. Reset to original order")
+    print()
+    
+    print(f"{Colors.TITLE}💡 Search Tips{Colors.RESET}")
+    print("• Use partial words for broader searches")
+    print("• Search results show bill status and due dates")
+    print("• You can perform actions directly from search results")
+    print("• Large result sets use pagination")
+    print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def show_due_bills_reminders():
+    """Explain due bills and reminder system."""
+    clear_console()
+    title_msg("Due Bills & Reminders")
+    
+    print(f"{Colors.TITLE}⏰ Reminder System{Colors.RESET}")
+    print("Bills Tracker uses a smart reminder system:")
+    print("• Each bill has its own custom reminder period")
+    print("• Default reminder is 7 days before due date")
+    print("• You can set reminders from 1 to 365 days")
+    print("• Reminders are checked automatically")
+    print()
+    
+    print(f"{Colors.TITLE}📅 Checking Due Bills{Colors.RESET}")
+    print("Two ways to check due bills:")
+    print()
+    print("1. Custom Reminder Periods:")
+    print("   • Uses each bill's individual reminder setting")
+    print("   • Shows bills that are due within their reminder period")
+    print("   • Most personalized approach")
+    print()
+    print("2. Specific Day Range:")
+    print("   • Check bills due within X days")
+    print("   • Useful for weekly or monthly planning")
+    print("   • Good for bulk payment planning")
+    print()
+    
+    print(f"{Colors.TITLE}🎨 Status Indicators{Colors.RESET}")
+    print("Bills are color-coded by urgency:")
+    print("🔴 Red - OVERDUE (past due date)")
+    print("🟠 Orange - DUE TODAY")
+    print("🟡 Yellow - Due within 3 days")
+    print("🔵 Blue - Due within reminder period")
+    print()
+    
+    print(f"{Colors.TITLE}📊 Due Bills Features{Colors.RESET}")
+    print("• View all due bills in one place")
+    print("• Sort by urgency (overdue first)")
+    print("• Pay individual bills directly")
+    print("• Bulk pay multiple bills")
+    print("• Change reminder periods")
+    print("• Navigate with pagination for large lists")
+    print()
+    
+    print(f"{Colors.TITLE}💡 Best Practices{Colors.RESET}")
+    print("• Check due bills daily or weekly")
+    print("• Set appropriate reminder periods for each bill")
+    print("• Use bulk payment for multiple due bills")
+    print("• Review overdue bills immediately")
+    print("• Adjust reminder periods based on your payment habits")
+    print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def show_paying_bills():
+    """Explain the bill payment process."""
+    clear_console()
+    title_msg("Paying Bills")
+    
+    print(f"{Colors.TITLE}💰 Payment Process{Colors.RESET}")
+    print("1. Choose 'Pay a bill' from the main menu")
+    print("2. Select the bill you want to pay")
+    print("3. Choose payment option")
+    print("4. Bill status and due date are updated automatically")
+    print()
+    
+    print(f"{Colors.TITLE}🔄 Payment Options{Colors.RESET}")
+    print("For recurring bills, you have two options:")
+    print()
+    print("1. Pay and Advance to Next Cycle:")
+    print("   • Marks current bill as paid")
+    print("   • Automatically calculates next due date")
+    print("   • Bill remains active for next cycle")
+    print("   • Recommended for ongoing subscriptions")
+    print()
+    print("2. Mark as Permanently Paid:")
+    print("   • Marks bill as permanently paid")
+    print("   • Bill won't appear in due bills")
+    print("   • Use for one-time payments or cancelled services")
+    print("   • Can be reactivated by editing the bill")
+    print()
+    
+    print(f"{Colors.TITLE}📅 Due Date Updates{Colors.RESET}")
+    print("When you pay a recurring bill:")
+    print("• Next due date is calculated automatically")
+    print("• Handles different month lengths correctly")
+    print("• Respects the billing cycle (weekly, monthly, etc.)")
+    print("• One-time bills don't change due dates")
+    print()
+    
+    print(f"{Colors.TITLE}💳 Payment Methods{Colors.RESET}")
+    print("Bills Tracker tracks payment status, not actual payments:")
+    print("• You pay bills through your usual methods")
+    print("• Mark bills as paid in the app")
+    print("• Store payment information (websites, login details)")
+    print("• Track payment history and due dates")
+    print()
+    
+    print(f"{Colors.TITLE}📋 Bulk Payments{Colors.RESET}")
+    print("From the due bills screen:")
+    print("• Pay multiple bills at once")
+    print("• Useful for monthly bill management")
+    print("• Saves time when many bills are due")
+    print("• Each bill follows its own payment rules")
+    print()
+    
+    print(f"{Colors.TITLE}💡 Payment Tips{Colors.RESET}")
+    print("• Pay bills as soon as they appear in due bills")
+    print("• Use bulk payment for efficiency")
+    print("• Keep payment information updated")
+    print("• Review payment history regularly")
+    print("• Set up auto-pay where possible")
+    print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def show_bill_templates_help():
+    """Explain bill templates functionality."""
+    clear_console()
+    title_msg("Bill Templates")
+    
+    print(f"{Colors.TITLE}📋 What are Templates?{Colors.RESET}")
+    print("Templates are reusable bill configurations that save time:")
+    print("• Store common bill information")
+    print("• Quick bill creation with minimal input")
+    print("• Standardize billing cycles and reminders")
+    print("• Perfect for recurring bills")
+    print()
+    
+    print(f"{Colors.TITLE}📝 Creating Templates{Colors.RESET}")
+    print("Two ways to create templates:")
+    print()
+    print("1. From Existing Bills:")
+    print("   • Choose 'Save bill as template'")
+    print("   • Select an existing bill")
+    print("   • Template is created with all bill details")
+    print("   • Excludes due date (you set this for each new bill)")
+    print()
+    print("2. Manual Creation:")
+    print("   • Choose 'Create new template'")
+    print("   • Enter template name and details")
+    print("   • Set billing cycle and reminder period")
+    print("   • Add optional website and login information")
+    print()
+    
+    print(f"{Colors.TITLE}🚀 Using Templates{Colors.RESET}")
+    print("To add a bill from a template:")
+    print("1. Choose 'Use template to add bill'")
+    print("2. Select the template to use")
+    print("3. Enter only the due date")
+    print("4. Bill is created with all template details")
+    print("5. Much faster than manual entry")
+    print()
+    
+    print(f"{Colors.TITLE}✏️ Managing Templates{Colors.RESET}")
+    print("Template management options:")
+    print("• View all templates with details")
+    print("• Edit template information")
+    print("• Delete unused templates")
+    print("• Use templates to create bills")
+    print("• Templates are saved automatically")
+    print()
+    
+    print(f"{Colors.TITLE}💡 Template Best Practices{Colors.RESET}")
+    print("• Create templates for bills you add frequently")
+    print("• Use descriptive template names")
+    print("• Include website and login information")
+    print("• Set appropriate reminder periods")
+    print("• Update templates when information changes")
+    print("• Delete templates you no longer use")
+    print()
+    
+    print(f"{Colors.TITLE}🔄 Template vs Bill{Colors.RESET}")
+    print("Templates:")
+    print("• Reusable configurations")
+    print("• No due dates")
+    print("• Used to create bills quickly")
+    print()
+    print("Bills:")
+    print("• Actual bill instances")
+    print("• Have specific due dates")
+    print("• Track payment status")
+    print("• Can be paid and updated")
+    print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def show_tips_tricks():
+    """Show helpful tips and tricks for using Bills Tracker."""
+    clear_console()
+    title_msg("Tips & Tricks")
+    
+    print(f"{Colors.TITLE}⚡ Quick Actions{Colors.RESET}")
+    print("• Type 'cancel' to exit any input")
+    print("• Type 'help' for context-sensitive help")
+    print("• Use '?' to see all available options")
+    print("• Press Enter to continue after messages")
+    print()
+    
+    print(f"{Colors.TITLE}🎯 Efficient Workflow{Colors.RESET}")
+    print("1. Check due bills daily (option 5)")
+    print("2. Pay bills as they appear")
+    print("3. Use templates for new bills")
+    print("4. Search when you need to find something")
+    print("5. Sort bills when organizing")
+    print()
+    
+    print(f"{Colors.TITLE}📅 Date Management{Colors.RESET}")
+    print("• Use YYYY-MM-DD format for dates")
+    print("• Set appropriate reminder periods")
+    print("• Check due bills regularly")
+    print("• Use custom reminder periods for different bills")
+    print()
+    
+    print(f"{Colors.TITLE}🔍 Search Strategies{Colors.RESET}")
+    print("• Use partial names for broader searches")
+    print("• Search by website for company-specific bills")
+    print("• Use date searches for monthly planning")
+    print("• Search all fields when unsure")
+    print()
+    
+    print(f"{Colors.TITLE}📋 Template Strategy{Colors.RESET}")
+    print("• Create templates for recurring bills")
+    print("• Include website and login information")
+    print("• Use descriptive template names")
+    print("• Update templates when information changes")
+    print()
+    
+    print(f"{Colors.TITLE}💾 Data Safety{Colors.RESET}")
+    print("• Backups are created automatically")
+    print("• Keep backup files in a safe location")
+    print("• Don't delete the bills.json file")
+    print("• Export data if needed")
+    print()
+    
+    print(f"{Colors.TITLE}🎨 Interface Tips{Colors.RESET}")
+    print("• Color coding helps identify bill status")
+    print("• Use pagination for large lists")
+    print("• Pay attention to warning messages")
+    print("• Read success messages for confirmation")
+    print()
+    
+    print(f"{Colors.TITLE}🚨 Troubleshooting{Colors.RESET}")
+    print("• If the app won't start, check file permissions")
+    print("• If bills don't load, check bills.json file")
+    print("• If dates are wrong, use YYYY-MM-DD format")
+    print("• If you see errors, check the backup files")
+    print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
 
 # Entry point
 if __name__ == "__main__":
