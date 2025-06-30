@@ -80,6 +80,18 @@ def load_bills():
     try:
         with open(BILLS_FILE, 'r') as f:
             bills = json.load(f)
+        
+        # Migrate bills to include reminder_days if missing
+        migrated = False
+        for bill in bills:
+            if 'reminder_days' not in bill:
+                bill['reminder_days'] = 7  # Default to 7 days
+                migrated = True
+        
+        if migrated:
+            save_bills()
+            info_msg("Bills migrated to include custom reminder periods")
+        
         success_msg(f"Loaded {len(bills)} bills")
     except FileNotFoundError:
         bills = []
@@ -402,6 +414,12 @@ def add_bill():
         warning_msg("Bill addition cancelled.")
         return
     
+    # Get reminder period
+    reminder_days = get_reminder_days()
+    if reminder_days is None:
+        warning_msg("Bill addition cancelled.")
+        return
+    
     # Get optional fields
     web_page = get_optional_input("Enter the web page for the bill")
     if web_page is None:
@@ -426,7 +444,8 @@ def add_bill():
         "login_info": login_info,
         "password": password,
         "paid": False,
-        "billing_cycle": billing_cycle
+        "billing_cycle": billing_cycle,
+        "reminder_days": reminder_days
     }
     bills.append(bill)
     save_bills()
@@ -493,6 +512,14 @@ def view_bills():
         cycle_color = get_billing_cycle_color(cycle)
         print(f"    Cycle: {cycle_color}{cycle.title()}{Colors.RESET}")
         
+        # Show reminder period
+        reminder_days = bill.get('reminder_days', 7)
+        if reminder_days == 1:
+            reminder_text = "1 day before"
+        else:
+            reminder_text = f"{reminder_days} days before"
+        print(f"    Reminder: {Colors.WARNING}⏰ {reminder_text}{Colors.RESET}")
+        
         if bill.get('web_page'):
             print(f"    Website: {Colors.INFO}{bill['web_page']}{Colors.RESET}")
         if bill.get('login_info'):
@@ -548,6 +575,16 @@ def edit_bill():
                 if new_billing_cycle is not None:
                     bill['billing_cycle'] = new_billing_cycle
                     success_msg(f"Billing cycle updated to {new_billing_cycle}")
+
+            # Reminder period
+            current_reminder = bill.get('reminder_days', 7)
+            print(f"\nCurrent reminder period: {current_reminder} days before due date")
+            change_reminder = input("Change reminder period? (yes/no): ").strip().lower()
+            if change_reminder in ['yes', 'y']:
+                new_reminder_days = get_reminder_days()
+                if new_reminder_days is not None:
+                    bill['reminder_days'] = new_reminder_days
+                    success_msg(f"Reminder period updated to {new_reminder_days} days")
 
             save_bills()
             success_msg(f"Bill '{bill['name']}' updated successfully.")
@@ -614,9 +651,12 @@ def pay_bill():
     except ValueError:
         print("Invalid input. Please enter a number.")
 
-def verify_due_bills(days=7):
-    """Check for due bills with color highlighting."""
-    title_msg(f"Bills Due Within {days} Days")
+def verify_due_bills(days=None):
+    """Check for due bills with color highlighting. If days=None, use each bill's custom reminder period."""
+    if days is None:
+        title_msg("Bills Due Based on Custom Reminder Periods")
+    else:
+        title_msg(f"Bills Due Within {days} Days")
     
     today = datetime.now()
     due_bills = []
@@ -629,19 +669,29 @@ def verify_due_bills(days=7):
             due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
             days_diff = (due_date - today).days
             
-            if days_diff <= days:
-                due_bills.append((bill, days_diff))
+            # Use custom reminder period if days parameter is None
+            if days is None:
+                reminder_period = bill.get('reminder_days', 7)
+                if days_diff <= reminder_period:
+                    due_bills.append((bill, days_diff, reminder_period))
+            else:
+                # Use provided days parameter
+                if days_diff <= days:
+                    due_bills.append((bill, days_diff, days))
         except ValueError:
             continue
     
     if not due_bills:
-        success_msg("No bills are due soon! 🎉")
+        if days is None:
+            success_msg("No bills are due based on your custom reminder periods! 🎉")
+        else:
+            success_msg("No bills are due soon! 🎉")
         return
     
     # Sort by days until due
     due_bills.sort(key=lambda x: x[1])
     
-    for bill, days_diff in due_bills:
+    for bill, days_diff, reminder_period in due_bills:
         if days_diff < 0:
             colored_print(f"🚨 {bill['name']} - OVERDUE by {abs(days_diff)} days!", Colors.OVERDUE)
         elif days_diff == 0:
@@ -650,11 +700,18 @@ def verify_due_bills(days=7):
             colored_print(f"⚠️  {bill['name']} - Due in {days_diff} days", Colors.WARNING)
         else:
             colored_print(f"📅 {bill['name']} - Due in {days_diff} days", Colors.INFO)
+        
+        # Show reminder period for custom reminders
+        if days is None:
+            colored_print(f"   ⏰ Reminder set for {reminder_period} days before due date", Colors.INFO)
     print()
 
-def verify_due_bills_paginated(days=7, items_per_page=10):
-    """Check for due bills with pagination."""
-    title_msg(f"Bills Due Within {days} Days")
+def verify_due_bills_paginated(days=None, items_per_page=10):
+    """Check for due bills with pagination. If days=None, use each bill's custom reminder period."""
+    if days is None:
+        title_msg("Bills Due Based on Custom Reminder Periods")
+    else:
+        title_msg(f"Bills Due Within {days} Days")
     
     if not bills:
         warning_msg("No bills found.")
@@ -664,7 +721,10 @@ def verify_due_bills_paginated(days=7, items_per_page=10):
     due_bills = get_due_bills(days)
     
     if not due_bills:
-        success_msg("No bills are due soon! 🎉")
+        if days is None:
+            success_msg("No bills are due based on your custom reminder periods! 🎉")
+        else:
+            success_msg("No bills are due soon! 🎉")
         input("Press Enter to continue...")
         return
     
@@ -716,8 +776,8 @@ def verify_due_bills_paginated(days=7, items_per_page=10):
             error_msg("Invalid option.")
             input("Press Enter to continue...")
 
-def get_due_bills(days):
-    """Get bills due within specified days."""
+def get_due_bills(days=None):
+    """Get bills due within specified days. If days=None, use each bill's custom reminder period."""
     today = datetime.now()
     due_bills = []
     
@@ -729,8 +789,15 @@ def get_due_bills(days):
             due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
             days_diff = (due_date - today).days
             
-            if days_diff <= days:
-                due_bills.append((bill, days_diff))
+            # Use custom reminder period if days parameter is None
+            if days is None:
+                reminder_period = bill.get('reminder_days', 7)
+                if days_diff <= reminder_period:
+                    due_bills.append((bill, days_diff))
+            else:
+                # Use provided days parameter
+                if days_diff <= days:
+                    due_bills.append((bill, days_diff))
         except ValueError:
             continue  # Skip invalid dates
     
@@ -1090,6 +1157,49 @@ def show_progress(func, description="Processing", steps=10, color="green"):
             return result
     return wrapper
 
+def due_bills_menu():
+    """Display due bills menu options."""
+    title_msg("Due Bills Options")
+    print(f"{Colors.MENU}1.{Colors.RESET} ⏰ Check bills with custom reminder periods")
+    print(f"{Colors.MENU}2.{Colors.RESET} 📅 Check bills due within specific days")
+    print(f"{Colors.MENU}3.{Colors.RESET} 🔙 Back to main menu")
+    print()
+    
+    while True:
+        choice = colored_input("Choose an option (1-3): ", Colors.PROMPT).strip()
+        
+        if choice == '1':
+            clear_console()
+            # Use custom reminder periods
+            if len(bills) > 10:
+                verify_due_bills_paginated(days=None)
+            else:
+                verify_due_bills(days=None)
+                colored_input("\n📖 Press Enter to continue...", Colors.INFO)
+            break
+        elif choice == '2':
+            clear_console()
+            # Ask for specific number of days
+            try:
+                custom_days = int(colored_input("Enter number of days to check (1-365): ", Colors.PROMPT))
+                if 1 <= custom_days <= 365:
+                    if len(bills) > 10:
+                        verify_due_bills_paginated(days=custom_days)
+                    else:
+                        verify_due_bills(days=custom_days)
+                        colored_input("\n📖 Press Enter to continue...", Colors.INFO)
+                else:
+                    error_msg("Please enter a number between 1 and 365")
+                    continue
+            except ValueError:
+                error_msg("Please enter a valid number")
+                continue
+            break
+        elif choice == '3':
+            break
+        else:
+            error_msg("Please choose option 1, 2, or 3")
+
 # 12. Main application
 def main():
     """Main application loop with pagination support."""
@@ -1122,12 +1232,7 @@ def main():
             sort_bills()
         elif choice == '5':
             clear_console()
-            # Use pagination if more than 10 due bills
-            if len(bills) > 10:
-                verify_due_bills_paginated()
-            else:
-                verify_due_bills()
-                colored_input("\n📖 Press Enter to continue...", Colors.INFO)
+            due_bills_menu()
         elif choice == '6':
             clear_console()
             pay_bill()
@@ -1488,9 +1593,24 @@ def edit_bill_details(bill):
         bill['paid'] = False
 
     # Billing cycle
-    billing_cycle = get_billing_cycle()
-    if billing_cycle is not None:
-        bill['billing_cycle'] = billing_cycle
+    current_cycle = bill.get('billing_cycle', 'monthly')
+    print(f"\nCurrent billing cycle: {current_cycle.title()}")
+    change_cycle = colored_input("Change billing cycle? (yes/no): ", Colors.PROMPT).strip().lower()
+    if change_cycle in ['yes', 'y']:
+        new_billing_cycle = get_billing_cycle()
+        if new_billing_cycle is not None:
+            bill['billing_cycle'] = new_billing_cycle
+            success_msg(f"Billing cycle updated to {new_billing_cycle}")
+
+    # Reminder period
+    current_reminder = bill.get('reminder_days', 7)
+    print(f"\nCurrent reminder period: {current_reminder} days before due date")
+    change_reminder = colored_input("Change reminder period? (yes/no): ", Colors.PROMPT).strip().lower()
+    if change_reminder in ['yes', 'y']:
+        new_reminder_days = get_reminder_days()
+        if new_reminder_days is not None:
+            bill['reminder_days'] = new_reminder_days
+            success_msg(f"Reminder period updated to {new_reminder_days} days")
 
     save_bills()
     success_msg(f"Bill '{bill['name']}' updated successfully.")
@@ -1892,3 +2012,29 @@ def billing_cycle_menu():
         else:
             error_msg("Invalid option. Please choose 1-4.")
             input("Press Enter to continue...")
+
+def get_reminder_days():
+    """Get custom reminder days from user input."""
+    print("\n--- Set Reminder Period ---")
+    colored_print("How many days before the due date should you be reminded?", Colors.INFO)
+    colored_print("Common options: 1 (day before), 3 (three days), 7 (week), 14 (two weeks)", Colors.INFO)
+    
+    while True:
+        try:
+            choice = colored_input("Enter reminder days (1-365) or 'default' for 7 days: ", Colors.PROMPT).strip()
+            
+            if choice.lower() == 'default':
+                success_msg("Using default reminder period of 7 days")
+                return 7
+            elif choice.lower() == 'cancel':
+                return None
+            
+            days = int(choice)
+            if 1 <= days <= 365:
+                success_msg(f"Reminder set for {days} days before due date")
+                return days
+            else:
+                error_msg("Please enter a number between 1 and 365")
+        except ValueError:
+            error_msg("Please enter a valid number, 'default', or 'cancel'")
+
