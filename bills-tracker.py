@@ -19,8 +19,10 @@ BILLS_FILE = 'bills.json'
 BACKUP_DIR = 'backups'
 MAX_BACKUPS = 5
 DATE_FORMAT = '%Y-%m-%d'
+TEMPLATES_FILE = 'bill_templates.json'
 
 bills = []
+bill_templates = []
 
 # 3. Color utility functions
 class Colors:
@@ -825,7 +827,8 @@ def display_menu():
     print(f"{Colors.MENU}6.{Colors.RESET} 💰 Pay a bill")
     print(f"{Colors.MENU}7.{Colors.RESET} ✏️  Edit a bill")
     print(f"{Colors.MENU}8.{Colors.RESET} 🗑️  Delete a bill")
-    print(f"{Colors.MENU}9.{Colors.RESET} 🚪 Exit")
+    print(f"{Colors.MENU}9.{Colors.RESET} 📋 Bill templates")
+    print(f"{Colors.MENU}10.{Colors.RESET} 🚪 Exit")
     print(Colors.MENU + "="*40 + Colors.RESET)
 
 def view_bills():
@@ -1901,12 +1904,13 @@ def main():
     clear_console()
     title_msg("Welcome to Bills Tracker! 🏠💳")
     
-    # Load existing bills
+    # Load existing bills and templates
     load_bills()
+    load_templates()
 
     while True:
         display_menu()
-        choice = colored_input("Choose an option (1-9): ", Colors.PROMPT).strip()
+        choice = colored_input("Choose an option (1-10): ", Colors.PROMPT).strip()
         
         if choice == '1':
             clear_console()
@@ -1938,10 +1942,13 @@ def main():
             clear_console()
             delete_bill()
         elif choice == '9':
+            clear_console()
+            templates_menu()
+        elif choice == '10':
             success_msg("Thank you for using Bills Tracker! 👋")
             break
         else:
-            error_msg("Invalid option. Please choose 1-9.")
+            error_msg("Invalid option. Please choose 1-10.")
             colored_input("Press Enter to continue...", Colors.WARNING)
 
 # 10. Missing pagination helper functions
@@ -2514,6 +2521,374 @@ def billing_cycle_menu():
         else:
             error_msg("Invalid option. Please choose 1-4.")
             input("Press Enter to continue...")
+
+# 5.1 Template operations
+def load_templates():
+    """Load bill templates from JSON file."""
+    global bill_templates
+    try:
+        with open(TEMPLATES_FILE, 'r') as f:
+            bill_templates = json.load(f)
+        success_msg(f"Loaded {len(bill_templates)} bill templates")
+    except FileNotFoundError:
+        bill_templates = []
+        info_msg("Starting with empty templates list")
+    except json.JSONDecodeError:
+        bill_templates = []
+        error_msg("Corrupted templates file. Starting fresh.")
+
+def save_templates():
+    """Save bill templates to JSON file."""
+    try:
+        with open(TEMPLATES_FILE, 'w') as f:
+            json.dump(bill_templates, f, indent=2)
+        success_msg("Templates saved successfully")
+    except Exception as e:
+        error_msg(f"Template save error: {e}")
+
+def create_template_from_bill(bill):
+    """Create a template from an existing bill."""
+    template = {
+        "name": bill['name'],
+        "web_page": bill.get('web_page', ''),
+        "login_info": bill.get('login_info', ''),
+        "password": bill.get('password', ''),
+        "billing_cycle": bill.get('billing_cycle', BillingCycle.MONTHLY),
+        "reminder_days": bill.get('reminder_days', 7)
+    }
+    return template
+
+def save_bill_as_template():
+    """Save an existing bill as a template."""
+    if not bills:
+        warning_msg("No bills found to create templates from.")
+        return
+    
+    title_msg("Save Bill as Template")
+    
+    # Show bills for selection
+    print(f"\n{Colors.INFO}📋 Available bills:{Colors.RESET}")
+    for i, bill in enumerate(bills, 1):
+        status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+        print(f"{Colors.INFO}  {i}. {bill['name']} [{status}]{Colors.RESET}")
+    
+    try:
+        choice = int(colored_input(f"\nSelect bill to save as template (1-{len(bills)}): ", Colors.PROMPT))
+        if 1 <= choice <= len(bills):
+            bill = bills[choice - 1]
+            
+            # Check if template already exists
+            existing_template = next((t for t in bill_templates if t['name'] == bill['name']), None)
+            if existing_template:
+                overwrite = colored_input(f"Template '{bill['name']}' already exists. Overwrite? (y/n): ", Colors.WARNING).strip().lower()
+                if overwrite not in ['y', 'yes']:
+                    info_msg("Template creation cancelled.")
+                    return
+                bill_templates.remove(existing_template)
+            
+            # Create and save template
+            template = create_template_from_bill(bill)
+            bill_templates.append(template)
+            save_templates()
+            
+            success_msg(f"Template '{bill['name']}' saved successfully!")
+            
+            # Show template details
+            print(f"\n{Colors.INFO}📋 Template details:{Colors.RESET}")
+            print(f"  Name: {Colors.TITLE}{template['name']}{Colors.RESET}")
+            print(f"  Billing Cycle: {get_billing_cycle_color(template['billing_cycle'])}{template['billing_cycle'].title()}{Colors.RESET}")
+            print(f"  Reminder Days: {Colors.INFO}{template['reminder_days']}{Colors.RESET}")
+            if template.get('web_page'):
+                print(f"  Website: {Colors.INFO}{template['web_page']}{Colors.RESET}")
+            if template.get('login_info'):
+                print(f"  Login: {Colors.INFO}{template['login_info']}{Colors.RESET}")
+        else:
+            error_msg("Invalid selection.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+    
+    colored_input("\nPress Enter to continue...", Colors.INFO)
+
+def create_template_manually():
+    """Create a new template manually."""
+    title_msg("Create New Bill Template")
+    info_msg("Type 'cancel' at any time to cancel.")
+    
+    # Get template name
+    while True:
+        name = get_required_input("Enter template name")
+        if name is None:
+            warning_msg("Template creation cancelled.")
+            return
+        
+        # Check for duplicates
+        if any(template['name'].lower() == name.lower() for template in bill_templates):
+            error_msg(f"A template with the name '{name}' already exists. Please enter a different name.")
+        else:
+            break
+    
+    # Get billing cycle
+    billing_cycle = get_billing_cycle()
+    if billing_cycle is None:
+        warning_msg("Template creation cancelled.")
+        return
+    
+    # Get reminder period
+    reminder_days = get_valid_reminder_days("Enter reminder days before due date (1-365)")
+    if reminder_days is None:
+        warning_msg("Template creation cancelled.")
+        return
+    
+    # Get optional fields
+    web_page = get_valid_url("Enter the web page for the bill (optional)")
+    if web_page is None:
+        warning_msg("Template creation cancelled.")
+        return
+    
+    login_info = get_optional_input("Enter the login information for the bill")
+    if login_info is None:
+        warning_msg("Template creation cancelled.")
+        return
+
+    password = get_optional_input("Enter the password for the bill")
+    if password is None:
+        warning_msg("Template creation cancelled.")
+        return
+
+    # Create and save template
+    template = {
+        "name": name,
+        "web_page": web_page,
+        "login_info": login_info,
+        "password": password,
+        "billing_cycle": billing_cycle,
+        "reminder_days": reminder_days
+    }
+    
+    bill_templates.append(template)
+    save_templates()
+    
+    success_msg(f"Template '{name}' created successfully!")
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def view_templates():
+    """View all available templates."""
+    title_msg("Bill Templates")
+    
+    if not bill_templates:
+        warning_msg("No templates found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    for idx, template in enumerate(bill_templates, 1):
+        print(f"\n{Colors.INFO}{idx}.{Colors.RESET} {Colors.TITLE}{template['name']}{Colors.RESET}")
+        
+        # Show billing cycle
+        cycle = template.get('billing_cycle', BillingCycle.MONTHLY)
+        cycle_color = get_billing_cycle_color(cycle)
+        print(f"    Cycle: {cycle_color}{cycle.title()}{Colors.RESET}")
+        
+        # Show reminder period
+        reminder_days = template.get('reminder_days', 7)
+        if reminder_days == 1:
+            reminder_text = "1 day before"
+        else:
+            reminder_text = f"{reminder_days} days before"
+        print(f"    Reminder: {Colors.WARNING}⏰ {reminder_text}{Colors.RESET}")
+        
+        if template.get('web_page'):
+            print(f"    Website: {Colors.INFO}{template['web_page']}{Colors.RESET}")
+        if template.get('login_info'):
+            print(f"    Login: {Colors.INFO}{template['login_info']}{Colors.RESET}")
+    
+    # Template management options
+    print(f"\n{Colors.MENU}Template Options:{Colors.RESET}")
+    print("1. ✏️  Edit a template")
+    print("2. 🗑️  Delete a template")
+    print("3. 📝 Use template to add bill")
+    print("4. 🔙 Back to templates menu")
+    
+    choice = colored_input("\nChoose option (1-4): ", Colors.PROMPT).strip()
+    
+    if choice == '1':
+        edit_template()
+    elif choice == '2':
+        delete_template()
+    elif choice == '3':
+        use_template_to_add_bill()
+    elif choice == '4':
+        return
+    else:
+        error_msg("Invalid option.")
+        colored_input("Press Enter to continue...", Colors.WARNING)
+
+def edit_template():
+    """Edit an existing template."""
+    if not bill_templates:
+        warning_msg("No templates to edit.")
+        return
+    
+    try:
+        choice = int(colored_input(f"Enter template number to edit (1-{len(bill_templates)}): ", Colors.PROMPT))
+        if 1 <= choice <= len(bill_templates):
+            template = bill_templates[choice - 1]
+            print(f"\n--- Editing Template: {template['name']} ---")
+            
+            # Edit template fields
+            new_name = colored_input(f"Name [{template['name']}]: ", Colors.PROMPT).strip()
+            if new_name:
+                # Check for name conflicts
+                if any(t['name'].lower() == new_name.lower() and t != template for t in bill_templates):
+                    error_msg(f"A template with the name '{new_name}' already exists.")
+                else:
+                    template['name'] = new_name
+            
+            # Billing cycle
+            current_cycle = template.get('billing_cycle', BillingCycle.MONTHLY)
+            print(f"\nCurrent billing cycle: {current_cycle.title()}")
+            change_cycle = colored_input("Change billing cycle? (yes/no): ", Colors.PROMPT).strip().lower()
+            if change_cycle in ['yes', 'y']:
+                new_billing_cycle = get_billing_cycle()
+                if new_billing_cycle is not None:
+                    template['billing_cycle'] = new_billing_cycle
+            
+            # Reminder period
+            current_reminder = template.get('reminder_days', 7)
+            print(f"\nCurrent reminder period: {current_reminder} days before due date")
+            change_reminder = colored_input("Change reminder period? (yes/no): ", Colors.PROMPT).strip().lower()
+            if change_reminder in ['yes', 'y']:
+                new_reminder_days = get_valid_reminder_days("Enter new reminder days before due date (1-365)", current_reminder)
+                if new_reminder_days is not None:
+                    template['reminder_days'] = new_reminder_days
+            
+            # Website
+            new_web_page = colored_input(f"Website [{template.get('web_page', '')}]: ", Colors.PROMPT).strip()
+            if new_web_page:
+                if new_web_page.lower() == 'clear':
+                    template['web_page'] = ""
+                else:
+                    validated_url = validate_url(new_web_page)
+                    if validated_url is not None:
+                        template['web_page'] = validated_url
+                    else:
+                        error_msg("Invalid URL format. Keeping the original website.")
+            
+            # Login info
+            new_login_info = colored_input(f"Login Info [{template.get('login_info', '')}]: ", Colors.PROMPT).strip()
+            if new_login_info:
+                template['login_info'] = new_login_info
+            
+            # Password
+            new_password = colored_input(f"Password [{template.get('password', '')}]: ", Colors.PROMPT).strip()
+            if new_password:
+                template['password'] = new_password
+            
+            save_templates()
+            success_msg(f"Template '{template['name']}' updated successfully.")
+        else:
+            error_msg("Invalid selection.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def delete_template():
+    """Delete a template."""
+    if not bill_templates:
+        warning_msg("No templates to delete.")
+        return
+    
+    try:
+        choice = int(colored_input(f"Enter template number to delete (1-{len(bill_templates)}): ", Colors.PROMPT))
+        if 1 <= choice <= len(bill_templates):
+            template = bill_templates[choice - 1]
+            confirm = colored_input(f"Are you sure you want to delete template '{template['name']}'? (yes/no): ", Colors.WARNING).strip().lower()
+            if confirm in ['yes', 'y']:
+                bill_templates.remove(template)
+                save_templates()
+                success_msg(f"Template '{template['name']}' deleted successfully.")
+            else:
+                info_msg("Deletion cancelled.")
+        else:
+            error_msg("Invalid selection.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def use_template_to_add_bill():
+    """Use a template to quickly add a new bill."""
+    if not bill_templates:
+        warning_msg("No templates available.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    try:
+        choice = int(colored_input(f"Enter template number to use (1-{len(bill_templates)}): ", Colors.PROMPT))
+        if 1 <= choice <= len(bill_templates):
+            template = bill_templates[choice - 1]
+            
+            title_msg(f"Add Bill from Template: {template['name']}")
+            
+            # Get due date (required for new bill)
+            due_date = get_valid_date_with_range_check("Enter the due date for this bill (YYYY-MM-DD)")
+            if due_date is None:
+                warning_msg("Bill creation cancelled.")
+                return
+            
+            # Create bill from template
+            bill = {
+                "name": template['name'],
+                "due_date": due_date,
+                "web_page": template.get('web_page', ''),
+                "login_info": template.get('login_info', ''),
+                "password": template.get('password', ''),
+                "paid": False,
+                "billing_cycle": template.get('billing_cycle', BillingCycle.MONTHLY),
+                "reminder_days": template.get('reminder_days', 7)
+            }
+            
+            bills.append(bill)
+            save_bills()
+            
+            success_msg(f"Bill '{template['name']}' added successfully from template!")
+            info_msg(f"Due date: {due_date}")
+            info_msg(f"Billing cycle: {template.get('billing_cycle', BillingCycle.MONTHLY)}")
+            
+        else:
+            error_msg("Invalid selection.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def templates_menu():
+    """Display templates management menu."""
+    while True:
+        clear_console()
+        title_msg("Bill Templates Management")
+        
+        print(f"{Colors.MENU}1.{Colors.RESET} 📋 View all templates")
+        print(f"{Colors.MENU}2.{Colors.RESET} 📝 Create new template")
+        print(f"{Colors.MENU}3.{Colors.RESET} 💾 Save bill as template")
+        print(f"{Colors.MENU}4.{Colors.RESET} 🚪 Back to main menu")
+        
+        choice = colored_input("\nChoose option (1-4): ", Colors.PROMPT).strip()
+        
+        if choice == '1':
+            clear_console()
+            view_templates()
+        elif choice == '2':
+            clear_console()
+            create_template_manually()
+        elif choice == '3':
+            clear_console()
+            save_bill_as_template()
+        elif choice == '4':
+            break
+        else:
+            error_msg("Invalid option. Please choose 1-4.")
+            colored_input("Press Enter to continue...", Colors.WARNING)
 
 # Entry point
 if __name__ == "__main__":

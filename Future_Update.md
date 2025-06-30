@@ -10,6 +10,12 @@ This document outlines planned and potential future updates for the Bills Tracke
 - ✅ Input validation and duplicate prevention
 - ✅ Pay bills with automatic due date updates
 - ✅ Clean console interface
+- ✅ Search functionality with pagination
+- ✅ Sort bills by various criteria
+- ✅ Colored output and progress indicators
+- ✅ Flexible billing cycles (weekly, monthly, quarterly, etc.)
+- ✅ Custom reminder periods per bill
+- ✅ **Bill templates** - Save and reuse bill configurations for quick adding
 
 ---
 
@@ -32,7 +38,7 @@ This document outlines planned and potential future updates for the Bills Tracke
 ### 1.3 Input Improvements
 - [x] **Better validation** - Validate URLs, email formats, date ranges
 - [x] **Auto-complete** - Suggest bill names while typing
-- [ ] **Templates** - Save bill templates for quick adding
+- [x] **Templates** - Save bill templates for quick adding
 - [ ] **Contact information** - Add company email, phone number, and support details for customer service
 - [ ] **Bulk import** - Import bills from CSV files
 
