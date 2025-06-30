@@ -33,7 +33,37 @@ This document outlines planned and potential future updates for the Bills Tracke
 - [x] **Better validation** - Validate URLs, email formats, date ranges
 - [x] **Auto-complete** - Suggest bill names while typing
 - [ ] **Templates** - Save bill templates for quick adding
+- [ ] **Contact information** - Add company email, phone number, and support details for customer service
 - [ ] **Bulk import** - Import bills from CSV files
+
+### 1.4 Customer Support & Contact Management
+```python
+# Example: Enhanced bill structure with contact info
+class EnhancedBill:
+    def __init__(self):
+        # Existing fields
+        self.name = ""
+        self.due_date = ""
+        self.web_page = ""
+        
+        # New contact fields
+        self.company_email = ""           # Customer service email
+        self.support_phone = ""           # Customer support phone number
+        self.billing_phone = ""           # Billing department phone
+        self.customer_service_hours = ""  # Support availability hours
+        self.account_number = ""          # Account/customer number
+        self.reference_id = ""            # Reference or policy number
+        self.support_chat_url = ""        # Live chat support URL
+        self.mobile_app = ""              # Company mobile app info
+```
+- [ ] **Company contact details** - Store customer service email addresses for billing inquiries
+- [ ] **Support phone numbers** - Add main support and billing-specific phone numbers
+- [ ] **Service hours tracking** - Record customer service availability hours
+- [ ] **Account information** - Store account numbers, reference IDs, and policy numbers
+- [ ] **Multi-channel support** - Track various contact methods (email, phone, chat, app)
+- [ ] **Emergency contacts** - Quick access to urgent support numbers for service outages
+- [ ] **Contact validation** - Validate phone number formats and email addresses
+- [ ] **Contact auto-complete** - Suggest contact information based on company names
 
 ---
 
@@ -64,14 +94,25 @@ import hashlib
 
 ### 3.1 Smart Bill Management
 ```python
-# Example: Bill categories
+# Example: Bill categories and contact info
 class BillCategory:
     UTILITIES = "utilities"
     SUBSCRIPTIONS = "subscriptions"
     LOANS = "loans"
     INSURANCE = "insurance"
+
+class ContactInfo:
+    def __init__(self):
+        self.company_email = ""
+        self.support_phone = ""
+        self.customer_service_hours = ""
+        self.support_website = ""
+        self.account_number = ""
 ```
 - [ ] **Bill categories** - Organize bills by type (utilities, subscriptions, etc.)
+- [ ] **Company contact information** - Store email, phone, support hours, and customer service details
+- [ ] **Account management** - Track account numbers, reference IDs, and service details
+- [ ] **Support integration** - Quick access to customer service information when payment issues arise
 - [ ] **Recurring patterns** - Handle complex billing cycles
 - [ ] **Bill amount tracking** - Track costs and spending patterns
 - [ ] **Payment methods** - Track how bills are paid (auto-pay, manual, etc.)
