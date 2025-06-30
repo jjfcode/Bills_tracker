@@ -2,8 +2,10 @@
 import json
 import os
 import shutil
+import time
 from datetime import datetime, timedelta
 from colorama import Fore, Back, Style, init
+from tqdm import tqdm
 
 # Initialize colorama for Windows compatibility
 init(autoreset=True)
@@ -87,54 +89,123 @@ def load_bills():
         error_msg("Corrupted bills file. Starting fresh.")
 
 def save_bills():
-    """Save bills to JSON file with colored feedback."""
+    """Save bills (with progress if many bills)."""
     try:
-        backup_bills()
+        # Always create backup first
+        backup_bills_with_progress()
+        
+        # Save the bills
         with open(BILLS_FILE, 'w') as f:
             json.dump(bills, f, indent=2)
         success_msg("Bills saved successfully")
+        
     except Exception as e:
         error_msg(f"Save error: {e}")
 
 def backup_bills():
-    """Create backup with colored feedback."""
+    """Main backup function with progress."""
+    backup_bills_with_progress()
+
+def backup_bills_with_progress():
+    """Create backup with progress indicator."""
     try:
-        if not os.path.exists(BACKUP_DIR):
-            os.makedirs(BACKUP_DIR)
-        
-        if not os.path.exists(BILLS_FILE):
-            info_msg("No bills.json found. No backup needed.")
-            return
+        # Step 1: Check directories
+        with ProgressBar.create_bar(100, "🔍 Checking directories", "blue") as pbar:
+            if not os.path.exists(BACKUP_DIR):
+                os.makedirs(BACKUP_DIR)
+            pbar.update(50)
             
-        # Create backup with timestamp
+            if not os.path.exists(BILLS_FILE):
+                info_msg("No bills.json found. No backup needed.")
+                pbar.update(100)
+                return
+            pbar.update(100)
+        
+        # Step 2: Create backup
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         backup_name = f"bills_backup_{timestamp}.json"
         backup_path = os.path.join(BACKUP_DIR, backup_name)
         
-        shutil.copy2(BILLS_FILE, backup_path)
+        with ProgressBar.create_bar(100, "💾 Creating backup", "green") as pbar:
+            # Simulate file copy with progress
+            file_size = os.path.getsize(BILLS_FILE)
+            chunk_size = max(1024, file_size // 10)  # 10 chunks minimum
+            
+            with open(BILLS_FILE, 'rb') as src, open(backup_path, 'wb') as dst:
+                copied = 0
+                while True:
+                    chunk = src.read(chunk_size)
+                    if not chunk:
+                        break
+                    dst.write(chunk)
+                    copied += len(chunk)
+                    progress = min(95, (copied / file_size) * 100)
+                    pbar.n = progress
+                    pbar.refresh()
+                    time.sleep(0.01)  # Small delay for visual effect
+                pbar.update(100 - pbar.n)
+        
         success_msg(f"Backup created: {backup_name}")
         
-        # Clean up old backups
-        cleanup_old_backups()
+        # Step 3: Cleanup old backups
+        cleanup_old_backups_with_progress()
         
     except Exception as e:
         error_msg(f"Backup error: {e}")
 
-def cleanup_old_backups():
-    """Remove old backups with colored feedback."""
+def cleanup_old_backups_with_progress():
+    """Remove old backups with progress indicator."""
     try:
-        backup_files = [f for f in os.listdir(BACKUP_DIR) 
-                       if f.startswith('bills_backup_')]
-        backup_files.sort(key=lambda x: os.path.getmtime(
-            os.path.join(BACKUP_DIR, x)))
-        
-        while len(backup_files) > MAX_BACKUPS:
-            oldest = backup_files.pop(0)
-            os.remove(os.path.join(BACKUP_DIR, oldest))
-            info_msg(f"Removed old backup: {oldest}")
+        with ProgressBar.create_bar(100, "🧹 Cleaning old backups", "yellow") as pbar:
+            backup_files = [f for f in os.listdir(BACKUP_DIR) 
+                           if f.startswith('bills_backup_')]
+            pbar.update(30)
             
+            backup_files.sort(key=lambda x: os.path.getmtime(
+                os.path.join(BACKUP_DIR, x)))
+            pbar.update(60)
+            
+            removed_count = 0
+            while len(backup_files) > MAX_BACKUPS:
+                oldest = backup_files.pop(0)
+                os.remove(os.path.join(BACKUP_DIR, oldest))
+                removed_count += 1
+                info_msg(f"Removed old backup: {oldest}")
+                time.sleep(0.1)  # Small delay for visual feedback
+            
+            pbar.update(100)
+            
+            if removed_count > 0:
+                success_msg(f"Cleaned up {removed_count} old backup(s)")
+            else:
+                info_msg("No old backups to clean")
+                
     except Exception as e:
         warning_msg(f"Cleanup error: {e}")
+
+def save_bills_with_progress():
+    """Save bills with progress indicator."""
+    try:
+        # Create backup first
+        backup_bills_with_progress()
+        
+        # Save bills with progress
+        with ProgressBar.create_bar(100, "💾 Saving bills", "green") as pbar:
+            pbar.update(20)
+            
+            # Convert to JSON with progress simulation
+            json_data = json.dumps(bills, indent=2)
+            pbar.update(60)
+            
+            # Write to file
+            with open(BILLS_FILE, 'w') as f:
+                f.write(json_data)
+            pbar.update(100)
+            
+        success_msg("Bills saved successfully")
+        
+    except Exception as e:
+        error_msg(f"Save error: {e}")
 
 # 6. Input validation functions
 def get_required_input(prompt):
@@ -525,30 +596,45 @@ def search_by_website():
     
     display_search_results(results, f"Bills with website containing '{search_term}'")
 
-def search_all_fields():
-    """Search across all bill fields."""
+def search_all_fields_with_progress(search_term):
+    """Search across all bill fields with progress."""
     if not bills:
-        print("No bills found.")
-        return
-    
-    search_term = input("Enter search term (searches all fields): ").strip().lower()
-    if not search_term:
-        print("Search term cannot be empty.")
-        return
+        warning_msg("No bills found.")
+        return []
     
     results = []
-    for bill in bills:
-        # Search in all text fields
-        searchable_text = ' '.join([
-            bill.get('name', ''),
-            bill.get('due_date', ''),
-            bill.get('web_page', ''),
-            bill.get('login_info', '')
-        ]).lower()
-        
-        if search_term in searchable_text:
-            results.append(bill)
+    search_term_lower = search_term.lower()
     
+    with ProgressBar.create_bar(len(bills), "🔍 Searching bills", "blue") as pbar:
+        for bill in bills:
+            # Search in all text fields
+            searchable_text = ' '.join([
+                bill.get('name', ''),
+                bill.get('due_date', ''),
+                bill.get('web_page', ''),
+                bill.get('login_info', '')
+            ]).lower()
+            
+            if search_term_lower in searchable_text:
+                results.append(bill)
+            
+            pbar.update(1)
+            time.sleep(0.02)  # Small delay for visual effect
+    
+    return results
+
+def search_all_fields():
+    """Search across all bill fields with progress indicator."""
+    if not bills:
+        warning_msg("No bills found.")
+        return
+    
+    search_term = input("Enter search term (searches all fields): ").strip()
+    if not search_term:
+        error_msg("Search term cannot be empty.")
+        return
+    
+    results = search_all_fields_with_progress(search_term)
     display_search_results(results, f"Bills containing '{search_term}' in any field")
 
 def display_search_results(results, title):
@@ -675,16 +761,49 @@ def sort_bills():
         input("Press Enter to continue...")
         sort_bills()
 
-def sort_by_due_date_asc():
-    """Sort bills by due date (earliest first)."""
+def sort_bills_with_progress(sort_function, description):
+    """Sort bills with progress indicator."""
     global bills
-    try:
-        bills.sort(key=lambda bill: datetime.strptime(bill['due_date'], DATE_FORMAT))
-        print("✅ Bills sorted by due date (earliest first)")
-        display_sorted_bills("Bills Sorted by Due Date (Earliest First)")
-    except ValueError as e:
-        print(f"❌ Error sorting by date: Invalid date format found")
-        input("Press Enter to continue...")
+    
+    if len(bills) <= 5:
+        # Quick sort for small datasets
+        sort_function()
+        return
+    
+    with ProgressBar.create_bar(100, f"🔄 {description}", "yellow") as pbar:
+        pbar.update(20)
+        
+        # Simulate sorting steps
+        original_bills = bills.copy()
+        pbar.update(40)
+        
+        sort_function()
+        pbar.update(80)
+        
+        # Validate sort
+        if len(bills) == len(original_bills):
+            pbar.update(100)
+            success_msg(f"Bills sorted: {description}")
+        else:
+            error_msg("Sort operation failed")
+
+def sort_by_due_date_asc():
+    """Sort bills by due date (earliest first) with progress."""
+    def sort_func():
+        global bills
+        try:
+            bills.sort(key=lambda bill: datetime.strptime(bill['due_date'], DATE_FORMAT))
+        except ValueError:
+            error_msg("Invalid date format found")
+            return
+    
+    if len(bills) > 5:
+        sort_bills_with_progress(sort_func, "Sorting by due date (earliest first)")
+    else:
+        sort_func()
+        success_msg("Bills sorted by due date (earliest first)")
+    
+    display_sorted_bills("Bills Sorted by Due Date (Earliest First)")
 
 def sort_by_due_date_desc():
     """Sort bills by due date (latest first)."""
@@ -698,10 +817,17 @@ def sort_by_due_date_desc():
         input("Press Enter to continue...")
 
 def sort_by_name_asc():
-    """Sort bills by name (A-Z)."""
-    global bills
-    bills.sort(key=lambda bill: bill['name'].lower())
-    print("✅ Bills sorted by name (A-Z)")
+    """Sort bills by name (A-Z) with progress."""
+    def sort_func():
+        global bills
+        bills.sort(key=lambda bill: bill['name'].lower())
+    
+    if len(bills) > 5:
+        sort_bills_with_progress(sort_func, "Sorting by name (A-Z)")
+    else:
+        sort_func()
+        success_msg("Bills sorted by name (A-Z)")
+    
     display_sorted_bills("Bills Sorted by Name (A-Z)")
 
 def sort_by_name_desc():
@@ -719,7 +845,7 @@ def sort_by_status_unpaid_first():
     display_sorted_bills("Bills Sorted by Status (Unpaid First)")
 
 def sort_by_status_paid_first():
-    """Sort bills by payment status (paid first)."""
+    """Sort bills by payment status (paid first)"""
     global bills
     bills.sort(key=lambda bill: bill.get('paid', False), reverse=True)
     print("✅ Bills sorted by status (paid first)")
@@ -786,6 +912,55 @@ def display_sorted_bills(title):
     else:
         print("❌ Invalid option.")
         input("Press Enter to continue...")
+
+# Add these after your color utility functions
+
+class ProgressBar:
+    """Progress bar utility functions."""
+    
+    @staticmethod
+    def create_bar(total, description="Processing", color="green"):
+        """Create a progress bar with custom styling."""
+        bar_format = "{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]"
+        
+        # Color mapping for tqdm
+        color_map = {
+            "green": "\033[92m",
+            "blue": "\033[94m", 
+            "yellow": "\033[93m",
+            "red": "\033[91m",
+            "cyan": "\033[96m"
+        }
+        
+        return tqdm(
+            total=total,
+            desc=f"{color_map.get(color, '')}{description}\033[0m",
+            bar_format=bar_format,
+            ncols=70,
+            ascii=True,
+            colour=color
+        )
+    
+    @staticmethod
+    def simulate_work(pbar, steps, work_function=None):
+        """Simulate work with progress updates."""
+        step_size = 100 / steps
+        for i in range(steps):
+            if work_function:
+                work_function()
+            else:
+                time.sleep(0.1)  # Simulate work
+            pbar.update(step_size)
+
+def show_progress(func, description="Processing", steps=10, color="green"):
+    """Decorator to show progress bar for functions."""
+    def wrapper(*args, **kwargs):
+        with ProgressBar.create_bar(100, description, color) as pbar:
+            # Simulate progress during function execution
+            result = func(*args, **kwargs)
+            pbar.update(100)
+            return result
+    return wrapper
 
 # 10. Main application
 def main():
