@@ -45,6 +45,18 @@ This folder contains test scripts that validate the Bills Tracker application's 
   - Error handling verification
 - **Usage:** `python test_menu_options.py`
 
+### 💡 Auto-Complete Tests
+**File:** `test_autocomplete.py`
+- **Purpose:** Tests auto-complete functionality and algorithms
+- **Tests Covered:**
+  - Bill name suggestion algorithms
+  - Website auto-completion
+  - Fuzzy matching capabilities
+  - Edge case handling
+  - Performance with large datasets
+  - Case sensitivity testing
+- **Usage:** `python test_autocomplete.py`
+
 ## How to Run Test Scripts
 
 ### Run Individual Tests
@@ -54,6 +66,7 @@ python test_validation.py
 python test_billing_cycles.py
 python test_edge_cases.py
 python test_menu_options.py
+python test_autocomplete.py
 ```
 
 ### Run from Main Directory
@@ -62,6 +75,7 @@ python test/test_validation.py
 python test/test_billing_cycles.py
 python test/test_edge_cases.py
 python test/test_menu_options.py
+python test/test_autocomplete.py
 ```
 
 ### Run All Tests at Once

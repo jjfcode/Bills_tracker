@@ -31,7 +31,7 @@ This document outlines planned and potential future updates for the Bills Tracke
 
 ### 1.3 Input Improvements
 - [x] **Better validation** - Validate URLs, email formats, date ranges
-- [ ] **Auto-complete** - Suggest bill names while typing
+- [x] **Auto-complete** - Suggest bill names while typing
 - [ ] **Templates** - Save bill templates for quick adding
 - [ ] **Bulk import** - Import bills from CSV files
 

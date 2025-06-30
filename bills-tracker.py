@@ -6,6 +6,7 @@ import time
 import re
 import urllib.parse
 import calendar
+import difflib
 from datetime import datetime, timedelta
 from colorama import Fore, Back, Style, init
 from tqdm import tqdm
@@ -75,6 +76,201 @@ def title_msg(message):
 def clear_console():
     """Clear the console screen."""
     os.system('cls' if os.name == 'nt' else 'clear')
+
+# 4.1 Auto-complete functions
+class AutoComplete:
+    """Auto-complete functionality for bill names and other fields."""
+    
+    @staticmethod
+    def get_bill_names():
+        """Get all bill names for auto-completion."""
+        return [bill['name'] for bill in bills]
+    
+    @staticmethod
+    def get_websites():
+        """Get all unique websites for auto-completion."""
+        websites = set()
+        for bill in bills:
+            if bill.get('web_page'):
+                websites.add(bill['web_page'])
+        return list(websites)
+    
+    @staticmethod
+    def suggest_names(partial_input, max_suggestions=5):
+        """Suggest bill names based on partial input."""
+        if not partial_input or not bills:
+            return []
+        
+        bill_names = AutoComplete.get_bill_names()
+        partial_lower = partial_input.lower()
+        
+        # Find exact matches first
+        exact_matches = [name for name in bill_names if name.lower().startswith(partial_lower)]
+        
+        # Find fuzzy matches if we need more suggestions
+        if len(exact_matches) < max_suggestions:
+            fuzzy_matches = difflib.get_close_matches(
+                partial_input, 
+                bill_names, 
+                n=max_suggestions - len(exact_matches),
+                cutoff=0.3
+            )
+            # Remove duplicates
+            fuzzy_matches = [name for name in fuzzy_matches if name not in exact_matches]
+            exact_matches.extend(fuzzy_matches)
+        
+        return exact_matches[:max_suggestions]
+    
+    @staticmethod
+    def suggest_websites(partial_input, max_suggestions=3):
+        """Suggest websites based on partial input."""
+        if not partial_input or not bills:
+            return []
+        
+        websites = AutoComplete.get_websites()
+        partial_lower = partial_input.lower()
+        
+        # Find matches
+        matches = [site for site in websites if partial_lower in site.lower()]
+        return matches[:max_suggestions]
+
+def get_input_with_autocomplete(prompt, autocomplete_type="bills", allow_empty=False):
+    """Get input with auto-complete suggestions."""
+    if autocomplete_type not in ["bills", "websites"]:
+        autocomplete_type = "bills"
+    
+    print(f"{Colors.PROMPT}{prompt}{Colors.RESET}")
+    if autocomplete_type == "bills" and bills:
+        print(f"{Colors.INFO}💡 Type to see suggestions (available bills: {len(bills)}){Colors.RESET}")
+    elif autocomplete_type == "websites":
+        websites = AutoComplete.get_websites()
+        if websites:
+            print(f"{Colors.INFO}💡 Type to see website suggestions (available: {len(websites)}){Colors.RESET}")
+    
+    user_input = ""
+    suggestions_shown = False
+    
+    while True:
+        if not suggestions_shown:
+            current_input = input(f"{Colors.PROMPT}> {Colors.RESET}").strip()
+        else:
+            current_input = input(f"{Colors.PROMPT}> {user_input}{Colors.RESET}").strip()
+        
+        # Handle special commands
+        if current_input.lower() == 'cancel':
+            return None
+        elif current_input.lower() == 'help':
+            show_autocomplete_help(autocomplete_type)
+            continue
+        elif current_input.lower().startswith('?'):
+            # Show all available options
+            show_all_options(autocomplete_type)
+            continue
+        elif current_input == "":
+            if allow_empty:
+                return ""
+            if user_input:
+                return user_input
+            continue
+        
+        # Update user input
+        if not suggestions_shown:
+            user_input = current_input
+        else:
+            user_input += current_input
+        
+        # Get suggestions
+        if autocomplete_type == "bills":
+            suggestions = AutoComplete.suggest_names(user_input)
+        else:
+            suggestions = AutoComplete.suggest_websites(user_input)
+        
+        if suggestions and len(user_input) > 0:
+            print(f"\n{Colors.SUCCESS}💡 Suggestions:{Colors.RESET}")
+            for i, suggestion in enumerate(suggestions, 1):
+                # Highlight the matching part
+                if user_input.lower() in suggestion.lower():
+                    highlighted = suggestion.replace(
+                        user_input, 
+                        f"{Colors.WARNING}{user_input}{Colors.RESET}{Colors.INFO}"
+                    )
+                    print(f"{Colors.INFO}  {i}. {highlighted}{Colors.RESET}")
+                else:
+                    print(f"{Colors.INFO}  {i}. {suggestion}{Colors.RESET}")
+            
+            print(f"{Colors.INFO}  0. Continue typing...{Colors.RESET}")
+            print(f"{Colors.INFO}  ?. Show all options{Colors.RESET}")
+            print(f"{Colors.WARNING}  Enter number to select, or continue typing{Colors.RESET}")
+            
+            choice = input(f"{Colors.PROMPT}Choice (or continue typing): {Colors.RESET}").strip()
+            
+            if choice.isdigit():
+                choice_num = int(choice)
+                if 1 <= choice_num <= len(suggestions):
+                    return suggestions[choice_num - 1]
+                elif choice_num == 0:
+                    suggestions_shown = True
+                    continue
+            elif choice.lower() == 'cancel':
+                return None
+            elif choice.lower().startswith('?'):
+                show_all_options(autocomplete_type)
+                continue
+            else:
+                # User wants to continue typing
+                user_input += choice
+                suggestions_shown = True
+                continue
+        else:
+            # No suggestions, accept input or ask to continue
+            if user_input:
+                confirm = input(f"{Colors.WARNING}No suggestions found. Use '{user_input}'? (y/n/continue): {Colors.RESET}").strip().lower()
+                if confirm in ['y', 'yes']:
+                    return user_input
+                elif confirm in ['n', 'no']:
+                    user_input = ""
+                    suggestions_shown = False
+                    continue
+                else:
+                    suggestions_shown = True
+                    continue
+            else:
+                continue
+
+def show_autocomplete_help(autocomplete_type):
+    """Show help for auto-complete feature."""
+    print(f"\n{Colors.TITLE}📚 Auto-Complete Help{Colors.RESET}")
+    print(f"{Colors.INFO}Available commands:{Colors.RESET}")
+    print(f"  • Type partial name to see suggestions")
+    print(f"  • Enter number to select a suggestion")
+    print(f"  • Type '?' to see all available options")
+    print(f"  • Type 'cancel' to cancel input")
+    print(f"  • Type 'help' to see this help")
+    print(f"  • Press Enter with empty input to continue\n")
+
+def show_all_options(autocomplete_type):
+    """Show all available options for auto-complete."""
+    if autocomplete_type == "bills":
+        if not bills:
+            warning_msg("No bills available yet.")
+            return
+        
+        print(f"\n{Colors.TITLE}📋 All Available Bills:{Colors.RESET}")
+        for i, bill in enumerate(bills, 1):
+            status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+            print(f"{Colors.INFO}  {i:2}. {bill['name']} [{status}] - Due: {bill['due_date']}{Colors.RESET}")
+    
+    elif autocomplete_type == "websites":
+        websites = AutoComplete.get_websites()
+        if not websites:
+            warning_msg("No websites available yet.")
+            return
+        
+        print(f"\n{Colors.TITLE}🌐 All Available Websites:{Colors.RESET}")
+        for i, website in enumerate(websites, 1):
+            print(f"{Colors.INFO}  {i:2}. {website}{Colors.RESET}")
+    
+    print()
 
 # 5. File operations
 def load_bills():
@@ -532,13 +728,23 @@ def get_billing_cycle_color(cycle):
 
 # 7. Core bill management functions
 def add_bill():
-    """Add a new bill with colored feedback."""
+    """Add a new bill with colored feedback and auto-complete assistance."""
     title_msg("Add a New Bill")
     info_msg("Type 'cancel' at any time to cancel.")
     
+    # Show existing bills for reference if any exist
+    if bills:
+        print(f"\n{Colors.INFO}📋 Existing bills for reference:{Colors.RESET}")
+        for i, bill in enumerate(bills[:5], 1):  # Show first 5 bills
+            status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+            print(f"{Colors.INFO}  • {bill['name']} [{status}]{Colors.RESET}")
+        if len(bills) > 5:
+            print(f"{Colors.INFO}  ... and {len(bills) - 5} more bills{Colors.RESET}")
+        print()
+    
     # Ask for bill name and check for duplicates
     while True:
-        name = get_required_input("Enter the name of the bill")
+        name = get_required_input("Enter the name of the new bill")
         if name is None:
             warning_msg("Bill addition cancelled.")
             return
@@ -546,6 +752,12 @@ def add_bill():
         # Check for duplicates
         if any(bill['name'].lower() == name.lower() for bill in bills):
             error_msg(f"A bill with the name '{name}' already exists. Please enter a different name.")
+            # Show similar names for reference
+            similar_names = AutoComplete.suggest_names(name, max_suggestions=3)
+            if similar_names:
+                print(f"{Colors.WARNING}💡 Similar existing bills:{Colors.RESET}")
+                for similar in similar_names:
+                    print(f"{Colors.WARNING}  • {similar}{Colors.RESET}")
         else:
             break
 
@@ -1081,18 +1293,31 @@ def search_bills():
         search_bills()
 
 def search_by_name():
-    """Search bills by name (partial match)."""
+    """Search bills by name with auto-complete suggestions."""
     if not bills:
-        print("No bills found.")
+        warning_msg("No bills found.")
         return
     
-    search_term = input("Enter bill name to search: ").strip().lower()
+    colored_print("\n🔍 Search Bills by Name", Colors.TITLE)
+    
+    search_term = get_input_with_autocomplete(
+        "Enter bill name to search (with auto-complete)", 
+        autocomplete_type="bills", 
+        allow_empty=False
+    )
+    
+    if search_term is None:
+        warning_msg("Search cancelled.")
+        return
+    
     if not search_term:
-        print("Search term cannot be empty.")
+        error_msg("Search term cannot be empty.")
         return
     
+    # Perform search (case-insensitive partial match)
+    search_term_lower = search_term.lower()
     results = [bill for bill in bills 
-              if search_term in bill['name'].lower()]
+              if search_term_lower in bill['name'].lower()]
     
     display_search_results(results, f"Bills containing '{search_term}' in name")
 
@@ -1127,18 +1352,36 @@ def search_by_due_date():
         print("❌ Invalid option.")
 
 def search_by_website():
-    """Search bills by website (partial match)."""
+    """Search bills by website with auto-complete suggestions."""
     if not bills:
-        print("No bills found.")
+        warning_msg("No bills found.")
         return
     
-    search_term = input("Enter website to search: ").strip().lower()
+    websites = AutoComplete.get_websites()
+    if not websites:
+        warning_msg("No websites found in bills.")
+        return
+    
+    colored_print("\n🌐 Search Bills by Website", Colors.TITLE)
+    
+    search_term = get_input_with_autocomplete(
+        "Enter website to search (with auto-complete)", 
+        autocomplete_type="websites", 
+        allow_empty=False
+    )
+    
+    if search_term is None:
+        warning_msg("Search cancelled.")
+        return
+    
     if not search_term:
-        print("Search term cannot be empty.")
+        error_msg("Search term cannot be empty.")
         return
     
+    # Perform search (case-insensitive partial match)
+    search_term_lower = search_term.lower()
     results = [bill for bill in bills 
-              if search_term in bill.get('web_page', '').lower()]
+              if search_term_lower in bill.get('web_page', '').lower()]
     
     display_search_results(results, f"Bills with website containing '{search_term}'")
 

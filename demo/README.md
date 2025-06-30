@@ -14,6 +14,16 @@ This folder contains demonstration scripts that showcase the Bills Tracker appli
   - Reminder period validation
 - **Usage:** `python demo_enhanced_validation.py`
 
+### 💡 Auto-Complete Features
+**File:** `demo_autocomplete.py`
+- **Purpose:** Demonstrates intelligent auto-complete for bill names and websites
+- **Features Shown:**
+  - Smart bill name suggestions while typing
+  - Website auto-completion based on existing bills
+  - Fuzzy matching for partial inputs
+  - Interactive demonstration of suggestion algorithms
+- **Usage:** `python demo_autocomplete.py`
+
 ### 💳 Flexible Billing Cycles
 **File:** `demo_flexible_billing.py`
 - **Purpose:** Shows how different billing cycles work
@@ -44,6 +54,7 @@ This folder contains demonstration scripts that showcase the Bills Tracker appli
 2. **Run any demo script:**
    ```bash
    python demo_enhanced_validation.py
+   python demo_autocomplete.py
    python demo_flexible_billing.py
    python demo_custom_reminders.py
    ```
@@ -51,6 +62,7 @@ This folder contains demonstration scripts that showcase the Bills Tracker appli
 3. **Or run from the main directory:**
    ```bash
    python demo/demo_enhanced_validation.py
+   python demo/demo_autocomplete.py
    python demo/demo_flexible_billing.py
    python demo/demo_custom_reminders.py
    ```
