@@ -30,7 +30,7 @@ This document outlines planned and potential future updates for the Bills Tracke
 - [x] **Calendar integration** - Show bills in a monthly calendar view
 
 ### 1.3 Input Improvements
-- [ ] **Better validation** - Validate URLs, email formats, date ranges
+- [x] **Better validation** - Validate URLs, email formats, date ranges
 - [ ] **Auto-complete** - Suggest bill names while typing
 - [ ] **Templates** - Save bill templates for quick adding
 - [ ] **Bulk import** - Import bills from CSV files

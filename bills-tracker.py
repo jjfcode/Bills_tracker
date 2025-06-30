@@ -3,6 +3,9 @@ import json
 import os
 import shutil
 import time
+import re
+import urllib.parse
+import calendar
 from datetime import datetime, timedelta
 from colorama import Fore, Back, Style, init
 from tqdm import tqdm
@@ -259,6 +262,158 @@ def get_yes_no(prompt):
             return False
         print("Please enter 'yes' or 'no'")
 
+# 6.2 Enhanced validation functions
+def validate_url(url):
+    """Validate URL format and return cleaned URL."""
+    if not url.strip():
+        return ""  # Empty URLs are allowed
+    
+    # Clean the URL
+    url = url.strip()
+    
+    # Add protocol if missing
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+    
+    try:
+        # Parse URL to validate structure
+        parsed = urllib.parse.urlparse(url)
+        
+        # Check if domain is valid
+        if not parsed.netloc:
+            return None
+        
+        # Basic domain validation
+        domain_pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$'
+        if not re.match(domain_pattern, parsed.netloc.split(':')[0]):
+            return None
+            
+        return url
+    except Exception:
+        return None
+
+def validate_email(email):
+    """Validate email format."""
+    if not email.strip():
+        return ""  # Empty emails are allowed
+    
+    email = email.strip().lower()
+    
+    # Basic email regex pattern
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    
+    if re.match(email_pattern, email):
+        return email
+    return None
+
+def validate_date_range(start_date, end_date):
+    """Validate that start_date is before end_date."""
+    try:
+        start = datetime.strptime(start_date, DATE_FORMAT)
+        end = datetime.strptime(end_date, DATE_FORMAT)
+        return start <= end
+    except ValueError:
+        return False
+
+def validate_reminder_days(days_str):
+    """Validate reminder days input (1-365)."""
+    try:
+        days = int(days_str)
+        return 1 <= days <= 365
+    except ValueError:
+        return False
+
+def validate_future_date(date_str):
+    """Validate that the date is not too far in the past (more than 1 year)."""
+    try:
+        date_obj = datetime.strptime(date_str, DATE_FORMAT)
+        today = datetime.now()
+        one_year_ago = today - timedelta(days=365)
+        
+        if date_obj < one_year_ago:
+            return False, f"Date is more than 1 year in the past. Please enter a more recent date."
+        
+        # Warning for dates more than 5 years in the future
+        five_years_future = today + timedelta(days=5*365)
+        if date_obj > five_years_future:
+            return False, f"Date is more than 5 years in the future. Please check the date."
+            
+        return True, None
+    except ValueError:
+        return False, "Invalid date format"
+
+def get_valid_url(prompt):
+    """Get a valid URL input with validation."""
+    while True:
+        url = input(f"{Colors.PROMPT}{prompt}{Colors.RESET}").strip()
+        
+        if url.lower() == 'cancel':
+            return None
+            
+        if not url:  # Empty URL is allowed
+            return ""
+            
+        validated_url = validate_url(url)
+        if validated_url is not None:
+            if validated_url != url:
+                colored_print(f"✅ URL corrected to: {validated_url}", Colors.SUCCESS)
+            return validated_url
+        else:
+            error_msg("Invalid URL format. Please enter a valid website URL (e.g., example.com)")
+
+def get_valid_email(prompt):
+    """Get a valid email input with validation."""
+    while True:
+        email = input(f"{Colors.PROMPT}{prompt}{Colors.RESET}").strip()
+        
+        if email.lower() == 'cancel':
+            return None
+            
+        if not email:  # Empty email is allowed
+            return ""
+            
+        validated_email = validate_email(email)
+        if validated_email is not None:
+            return validated_email
+        else:
+            error_msg("Invalid email format. Please enter a valid email address (e.g., user@example.com)")
+
+def get_valid_reminder_days(prompt, default=7):
+    """Get valid reminder days with validation."""
+    while True:
+        days_input = input(f"{Colors.PROMPT}{prompt} [default: {default}]: {Colors.RESET}").strip()
+        
+        if days_input.lower() == 'cancel':
+            return None
+            
+        if not days_input:
+            return default
+            
+        if validate_reminder_days(days_input):
+            return int(days_input)
+        else:
+            error_msg("Please enter a number between 1 and 365 days")
+
+def get_valid_date_with_range_check(prompt):
+    """Get a valid date input with range validation."""
+    while True:
+        date_str = get_required_input(prompt)
+        if date_str is None:  # User cancelled
+            return None
+            
+        try:
+            datetime.strptime(date_str, DATE_FORMAT)
+            
+            # Check date range
+            is_valid, error_msg_text = validate_future_date(date_str)
+            if not is_valid:
+                error_msg(error_msg_text)
+                continue
+                
+            return date_str
+        except ValueError:
+            error_msg(f"Invalid date format. Please use {DATE_FORMAT} (YYYY-MM-DD)")
+
 # 6.1 Billing cycle constants and functions
 class BillingCycle:
     """Billing cycle constants and utilities."""
@@ -356,7 +511,6 @@ def add_months(date, months):
     
     # Handle day overflow (e.g., Jan 31 + 1 month should be Feb 28/29)
     day = date.day
-    import calendar
     max_day = calendar.monthrange(year, month)[1]
     if day > max_day:
         day = max_day
@@ -395,17 +549,10 @@ def add_bill():
         else:
             break
 
-    # Get due date
-    due_date = get_required_input("Enter the due date of the bill (YYYY-MM-DD)")
+    # Get due date with validation
+    due_date = get_valid_date_with_range_check("Enter the due date of the bill (YYYY-MM-DD)")
     if due_date is None:
         warning_msg("Bill addition cancelled.")
-        return
-    
-    # Validate date format
-    try:
-        datetime.strptime(due_date, DATE_FORMAT)
-    except ValueError:
-        error_msg("Invalid date format. Please use YYYY-MM-DD.")
         return
     
     # Get billing cycle
@@ -415,13 +562,13 @@ def add_bill():
         return
     
     # Get reminder period
-    reminder_days = get_reminder_days()
+    reminder_days = get_valid_reminder_days("Enter reminder days before due date (1-365)")
     if reminder_days is None:
         warning_msg("Bill addition cancelled.")
         return
     
-    # Get optional fields
-    web_page = get_optional_input("Enter the web page for the bill")
+    # Get optional fields with validation
+    web_page = get_valid_url("Enter the web page for the bill (optional)")
     if web_page is None:
         warning_msg("Bill addition cancelled.")
         return
@@ -542,15 +689,32 @@ def edit_bill():
 
             new_due_date = input(f"Due Date [{bill['due_date']}]: ").strip()
             if new_due_date:
+                # Validate date format and range
                 try:
                     datetime.strptime(new_due_date, '%Y-%m-%d')
-                    bill['due_date'] = new_due_date
+                    is_valid, error_msg_text = validate_future_date(new_due_date)
+                    if is_valid:
+                        bill['due_date'] = new_due_date
+                    else:
+                        error_msg(error_msg_text + " Keeping the original date.")
                 except ValueError:
-                    print("Invalid date format. Keeping the original date.")
+                    error_msg("Invalid date format. Keeping the original date.")
                 
+            # Website with validation
+            print(f"Current website: {bill.get('web_page', 'Not provided')}")
             new_web_page = input(f"Web Page [{bill['web_page']}]: ").strip()
             if new_web_page:
-                bill['web_page'] = new_web_page
+                if new_web_page.lower() == 'clear':
+                    bill['web_page'] = ""
+                    success_msg("Website cleared.")
+                else:
+                    validated_url = validate_url(new_web_page)
+                    if validated_url is not None:
+                        bill['web_page'] = validated_url
+                        if validated_url != new_web_page:
+                            success_msg(f"Website corrected to: {validated_url}")
+                    else:
+                        error_msg("Invalid URL format. Keeping the original website.")
 
             new_login_info = input(f"Login Info [{bill['login_info']}]: ").strip()
             if new_login_info:
@@ -581,7 +745,7 @@ def edit_bill():
             print(f"\nCurrent reminder period: {current_reminder} days before due date")
             change_reminder = input("Change reminder period? (yes/no): ").strip().lower()
             if change_reminder in ['yes', 'y']:
-                new_reminder_days = get_reminder_days()
+                new_reminder_days = get_valid_reminder_days("Enter new reminder days before due date (1-365)", bill.get('reminder_days', 7))
                 if new_reminder_days is not None:
                     bill['reminder_days'] = new_reminder_days
                     success_msg(f"Reminder period updated to {new_reminder_days} days")
@@ -616,40 +780,71 @@ def delete_bill():
         print("Invalid input. Please enter a number.")
 
 def pay_bill():
+    """Pay a bill with enhanced user experience."""
     print("\n--- Pay a Bill ---")
     view_bills()
     if not bills:
         return
+    
+    # Filter unpaid bills for better user experience
+    unpaid_bills = [bill for bill in bills if not bill.get('paid', False)]
+    if not unpaid_bills:
+        warning_msg("All bills are already paid! 🎉")
+        input("Press Enter to continue...")
+        return
+    
     try:
-        choice = int(input("Enter the number of the bill you want to pay:"))
+        choice = int(colored_input("Enter the number of the bill you want to pay: ", Colors.PROMPT))
         if 1 <= choice <= len(bills):
             bill = bills[choice - 1]
             if bill.get("paid", False):
-                print("This bill has already been paid.")
+                warning_msg(f"Bill '{bill['name']}' has already been paid.")
+                input("Press Enter to continue...")
                 return
-            # Mark the bill as paid
-            bill["paid"] = True
             
-            # Update the due date based on billing cycle
+            # Get billing cycle info
             billing_cycle = bill.get('billing_cycle', BillingCycle.MONTHLY)
-            if billing_cycle != BillingCycle.ONE_TIME:
-                old_due_date = bill['due_date']
-                new_due_date = calculate_next_due_date(bill['due_date'], billing_cycle)
-                bill['due_date'] = new_due_date
-                
-                # Reset paid status for recurring bills
-                bill["paid"] = False
-                
-                success_msg(f"Bill '{bill['name']}' marked as paid!")
-                info_msg(f"Next due date ({billing_cycle}): {new_due_date}")
-            else:
+            
+            if billing_cycle == BillingCycle.ONE_TIME:
+                # One-time bills just get marked as paid
+                bill["paid"] = True
                 success_msg(f"One-time bill '{bill['name']}' marked as paid and completed!")
+            else:
+                # For recurring bills, ask user preference
+                print(f"\n'{bill['name']}' is a {billing_cycle} recurring bill.")
+                print("Payment options:")
+                print("1. 💰 Pay and advance to next billing cycle (recommended)")
+                print("2. ✅ Mark as permanently paid (stops recurring)")
+                
+                payment_choice = colored_input("Choose option (1-2): ", Colors.PROMPT).strip()
+                
+                if payment_choice == '1':
+                    # Standard recurring bill payment
+                    old_due_date = bill['due_date']
+                    new_due_date = calculate_next_due_date(bill['due_date'], billing_cycle)
+                    bill['due_date'] = new_due_date
+                    bill["paid"] = False  # Unpaid for next cycle
+                    
+                    success_msg(f"Bill '{bill['name']}' marked as paid!")
+                    info_msg(f"Next due date ({billing_cycle}): {new_due_date}")
+                elif payment_choice == '2':
+                    # Mark as permanently paid
+                    bill["paid"] = True
+                    success_msg(f"Bill '{bill['name']}' marked as permanently paid!")
+                    warning_msg("This bill will no longer appear in due bills until you manually edit it.")
+                else:
+                    error_msg("Invalid choice. Payment cancelled.")
+                    input("Press Enter to continue...")
+                    return
             
             save_bills()
+            colored_input("\nPress Enter to continue...", Colors.INFO)
         else:
-            print("Invalid selection.")
+            error_msg("Invalid selection. Please choose a valid bill number.")
+            input("Press Enter to continue...")
     except ValueError:
-        print("Invalid input. Please enter a number.")
+        error_msg("Invalid input. Please enter a valid number.")
+        input("Press Enter to continue...")
 
 def verify_due_bills(days=None):
     """Check for due bills with color highlighting. If days=None, use each bill's custom reminder period."""
@@ -1157,103 +1352,7 @@ def show_progress(func, description="Processing", steps=10, color="green"):
             return result
     return wrapper
 
-def due_bills_menu():
-    """Display due bills menu options."""
-    title_msg("Due Bills Options")
-    print(f"{Colors.MENU}1.{Colors.RESET} ⏰ Check bills with custom reminder periods")
-    print(f"{Colors.MENU}2.{Colors.RESET} 📅 Check bills due within specific days")
-    print(f"{Colors.MENU}3.{Colors.RESET} 🔙 Back to main menu")
-    print()
-    
-    while True:
-        choice = colored_input("Choose an option (1-3): ", Colors.PROMPT).strip()
-        
-        if choice == '1':
-            clear_console()
-            # Use custom reminder periods
-            if len(bills) > 10:
-                verify_due_bills_paginated(days=None)
-            else:
-                verify_due_bills(days=None)
-                colored_input("\n📖 Press Enter to continue...", Colors.INFO)
-            break
-        elif choice == '2':
-            clear_console()
-            # Ask for specific number of days
-            try:
-                custom_days = int(colored_input("Enter number of days to check (1-365): ", Colors.PROMPT))
-                if 1 <= custom_days <= 365:
-                    if len(bills) > 10:
-                        verify_due_bills_paginated(days=custom_days)
-                    else:
-                        verify_due_bills(days=custom_days)
-                        colored_input("\n📖 Press Enter to continue...", Colors.INFO)
-                else:
-                    error_msg("Please enter a number between 1 and 365")
-                    continue
-            except ValueError:
-                error_msg("Please enter a valid number")
-                continue
-            break
-        elif choice == '3':
-            break
-        else:
-            error_msg("Please choose option 1, 2, or 3")
-
-# 12. Main application
-def main():
-    """Main application loop with pagination support."""
-    clear_console()
-    title_msg("Welcome to Bills Tracker! 🏠💳")
-    
-    # Load existing bills
-    load_bills()
-
-    while True:
-        display_menu()
-        choice = colored_input("Choose an option (1-9): ", Colors.PROMPT).strip()
-        
-        if choice == '1':
-            clear_console()
-            add_bill()
-        elif choice == '2':
-            clear_console()
-            # Use pagination if more than 10 bills
-            if len(bills) > 10:
-                view_bills_paginated()
-            else:
-                view_bills()
-                colored_input("\n📖 Press Enter to continue...", Colors.INFO)
-        elif choice == '3':
-            clear_console()
-            search_bills()
-        elif choice == '4':
-            clear_console()
-            sort_bills()
-        elif choice == '5':
-            clear_console()
-            due_bills_menu()
-        elif choice == '6':
-            clear_console()
-            pay_bill()
-        elif choice == '7':
-            clear_console()
-            edit_bill()
-        elif choice == '8':
-            clear_console()
-            delete_bill()
-        elif choice == '9':
-            success_msg("Thank you for using Bills Tracker! 👋")
-            break
-        else:
-            error_msg("Invalid option. Please choose 1-9.")
-            colored_input("Press Enter to continue...", Colors.WARNING)
-
-# 13. Entry point
-if __name__ == "__main__":
-    main()
-
-# 9. Pagination utility
+# 9. Pagination utility classes and functions
 class Paginator:
     """Pagination utility for handling large datasets."""
     
@@ -1332,6 +1431,50 @@ def display_pagination_controls(paginator):
         print(option)
     print("="*50)
 
+def due_bills_menu():
+    """Display due bills menu options."""
+    title_msg("Due Bills Options")
+    print(f"{Colors.MENU}1.{Colors.RESET} ⏰ Check bills with custom reminder periods")
+    print(f"{Colors.MENU}2.{Colors.RESET} 📅 Check bills due within specific days")
+    print(f"{Colors.MENU}3.{Colors.RESET} 🔙 Back to main menu")
+    print()
+    
+    while True:
+        choice = colored_input("Choose an option (1-3): ", Colors.PROMPT).strip()
+        
+        if choice == '1':
+            clear_console()
+            # Use custom reminder periods
+            if len(bills) > 10:
+                verify_due_bills_paginated(days=None)
+            else:
+                verify_due_bills(days=None)
+                colored_input("\n📖 Press Enter to continue...", Colors.INFO)
+            break
+        elif choice == '2':
+            clear_console()
+            # Ask for specific number of days
+            try:
+                custom_days = int(colored_input("Enter number of days to check (1-365): ", Colors.PROMPT))
+                if 1 <= custom_days <= 365:
+                    if len(bills) > 10:
+                        verify_due_bills_paginated(days=custom_days)
+                    else:
+                        verify_due_bills(days=custom_days)
+                        colored_input("\n📖 Press Enter to continue...", Colors.INFO)
+                else:
+                    error_msg("Please enter a number between 1 and 365")
+                    continue
+            except ValueError:
+                error_msg("Please enter a valid number")
+                continue
+            break
+        elif choice == '3':
+            break
+        else:
+            error_msg("Please choose option 1, 2, or 3")
+
+# 11. Pagination functions (moved here to be available before main)
 def view_bills_paginated(items_per_page=10):
     """View all bills with pagination."""
     if not bills:
@@ -1458,6 +1601,55 @@ def display_bill_details(bill):
     password_display = '*' * len(password) if password else 'Not provided'
     print(f"Password: {Colors.INFO}{password_display}{Colors.RESET}")
 
+# 12. Main application
+def main():
+    """Main application loop with pagination support."""
+    clear_console()
+    title_msg("Welcome to Bills Tracker! 🏠💳")
+    
+    # Load existing bills
+    load_bills()
+
+    while True:
+        display_menu()
+        choice = colored_input("Choose an option (1-9): ", Colors.PROMPT).strip()
+        
+        if choice == '1':
+            clear_console()
+            add_bill()
+        elif choice == '2':
+            clear_console()
+            # Use pagination if more than 10 bills
+            if len(bills) > 10:
+                view_bills_paginated()
+            else:
+                view_bills()
+                colored_input("\n📖 Press Enter to continue...", Colors.INFO)
+        elif choice == '3':
+            clear_console()
+            search_bills()
+        elif choice == '4':
+            clear_console()
+            sort_bills()
+        elif choice == '5':
+            clear_console()
+            due_bills_menu()
+        elif choice == '6':
+            clear_console()
+            pay_bill()
+        elif choice == '7':
+            clear_console()
+            edit_bill()
+        elif choice == '8':
+            clear_console()
+            delete_bill()
+        elif choice == '9':
+            success_msg("Thank you for using Bills Tracker! 👋")
+            break
+        else:
+            error_msg("Invalid option. Please choose 1-9.")
+            colored_input("Press Enter to continue...", Colors.WARNING)
+
 # 10. Missing pagination helper functions
 def view_bill_details_from_search(results):
     """View detailed information of a bill from search results."""
@@ -1570,13 +1762,29 @@ def edit_bill_details(bill):
     if new_due_date:
         try:
             datetime.strptime(new_due_date, DATE_FORMAT)
-            bill['due_date'] = new_due_date
+            is_valid, error_msg_text = validate_future_date(new_due_date)
+            if is_valid:
+                bill['due_date'] = new_due_date
+            else:
+                error_msg(error_msg_text + " Keeping the original date.")
         except ValueError:
             error_msg("Invalid date format. Keeping the original date.")
             
+    # Website with validation
+    colored_print(f"Current website: {bill.get('web_page', 'Not provided')}", Colors.INFO)
     new_web_page = colored_input(f"Web Page [{bill.get('web_page', '')}]: ", Colors.PROMPT).strip()
     if new_web_page:
-        bill['web_page'] = new_web_page
+        if new_web_page.lower() == 'clear':
+            bill['web_page'] = ""
+            success_msg("Website cleared.")
+        else:
+            validated_url = validate_url(new_web_page)
+            if validated_url is not None:
+                bill['web_page'] = validated_url
+                if validated_url != new_web_page:
+                    success_msg(f"Website corrected to: {validated_url}")
+            else:
+                error_msg("Invalid URL format. Keeping the original website.")
 
     new_login_info = colored_input(f"Login Info [{bill.get('login_info', '')}]: ", Colors.PROMPT).strip()
     if new_login_info:
@@ -1607,7 +1815,7 @@ def edit_bill_details(bill):
     print(f"\nCurrent reminder period: {current_reminder} days before due date")
     change_reminder = colored_input("Change reminder period? (yes/no): ", Colors.PROMPT).strip().lower()
     if change_reminder in ['yes', 'y']:
-        new_reminder_days = get_reminder_days()
+        new_reminder_days = get_valid_reminder_days("Enter new reminder days before due date (1-365)", bill.get('reminder_days', 7))
         if new_reminder_days is not None:
             bill['reminder_days'] = new_reminder_days
             success_msg(f"Reminder period updated to {new_reminder_days} days")
@@ -2013,28 +2221,6 @@ def billing_cycle_menu():
             error_msg("Invalid option. Please choose 1-4.")
             input("Press Enter to continue...")
 
-def get_reminder_days():
-    """Get custom reminder days from user input."""
-    print("\n--- Set Reminder Period ---")
-    colored_print("How many days before the due date should you be reminded?", Colors.INFO)
-    colored_print("Common options: 1 (day before), 3 (three days), 7 (week), 14 (two weeks)", Colors.INFO)
-    
-    while True:
-        try:
-            choice = colored_input("Enter reminder days (1-365) or 'default' for 7 days: ", Colors.PROMPT).strip()
-            
-            if choice.lower() == 'default':
-                success_msg("Using default reminder period of 7 days")
-                return 7
-            elif choice.lower() == 'cancel':
-                return None
-            
-            days = int(choice)
-            if 1 <= days <= 365:
-                success_msg(f"Reminder set for {days} days before due date")
-                return days
-            else:
-                error_msg("Please enter a number between 1 and 365")
-        except ValueError:
-            error_msg("Please enter a valid number, 'default', or 'cancel'")
-
+# Entry point
+if __name__ == "__main__":
+    main()

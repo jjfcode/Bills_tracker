@@ -1,6 +1,6 @@
 # Bills Tracker 🏠💳
 
-A comprehensive command-line application for managing household bills with advanced features like flexible billing cycles, custom reminder periods, search, sorting, pagination, colored output, and automatic backups.
+A comprehensi- **Data Integrity** - Comprehensive input validation and data recovery optionse command-line application for managing household bills with advanced features like flexible billing cycles, custom reminder periods, search, sorting, pagination, colored output, and automatic backups.
 
 ## ✨ Features
 
@@ -234,6 +234,38 @@ When adding a bill, you'll be prompted for:
 - **Website & Login** - Quick access to account information
 - **Urgency Indicators** - Visual priority based on due date proximity
 
+### Enhanced Input Validation
+
+**Smart URL Correction:**
+- Automatically adds missing protocols (http/https)
+- Validates domain structure and format
+- Corrects common input mistakes
+- Example: `google.com` → `https://google.com`
+
+**Email Format Validation:**
+- Comprehensive email format checking
+- Supports international domains and complex addresses
+- Clear error messages for invalid formats
+- Example: Accepts `user.name+tag@company.co.uk`
+
+**Date Range Protection:**
+- Prevents dates more than 1 year in the past
+- Warns about dates more than 5 years in the future
+- Validates actual date existence (no Feb 30th)
+- Maintains data quality and prevents obvious errors
+
+**Reminder Period Limits:**
+- Enforces 1-365 day range for reminder periods
+- Prevents unrealistic reminder settings
+- Provides default values for convenience
+- Ensures practical notification timing
+
+**Interactive Error Handling:**
+- User-friendly error messages with suggestions
+- Option to cancel operations at any time
+- Automatic retry prompts for invalid input
+- Visual feedback with color-coded responses
+
 ## 📂 File Structure
 
 ```
@@ -250,8 +282,10 @@ Bills_tracker/
 ├── CUSTOM_REMINDERS_IMPLEMENTATION.md # Custom reminder periods documentation
 ├── demo_flexible_billing.py           # Billing cycles demonstration script
 ├── demo_custom_reminders.py          # Custom reminders demonstration script
+├── demo_enhanced_validation.py       # Enhanced validation features demonstration
 ├── test_billing_cycles.py            # Billing cycles testing script
 ├── test_edge_cases.py                # Date handling edge cases testing
+├── test_validation.py                # Validation functions testing script
 └── .gitignore                        # Git ignore file
 ```
 
@@ -286,7 +320,10 @@ Bills_tracker/
 - **Duplicate Prevention** - Stops duplicate bill names with case-insensitive detection
 - **Billing Cycle Validation** - Validates cycle selection from supported options
 - **Reminder Period Validation** - Ensures reminder days are within 1-365 range
-- **URL Validation** - Basic validation for website URLs (future enhancement)
+- **URL Validation** - Automatic URL correction and format validation (e.g., 'google.com' → 'https://google.com')
+- **Email Format Validation** - Proper email format checking with helpful error messages
+- **Date Range Validation** - Prevents unrealistic dates (too far in past/future)
+- **Reminder Period Validation** - Ensures reminder days are within reasonable range (1-365 days)
 - **Cancel Operations** - Safe abort at any time during data entry
 
 ### Data Integrity
@@ -641,7 +678,12 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 🎯 Version History
 
-### Version 3.0 (Current - June 29, 2025)
+### Version 3.1 (Current - June 29, 2025)
+- ✅ **Enhanced Input Validation** - URL auto-correction, email validation, date range checks, reminder period limits
+- ✅ **Smart Error Handling** - User-friendly error messages with helpful suggestions and retry options
+- ✅ **Data Quality Improvements** - Automatic input correction and validation for better data integrity
+
+### Version 3.0 (June 29, 2025)
 - ✅ **Custom Reminder Periods** - Individual reminder settings for each bill (1-365 days)
 - ✅ **Flexible Billing Cycles** - 7 cycle types: weekly, bi-weekly, monthly, quarterly, semi-annual, annual, one-time
 - ✅ **Smart Date Management** - Proper handling of month-end dates, leap years, and edge cases
