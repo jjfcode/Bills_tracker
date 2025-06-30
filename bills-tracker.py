@@ -506,6 +506,134 @@ def verify_due_bills(days=7):
             colored_print(f"📅 {bill['name']} - Due in {days_diff} days", Colors.INFO)
     print()
 
+def verify_due_bills_paginated(days=7, items_per_page=10):
+    """Check for due bills with pagination."""
+    title_msg(f"Bills Due Within {days} Days")
+    
+    if not bills:
+        warning_msg("No bills found.")
+        return
+    
+    # Get due bills
+    due_bills = get_due_bills(days)
+    
+    if not due_bills:
+        success_msg("No bills are due soon! 🎉")
+        input("Press Enter to continue...")
+        return
+    
+    # Sort by urgency (overdue first, then by days)
+    due_bills.sort(key=lambda x: (x[1] >= 0, x[1]))  # Overdue first, then by days
+    
+    paginator = Paginator(due_bills, items_per_page)
+    
+    while True:
+        clear_console()
+        title_msg(f"Bills Due Within {days} Days")
+        
+        # Display current page of due bills
+        current_due_bills = paginator.get_page()
+        display_due_bills_page(current_due_bills, paginator)
+        
+        # Display pagination controls
+        display_pagination_controls(paginator)
+        
+        # Additional options
+        print("\nDue Bills Options:")
+        print("1. 💰 Pay a bill from this list")
+        print("2. 💳 Pay multiple bills")
+        print("3. 📅 Change days filter")
+        
+        choice = colored_input("\nEnter your choice: ", Colors.PROMPT).strip().lower()
+        
+        if choice == 'n' and paginator.get_page_info()['has_next']:
+            paginator.next_page()
+        elif choice == 'p' and paginator.get_page_info()['has_prev']:
+            paginator.prev_page()
+        elif choice == 'g':
+            goto_page(paginator)
+        elif choice == 's':
+            new_size = change_page_size()
+            if new_size:
+                paginator = Paginator(due_bills, new_size)
+        elif choice == '1':
+            pay_bill_from_due_list_paginated(current_due_bills, paginator)
+        elif choice == '2':
+            bulk_pay_bills_from_due_list(due_bills)
+        elif choice == '3':
+            new_days = change_days_filter()
+            if new_days:
+                return verify_due_bills_paginated(new_days, items_per_page)
+        elif choice == 'b':
+            break
+        else:
+            error_msg("Invalid option.")
+            input("Press Enter to continue...")
+
+def get_due_bills(days):
+    """Get bills due within specified days."""
+    today = datetime.now()
+    due_bills = []
+    
+    for bill in bills:
+        if bill.get('paid', False):
+            continue  # Skip paid bills
+            
+        try:
+            due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
+            days_diff = (due_date - today).days
+            
+            if days_diff <= days:
+                due_bills.append((bill, days_diff))
+        except ValueError:
+            continue  # Skip invalid dates
+    
+    return due_bills
+
+def display_due_bills_page(current_due_bills, paginator):
+    """Display a page of due bills with urgency indicators."""
+    page_info = paginator.get_page_info()
+    
+    success_msg(f"Found {page_info['total_items']} bills due soon:")
+    print()
+    
+    for idx, (bill, days_diff) in enumerate(current_due_bills, 1):
+        actual_number = (paginator.current_page - 1) * paginator.items_per_page + idx
+        
+        # Determine urgency and color
+        if days_diff < 0:
+            urgency = f"{Colors.OVERDUE}🚨 OVERDUE by {abs(days_diff)} days!{Colors.RESET}"
+        elif days_diff == 0:
+            urgency = f"{Colors.DUE_SOON}🔥 DUE TODAY!{Colors.RESET}"
+        elif days_diff <= 3:
+            urgency = f"{Colors.WARNING}⚠️  Due in {days_diff} days{Colors.RESET}"
+        else:
+            urgency = f"{Colors.INFO}📅 Due in {days_diff} days{Colors.RESET}"
+        
+        print(f"{Colors.INFO}{actual_number:3}.{Colors.RESET} {Colors.TITLE}{bill['name']}{Colors.RESET}")
+        print(f"     {urgency}")
+        print(f"     Due Date: {Colors.INFO}{bill['due_date']}{Colors.RESET}")
+        if bill.get('web_page'):
+            print(f"     Website: {Colors.INFO}{bill['web_page'][:40]}{'...' if len(bill.get('web_page', '')) > 40 else ''}{Colors.RESET}")
+        if bill.get('login_info'):
+            print(f"     Login: {Colors.INFO}{bill['login_info'][:30]}{'...' if len(bill.get('login_info', '')) > 30 else ''}{Colors.RESET}")
+        print()
+
+def change_days_filter():
+    """Change the number of days for due bill filter."""
+    try:
+        days = int(colored_input("Enter number of days to check (1-365): ", Colors.PROMPT))
+        if 1 <= days <= 365:
+            success_msg(f"Filter changed to {days} days")
+            return days
+        else:
+            error_msg("Days must be between 1 and 365")
+    except ValueError:
+        error_msg("Please enter a valid number")
+    
+    input("Press Enter to continue...")
+    return None
+
 # 8. Search functions
 def search_bills():
     """Search bills by name, due date, or website."""
@@ -638,15 +766,23 @@ def search_all_fields():
     display_search_results(results, f"Bills containing '{search_term}' in any field")
 
 def display_search_results(results, title):
-    """Display search results in a formatted way."""
+    """Display search results with automatic pagination."""
+    if len(results) > 10:
+        display_search_results_paginated(results, title)
+    else:
+        display_search_results_simple(results, title)
+
+def display_search_results_simple(results, title):
+    """Display search results without pagination (for small result sets)."""
     print(f"\n--- {title} ---")
     
     if not results:
-        print("❌ No bills found matching your search.")
+        error_msg("No bills found matching your search.")
         input("\nPress Enter to continue...")
         return
     
-    print(f"✅ Found {len(results)} bill(s):\n")
+    success_msg(f"Found {len(results)} bill(s):")
+    print()
     
     for idx, bill in enumerate(results, 1):
         status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
@@ -658,7 +794,7 @@ def display_search_results(results, title):
             print(f"    Login: {bill['login_info']}")
         print()
     
-    # Option to perform actions on search results
+    # Keep the existing options for simple display
     print("Options:")
     print("1. View details of a specific bill")
     print("2. Pay a bill from results")
@@ -673,245 +809,81 @@ def display_search_results(results, title):
     elif choice == '3':
         return
     else:
-        print("❌ Invalid option.")
+        error_msg("Invalid option.")
         input("Press Enter to continue...")
 
-def view_bill_details_from_search(results):
-    """View detailed information of a bill from search results."""
-    try:
-        choice = int(input(f"Enter bill number (1-{len(results)}): "))
-        if 1 <= choice <= len(results):
-            bill = results[choice - 1]
-            print(f"\n--- Bill Details: {bill['name']} ---")
-            print(f"Name: {bill['name']}")
-            print(f"Due Date: {bill['due_date']}")
-            print(f"Status: {'✓ Paid' if bill.get('paid', False) else '○ Unpaid'}")
-            print(f"Website: {bill.get('web_page', 'Not provided')}")
-            print(f"Login Info: {bill.get('login_info', 'Not provided')}")
-            print(f"Password: {'*' * len(bill.get('password', '')) if bill.get('password') else 'Not provided'}")
-        else:
-            print("❌ Invalid bill number.")
-    except ValueError:
-        print("❌ Please enter a valid number.")
-    
-    input("\nPress Enter to continue...")
-
-def pay_bill_from_search(results):
-    """Pay a bill from search results."""
-    try:
-        choice = int(input(f"Enter bill number to pay (1-{len(results)}): "))
-        if 1 <= choice <= len(results):
-            bill = results[choice - 1]
-            if bill.get('paid', False):
-                print(f"❌ Bill '{bill['name']}' is already paid.")
-            else:
-                # Find the bill in the main bills list and pay it
-                for main_bill in bills:
-                    if main_bill['name'] == bill['name'] and main_bill['due_date'] == bill['due_date']:
-                        main_bill['paid'] = True
-                        save_bills()
-                        print(f"✅ Bill '{bill['name']}' marked as paid!")
-                        break
-        else:
-            print("❌ Invalid bill number.")
-    except ValueError:
-        print("❌ Please enter a valid number.")
-    
-    input("\nPress Enter to continue...")
-
-# 9. Sort functions (PUT ALL SORT FUNCTIONS HERE)
-def sort_bills():
-    """Sort bills by different criteria."""
-    if not bills:
-        print("❌ No bills found to sort.")
-        input("Press Enter to continue...")
+def display_search_results_paginated(results, title, items_per_page=10):
+    """Display search results with pagination."""
+    if not results:
+        print(f"\n--- {title} ---")
+        error_msg("No bills found matching your search.")
+        input("\nPress Enter to continue...")
         return
     
-    print("\n--- Sort Bills ---")
-    print("Sort options:")
-    print("1. 📅 Sort by due date (earliest first)")
-    print("2. 📅 Sort by due date (latest first)")
-    print("3. 🔤 Sort by name (A-Z)")
-    print("4. 🔤 Sort by name (Z-A)")
-    print("5. ✅ Sort by payment status (unpaid first)")
-    print("6. ✅ Sort by payment status (paid first)")
-    print("7. 🔄 Reset to original order")
-    print("8. 🚪 Back to main menu")
+    paginator = Paginator(results, items_per_page)
     
-    choice = input("\nChoose sort option (1-8): ").strip()
-    
-    if choice == '1':
-        sort_by_due_date_asc()
-    elif choice == '2':
-        sort_by_due_date_desc()
-    elif choice == '3':
-        sort_by_name_asc()
-    elif choice == '4':
-        sort_by_name_desc()
-    elif choice == '5':
-        sort_by_status_unpaid_first()
-    elif choice == '6':
-        sort_by_status_paid_first()
-    elif choice == '7':
-        reset_bill_order()
-    elif choice == '8':
-        return
-    else:
-        print("❌ Invalid option. Please choose 1-8.")
-        input("Press Enter to continue...")
-        sort_bills()
-
-def sort_bills_with_progress(sort_function, description):
-    """Sort bills with progress indicator."""
-    global bills
-    
-    if len(bills) <= 5:
-        # Quick sort for small datasets
-        sort_function()
-        return
-    
-    with ProgressBar.create_bar(100, f"🔄 {description}", "yellow") as pbar:
-        pbar.update(20)
+    while True:
+        clear_console()
+        colored_print(f"--- {title} ---", Colors.TITLE)
         
-        # Simulate sorting steps
-        original_bills = bills.copy()
-        pbar.update(40)
+        # Display current page of results
+        current_results = paginator.get_page()
+        display_search_results_page(current_results, paginator)
         
-        sort_function()
-        pbar.update(80)
+        # Display pagination controls
+        display_pagination_controls(paginator)
         
-        # Validate sort
-        if len(bills) == len(original_bills):
-            pbar.update(100)
-            success_msg(f"Bills sorted: {description}")
+        # Additional options for search results
+        print("\nSearch Result Options:")
+        print("1. 👁️  View details of a bill")
+        print("2. 💰 Pay a bill from results")
+        print("3. ✏️  Edit a bill from results")
+        
+        # Get user input
+        choice = colored_input("\nEnter your choice: ", Colors.PROMPT).strip().lower()
+        
+        if choice == 'n' and paginator.get_page_info()['has_next']:
+            paginator.next_page()
+        elif choice == 'p' and paginator.get_page_info()['has_prev']:
+            paginator.prev_page()
+        elif choice == 'g':
+            goto_page(paginator)
+        elif choice == 's':
+            new_size = change_page_size()
+            if new_size:
+                paginator = Paginator(results, new_size)
+        elif choice == '1':
+            view_bill_details_from_search_paginated(current_results, paginator)
+        elif choice == '2':
+            pay_bill_from_search_paginated(current_results, paginator)
+        elif choice == '3':
+            edit_bill_from_search_paginated(current_results, paginator)
+        elif choice == 'b':
+            break
         else:
-            error_msg("Sort operation failed")
+            error_msg("Invalid option.")
+            input("Press Enter to continue...")
 
-def sort_by_due_date_asc():
-    """Sort bills by due date (earliest first) with progress."""
-    def sort_func():
-        global bills
-        try:
-            bills.sort(key=lambda bill: datetime.strptime(bill['due_date'], DATE_FORMAT))
-        except ValueError:
-            error_msg("Invalid date format found")
-            return
+def display_search_results_page(current_results, paginator):
+    """Display a page of search results."""
+    page_info = paginator.get_page_info()
     
-    if len(bills) > 5:
-        sort_bills_with_progress(sort_func, "Sorting by due date (earliest first)")
-    else:
-        sort_func()
-        success_msg("Bills sorted by due date (earliest first)")
+    success_msg(f"Found {page_info['total_items']} bill(s) total:")
+    print()
     
-    display_sorted_bills("Bills Sorted by Due Date (Earliest First)")
-
-def sort_by_due_date_desc():
-    """Sort bills by due date (latest first)."""
-    global bills
-    try:
-        bills.sort(key=lambda bill: datetime.strptime(bill['due_date'], DATE_FORMAT), reverse=True)
-        print("✅ Bills sorted by due date (latest first)")
-        display_sorted_bills("Bills Sorted by Due Date (Latest First)")
-    except ValueError as e:
-        print(f"❌ Error sorting by date: Invalid date format found")
-        input("Press Enter to continue...")
-
-def sort_by_name_asc():
-    """Sort bills by name (A-Z) with progress."""
-    def sort_func():
-        global bills
-        bills.sort(key=lambda bill: bill['name'].lower())
-    
-    if len(bills) > 5:
-        sort_bills_with_progress(sort_func, "Sorting by name (A-Z)")
-    else:
-        sort_func()
-        success_msg("Bills sorted by name (A-Z)")
-    
-    display_sorted_bills("Bills Sorted by Name (A-Z)")
-
-def sort_by_name_desc():
-    """Sort bills by name (Z-A)."""
-    global bills
-    bills.sort(key=lambda bill: bill['name'].lower(), reverse=True)
-    print("✅ Bills sorted by name (Z-A)")
-    display_sorted_bills("Bills Sorted by Name (Z-A)")
-
-def sort_by_status_unpaid_first():
-    """Sort bills by payment status (unpaid first)."""
-    global bills
-    bills.sort(key=lambda bill: bill.get('paid', False))
-    print("✅ Bills sorted by status (unpaid first)")
-    display_sorted_bills("Bills Sorted by Status (Unpaid First)")
-
-def sort_by_status_paid_first():
-    """Sort bills by payment status (paid first)"""
-    global bills
-    bills.sort(key=lambda bill: bill.get('paid', False), reverse=True)
-    print("✅ Bills sorted by status (paid first)")
-    display_sorted_bills("Bills Sorted by Status (Paid First)")
-
-def reset_bill_order():
-    """Reset bills to original order (reload from file)."""
-    global bills
-    load_bills()
-    print("✅ Bills reset to original order")
-    display_sorted_bills("Bills in Original Order")
-
-def display_sorted_bills(title):
-    """Display sorted bills with formatting."""
-    print(f"\n--- {title} ---")
-    
-    if not bills:
-        print("❌ No bills to display.")
-        input("Press Enter to continue...")
-        return
-    
-    for idx, bill in enumerate(bills, 1):
+    for idx, bill in enumerate(current_results, 1):
+        # Calculate actual bill number across all pages
+        actual_number = (paginator.current_page - 1) * paginator.items_per_page + idx
+        
         status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+        print(f"{Colors.INFO}{actual_number:3}.{Colors.RESET} {Colors.TITLE}{bill['name']}{Colors.RESET} [{status}]")
+        print(f"     Due: {Colors.INFO}{bill['due_date']}{Colors.RESET}")
         
-        # Add due date info for better context
-        try:
-            due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
-            today = datetime.now()
-            days_diff = (due_date - today).days
-            
-            if days_diff < 0:
-                date_info = f"(Overdue by {abs(days_diff)} days)"
-            elif days_diff == 0:
-                date_info = "(Due today!)"
-            elif days_diff <= 7:
-                date_info = f"(Due in {days_diff} days)"
-            else:
-                date_info = ""
-        except ValueError:
-            date_info = ""
-        
-        print(f"{idx:2}. {bill['name']} [{status}]")
-        print(f"    Due: {bill['due_date']} {date_info}")
         if bill.get('web_page'):
-            print(f"    Website: {bill['web_page']}")
+            print(f"     Website: {Colors.INFO}{bill['web_page'][:50]}{'...' if len(bill.get('web_page', '')) > 50 else ''}{Colors.RESET}")
+        if bill.get('login_info'):
+            print(f"     Login: {Colors.INFO}{bill['login_info'][:30]}{'...' if len(bill.get('login_info', '')) > 30 else ''}{Colors.RESET}")
         print()
-    
-    # Options after viewing sorted bills
-    print("Options:")
-    print("1. 💾 Save this sort order permanently")
-    print("2. 🔄 Sort again with different criteria")
-    print("3. 🚪 Back to main menu")
-    
-    choice = input("Choose option (1-3): ").strip()
-    
-    if choice == '1':
-        save_bills()
-        print("✅ Sort order saved!")
-        input("Press Enter to continue...")
-    elif choice == '2':
-        sort_bills()
-    elif choice == '3':
-        return
-    else:
-        print("❌ Invalid option.")
-        input("Press Enter to continue...")
 
 # Add these after your color utility functions
 
@@ -962,9 +934,9 @@ def show_progress(func, description="Processing", steps=10, color="green"):
             return result
     return wrapper
 
-# 10. Main application
+# 12. Main application
 def main():
-    """Main application loop with colors."""
+    """Main application loop with pagination support."""
     clear_console()
     title_msg("Welcome to Bills Tracker! 🏠💳")
     
@@ -980,8 +952,12 @@ def main():
             add_bill()
         elif choice == '2':
             clear_console()
-            view_bills()
-            colored_input("\n📖 Press Enter to continue...", Colors.INFO)
+            # Use pagination if more than 10 bills
+            if len(bills) > 10:
+                view_bills_paginated()
+            else:
+                view_bills()
+                colored_input("\n📖 Press Enter to continue...", Colors.INFO)
         elif choice == '3':
             clear_console()
             search_bills()
@@ -990,8 +966,12 @@ def main():
             sort_bills()
         elif choice == '5':
             clear_console()
-            verify_due_bills()
-            colored_input("\n📖 Press Enter to continue...", Colors.INFO)
+            # Use pagination if more than 10 due bills
+            if len(bills) > 10:
+                verify_due_bills_paginated()
+            else:
+                verify_due_bills()
+                colored_input("\n📖 Press Enter to continue...", Colors.INFO)
         elif choice == '6':
             clear_console()
             pay_bill()
@@ -1008,6 +988,553 @@ def main():
             error_msg("Invalid option. Please choose 1-9.")
             colored_input("Press Enter to continue...", Colors.WARNING)
 
-# 11. Entry point
+# 13. Entry point
 if __name__ == "__main__":
     main()
+
+# 9. Pagination utility
+class Paginator:
+    """Pagination utility for handling large datasets."""
+    
+    def __init__(self, items, items_per_page=10):
+        self.items = items
+        self.items_per_page = items_per_page
+        self.total_items = len(items)
+        self.total_pages = max(1, (self.total_items + items_per_page - 1) // items_per_page)
+        self.current_page = 1
+    
+    def get_page(self, page_number=None):
+        """Get items for a specific page."""
+        if page_number is not None:
+            self.current_page = max(1, min(page_number, self.total_pages))
+        
+        start_idx = (self.current_page - 1) * self.items_per_page
+        end_idx = start_idx + self.items_per_page
+        return self.items[start_idx:end_idx]
+    
+    def next_page(self):
+        """Go to next page."""
+        if self.current_page < self.total_pages:
+            self.current_page += 1
+            return True
+        return False
+    
+    def prev_page(self):
+        """Go to previous page."""
+        if self.current_page > 1:
+            self.current_page -= 1
+            return True
+        return False
+    
+    def get_page_info(self):
+        """Get pagination information."""
+        start_item = (self.current_page - 1) * self.items_per_page + 1
+        end_item = min(self.current_page * self.items_per_page, self.total_items)
+        
+        return {
+            'current_page': self.current_page,
+            'total_pages': self.total_pages,
+            'total_items': self.total_items,
+            'start_item': start_item,
+            'end_item': end_item,
+            'has_next': self.current_page < self.total_pages,
+            'has_prev': self.current_page > 1
+        }
+
+def display_pagination_controls(paginator):
+    """Display pagination controls and information."""
+    info = paginator.get_page_info()
+    
+    # Display page information
+    colored_print(
+        f"📄 Page {info['current_page']} of {info['total_pages']} "
+        f"(showing {info['start_item']}-{info['end_item']} of {info['total_items']} bills)",
+        Colors.INFO
+    )
+    
+    # Display navigation options
+    print("\n" + "="*50)
+    nav_options = []
+    
+    if info['has_prev']:
+        nav_options.append("⬅️  [P] Previous page")
+    if info['has_next']:
+        nav_options.append("➡️  [N] Next page")
+    
+    nav_options.extend([
+        "🔢 [G] Go to page",
+        "📊 [S] Change page size",
+        "🚪 [B] Back to main menu"
+    ])
+    
+    for option in nav_options:
+        print(option)
+    print("="*50)
+
+def view_bills_paginated(items_per_page=10):
+    """View all bills with pagination."""
+    if not bills:
+        warning_msg("No bills found.")
+        input("Press Enter to continue...")
+        return
+    
+    paginator = Paginator(bills, items_per_page)
+    
+    while True:
+        clear_console()
+        title_msg("All Bills")
+        
+        # Display current page of bills
+        current_bills = paginator.get_page()
+        display_bills_page(current_bills, paginator)
+        
+        # Display pagination controls
+        display_pagination_controls(paginator)
+        
+        # Get user input
+        choice = colored_input("\nEnter your choice: ", Colors.PROMPT).strip().lower()
+        
+        if choice == 'n' and paginator.get_page_info()['has_next']:
+            paginator.next_page()
+        elif choice == 'p' and paginator.get_page_info()['has_prev']:
+            paginator.prev_page()
+        elif choice == 'g':
+            goto_page(paginator)
+        elif choice == 's':
+            new_size = change_page_size()
+            if new_size:
+                paginator = Paginator(bills, new_size)
+        elif choice == 'b':
+            break
+        else:
+            error_msg("Invalid option. Use P/N to navigate, G to go to page, S to change size, B to go back.")
+            input("Press Enter to continue...")
+
+def display_bills_page(current_bills, paginator):
+    """Display a page of bills with enhanced formatting."""
+    today = datetime.now()
+    page_info = paginator.get_page_info()
+    
+    for idx, bill in enumerate(current_bills, page_info['start_item']):
+        # Determine bill status and color
+        if bill.get('paid', False):
+            status = f"{Colors.PAID}✓ Paid{Colors.RESET}"
+        else:
+            status = f"{Colors.UNPAID}○ Unpaid{Colors.RESET}"
+        
+        # Calculate days until due
+        try:
+            due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
+            days_diff = (due_date - today).days
+            
+            if days_diff < 0:
+                date_info = f"{Colors.OVERDUE}(Overdue by {abs(days_diff)} days!){Colors.RESET}"
+                status = f"{Colors.OVERDUE}! OVERDUE{Colors.RESET}"
+            elif days_diff == 0:
+                date_info = f"{Colors.DUE_SOON}(Due TODAY!){Colors.RESET}"
+            elif days_diff <= 7:
+                date_info = f"{Colors.DUE_SOON}(Due in {days_diff} days){Colors.RESET}"
+            else:
+                date_info = ""
+        except ValueError:
+            date_info = f"{Colors.ERROR}(Invalid date){Colors.RESET}"
+        
+        # Print bill info with colors and numbers
+        print(f"{Colors.INFO}{idx:3}.{Colors.RESET} {Colors.TITLE}{bill['name']}{Colors.RESET} [{status}]")
+        print(f"     Due: {Colors.INFO}{bill['due_date']}{Colors.RESET} {date_info}")
+        
+        if bill.get('web_page'):
+            print(f"     Website: {Colors.INFO}{bill['web_page'][:50]}{'...' if len(bill.get('web_page', '')) > 50 else ''}{Colors.RESET}")
+        if bill.get('login_info'):
+            print(f"     Login: {Colors.INFO}{bill['login_info'][:30]}{'...' if len(bill.get('login_info', '')) > 30 else ''}{Colors.RESET}")
+        print()
+
+def goto_page(paginator):
+    """Go to a specific page."""
+    info = paginator.get_page_info()
+    try:
+        page = int(colored_input(f"Enter page number (1-{info['total_pages']}): ", Colors.PROMPT))
+        if 1 <= page <= info['total_pages']:
+            paginator.get_page(page)
+            success_msg(f"Jumped to page {page}")
+        else:
+            error_msg(f"Page must be between 1 and {info['total_pages']}")
+    except ValueError:
+        error_msg("Please enter a valid number")
+    
+    input("Press Enter to continue...")
+
+def change_page_size():
+    """Change the number of items per page."""
+    try:
+        size = int(colored_input("Enter items per page (5-50): ", Colors.PROMPT))
+        if 5 <= size <= 50:
+            success_msg(f"Page size changed to {size}")
+            return size
+        else:
+            error_msg("Page size must be between 5 and 50")
+    except ValueError:
+        error_msg("Please enter a valid number")
+    
+    input("Press Enter to continue...")
+    return None
+
+def display_bill_details(bill):
+    """Display detailed information for a single bill."""
+    print(f"\n--- Bill Details: {bill['name']} ---")
+    print(f"Name: {Colors.TITLE}{bill['name']}{Colors.RESET}")
+    print(f"Due Date: {Colors.INFO}{bill['due_date']}{Colors.RESET}")
+    
+    status_color = Colors.PAID if bill.get('paid', False) else Colors.UNPAID
+    status_text = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+    print(f"Status: {status_color}{status_text}{Colors.RESET}")
+    
+    print(f"Website: {Colors.INFO}{bill.get('web_page', 'Not provided')}{Colors.RESET}")
+    print(f"Login Info: {Colors.INFO}{bill.get('login_info', 'Not provided')}{Colors.RESET}")
+    
+    # Show password as asterisks
+    password = bill.get('password', '')
+    password_display = '*' * len(password) if password else 'Not provided'
+    print(f"Password: {Colors.INFO}{password_display}{Colors.RESET}")
+
+# 10. Missing pagination helper functions
+def view_bill_details_from_search(results):
+    """View detailed information of a bill from search results."""
+    try:
+        choice = int(input(f"Enter bill number (1-{len(results)}): "))
+        if 1 <= choice <= len(results):
+            bill = results[choice - 1]
+            display_bill_details(bill)
+        else:
+            error_msg("Invalid bill number.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+    
+    input("\nPress Enter to continue...")
+
+def pay_bill_from_search(results):
+    """Pay a bill from search results."""
+    try:
+        choice = int(input(f"Enter bill number to pay (1-{len(results)}): "))
+        if 1 <= choice <= len(results):
+            bill = results[choice - 1]
+            if bill.get('paid', False):
+                error_msg(f"Bill '{bill['name']}' is already paid.")
+            else:
+                # Find the bill in the main bills list and pay it
+                for main_bill in bills:
+                    if main_bill['name'] == bill['name'] and main_bill['due_date'] == bill['due_date']:
+                        main_bill['paid'] = True
+                        save_bills()
+                        success_msg(f"Bill '{bill['name']}' marked as paid!")
+                        break
+        else:
+            error_msg("Invalid bill number.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+    
+    input("Press Enter to continue...")
+
+def view_bill_details_from_search_paginated(current_results, paginator):
+    """View bill details from paginated search results."""
+    if not current_results:
+        return
+    
+    try:
+        choice = int(colored_input(f"Enter bill number (1-{len(current_results)}): ", Colors.PROMPT))
+        if 1 <= choice <= len(current_results):
+            bill = current_results[choice - 1]
+            display_bill_details(bill)
+        else:
+            error_msg("Invalid bill number.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+    
+    input("\nPress Enter to continue...")
+
+def pay_bill_from_search_paginated(current_results, paginator):
+    """Pay a bill from paginated search results."""
+    if not current_results:
+        return
+    
+    try:
+        choice = int(colored_input(f"Enter bill number to pay (1-{len(current_results)}): ", Colors.PROMPT))
+        if 1 <= choice <= len(current_results):
+            bill = current_results[choice - 1]
+            if bill.get('paid', False):
+                error_msg(f"Bill '{bill['name']}' is already paid.")
+            else:
+                # Find the bill in the main bills list and pay it
+                for main_bill in bills:
+                    if main_bill['name'] == bill['name'] and main_bill['due_date'] == bill['due_date']:
+                        main_bill['paid'] = True
+                        save_bills()
+                        success_msg(f"Bill '{bill['name']}' marked as paid!")
+                        break
+        else:
+            error_msg("Invalid bill number.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+    
+    input("Press Enter to continue...")
+
+def edit_bill_from_search_paginated(current_results, paginator):
+    """Edit a bill from paginated search results."""
+    if not current_results:
+        return
+    
+    try:
+        choice = int(colored_input(f"Enter bill number to edit (1-{len(current_results)}): ", Colors.PROMPT))
+        if 1 <= choice <= len(current_results):
+            bill = current_results[choice - 1]
+            # Find the bill in the main bills list and edit it
+            for main_bill in bills:
+                if main_bill['name'] == bill['name'] and main_bill['due_date'] == bill['due_date']:
+                    edit_bill_details(main_bill)
+                    break
+        else:
+            error_msg("Invalid bill number.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+
+def edit_bill_details(bill):
+    """Edit details of a specific bill."""
+    print(f"\n--- Editing '{bill['name']}' ---")
+    
+    new_name = colored_input(f"Name [{bill['name']}]: ", Colors.PROMPT).strip()
+    if new_name:
+        bill['name'] = new_name
+
+    new_due_date = colored_input(f"Due Date [{bill['due_date']}]: ", Colors.PROMPT).strip()
+    if new_due_date:
+        try:
+            datetime.strptime(new_due_date, DATE_FORMAT)
+            bill['due_date'] = new_due_date
+        except ValueError:
+            error_msg("Invalid date format. Keeping the original date.")
+            
+    new_web_page = colored_input(f"Web Page [{bill.get('web_page', '')}]: ", Colors.PROMPT).strip()
+    if new_web_page:
+        bill['web_page'] = new_web_page
+
+    new_login_info = colored_input(f"Login Info [{bill.get('login_info', '')}]: ", Colors.PROMPT).strip()
+    if new_login_info:
+        bill['login_info'] = new_login_info
+
+    new_password = colored_input(f"Password [{bill.get('password', '')}]: ", Colors.PROMPT).strip()
+    if new_password:
+        bill['password'] = new_password
+
+    paid_status = colored_input(f"Paid (yes/no) [{'yes' if bill.get('paid', False) else 'no'}]: ", Colors.PROMPT).strip().lower()
+    if paid_status in ['yes', 'y']:
+        bill['paid'] = True
+    elif paid_status in ['no', 'n']:
+        bill['paid'] = False
+
+    save_bills()
+    success_msg(f"Bill '{bill['name']}' updated successfully.")
+    input("Press Enter to continue...")
+
+def pay_bill_from_due_list_paginated(current_due_bills, paginator):
+    """Pay a specific bill from the paginated due bills list."""
+    if not current_due_bills:
+        return
+    
+    try:
+        choice = int(colored_input(f"Enter bill number to pay (1-{len(current_due_bills)}): ", Colors.PROMPT))
+        if 1 <= choice <= len(current_due_bills):
+            bill, days_diff = current_due_bills[choice - 1]
+            
+            # Find and pay the bill
+            for main_bill in bills:
+                if main_bill['name'] == bill['name'] and main_bill['due_date'] == bill['due_date']:
+                    main_bill['paid'] = True
+                    save_bills()
+                    success_msg(f"Bill '{bill['name']}' marked as paid!")
+                    break
+        else:
+            error_msg("Invalid bill number.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+    
+    input("Press Enter to continue...")
+
+def bulk_pay_bills_from_due_list(due_bills):
+    """Pay multiple bills from the due bills list."""
+    if not due_bills:
+        warning_msg("No bills to pay.")
+        return
+    
+    choice = colored_input(f"\nPay all {len(due_bills)} due bills? (yes/no): ", Colors.PROMPT).strip().lower()
+    
+    if choice in ['yes', 'y']:
+        paid_count = 0
+        for bill, _ in due_bills:
+            # Find and pay the bill
+            for main_bill in bills:
+                if main_bill['name'] == bill['name'] and main_bill['due_date'] == bill['due_date']:
+                    if not main_bill.get('paid', False):
+                        main_bill['paid'] = True
+                        paid_count += 1
+                    break
+        
+        save_bills()
+        success_msg(f"Paid {paid_count} bills successfully!")
+    else:
+        info_msg("Bulk payment cancelled.")
+    
+    input("Press Enter to continue...")
+
+# 11. Sort functions (missing from your code)
+def sort_bills():
+    """Sort bills by different criteria."""
+    if not bills:
+        error_msg("No bills found to sort.")
+        input("Press Enter to continue...")
+        return
+    
+    print("\n--- Sort Bills ---")
+    print("Sort options:")
+    print("1. 📅 Sort by due date (earliest first)")
+    print("2. 📅 Sort by due date (latest first)")
+    print("3. 🔤 Sort by name (A-Z)")
+    print("4. 🔤 Sort by name (Z-A)")
+    print("5. ✅ Sort by payment status (unpaid first)")
+    print("6. ✅ Sort by payment status (paid first)")
+    print("7. 🔄 Reset to original order")
+    print("8. 🚪 Back to main menu")
+    
+    choice = input("\nChoose sort option (1-8): ").strip()
+    
+    if choice == '1':
+        sort_by_due_date_asc()
+    elif choice == '2':
+        sort_by_due_date_desc()
+    elif choice == '3':
+        sort_by_name_asc()
+    elif choice == '4':
+        sort_by_name_desc()
+    elif choice == '5':
+        sort_by_status_unpaid_first()
+    elif choice == '6':
+        sort_by_status_paid_first()
+    elif choice == '7':
+        reset_bill_order()
+    elif choice == '8':
+        return
+    else:
+        error_msg("Invalid option. Please choose 1-8.")
+        input("Press Enter to continue...")
+        sort_bills()
+
+def sort_by_due_date_asc():
+    """Sort bills by due date (earliest first)."""
+    global bills
+    try:
+        bills.sort(key=lambda bill: datetime.strptime(bill['due_date'], DATE_FORMAT))
+        success_msg("Bills sorted by due date (earliest first)")
+        display_sorted_bills("Bills Sorted by Due Date (Earliest First)")
+    except ValueError:
+        error_msg("Invalid date format found")
+        input("Press Enter to continue...")
+
+def sort_by_due_date_desc():
+    """Sort bills by due date (latest first)."""
+    global bills
+    try:
+        bills.sort(key=lambda bill: datetime.strptime(bill['due_date'], DATE_FORMAT), reverse=True)
+        success_msg("Bills sorted by due date (latest first)")
+        display_sorted_bills("Bills Sorted by Due Date (Latest First)")
+    except ValueError:
+        error_msg("Invalid date format found")
+        input("Press Enter to continue...")
+
+def sort_by_name_asc():
+    """Sort bills by name (A-Z)."""
+    global bills
+    bills.sort(key=lambda bill: bill['name'].lower())
+    success_msg("Bills sorted by name (A-Z)")
+    display_sorted_bills("Bills Sorted by Name (A-Z)")
+
+def sort_by_name_desc():
+    """Sort bills by name (Z-A)."""
+    global bills
+    bills.sort(key=lambda bill: bill['name'].lower(), reverse=True)
+    success_msg("Bills sorted by name (Z-A)")
+    display_sorted_bills("Bills Sorted by Name (Z-A)")
+
+def sort_by_status_unpaid_first():
+    """Sort bills by payment status (unpaid first)."""
+    global bills
+    bills.sort(key=lambda bill: bill.get('paid', False))
+    success_msg("Bills sorted by status (unpaid first)")
+    display_sorted_bills("Bills Sorted by Status (Unpaid First)")
+
+def sort_by_status_paid_first():
+    """Sort bills by payment status (paid first)."""
+    global bills
+    bills.sort(key=lambda bill: bill.get('paid', False), reverse=True)
+    success_msg("Bills sorted by status (paid first)")
+    display_sorted_bills("Bills Sorted by Status (Paid First)")
+
+def reset_bill_order():
+    """Reset bills to original order (reload from file)."""
+    global bills
+    load_bills()
+    success_msg("Bills reset to original order")
+    display_sorted_bills("Bills in Original Order")
+
+def display_sorted_bills(title):
+    """Display sorted bills with formatting."""
+    print(f"\n--- {title} ---")
+    
+    if not bills:
+        error_msg("No bills to display.")
+        input("Press Enter to continue...")
+        return
+    
+    for idx, bill in enumerate(bills, 1):
+        status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+        
+        # Add due date info for better context
+        try:
+            due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
+            today = datetime.now()
+            days_diff = (due_date - today).days
+            
+            if days_diff < 0:
+                date_info = f"(Overdue by {abs(days_diff)} days)"
+            elif days_diff == 0:
+                date_info = "(Due today!)"
+            elif days_diff <= 7:
+                date_info = f"(Due in {days_diff} days)"
+            else:
+                date_info = ""
+        except ValueError:
+            date_info = ""
+        
+        print(f"{idx:2}. {bill['name']} [{status}]")
+        print(f"    Due: {bill['due_date']} {date_info}")
+        if bill.get('web_page'):
+            print(f"    Website: {bill['web_page']}")
+        print()
+    
+    # Options after viewing sorted bills
+    print("Options:")
+    print("1. 💾 Save this sort order permanently")
+    print("2. 🔄 Sort again with different criteria")
+    print("3. 🚪 Back to main menu")
+    
+    choice = input("Choose option (1-3): ").strip()
+    
+    if choice == '1':
+        save_bills()
+        success_msg("Sort order saved!")
+        input("Press Enter to continue...")
+    elif choice == '2':
+        sort_bills()
+    elif choice == '3':
+        return
+    else:
+        error_msg("Invalid option.")
+        input("Press Enter to continue...")

@@ -20,7 +20,7 @@ This document outlines planned and potential future updates for the Bills Tracke
 - [x] **Sort options** - Sort bills by due date, name, or payment status
 - [x] **Colored output** - Use `colorama` library for better visual feedback
 - [x] **Progress indicators** - Show loading bars for backup operations
-- [ ] **Pagination** - Handle large numbers of bills efficiently
+- [x] **Pagination** - Handle large numbers of bills efficiently
 
 ### 1.2 Better Date Management
 - [ ] **Flexible due dates** - Support weekly, monthly, quarterly billing cycles
