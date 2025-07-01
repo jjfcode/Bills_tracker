@@ -12,6 +12,7 @@ A comprehensive command-line application for managing household bills with advan
 - **Pay Bills** - Mark bills as paid and automatically update due dates based on billing cycles
 - **Password Encryption** - All stored passwords are encrypted using the Fernet algorithm for enhanced security
 - **Master Password Protection** - Application access is protected by a master password with secure hash storage
+- **Session Timeout/Auto-Lock** - The app automatically locks after a period of inactivity and requires the master password to unlock
 
 ### Advanced Date Management
 - **🔄 Flexible Billing Cycles** - Support for weekly, bi-weekly, monthly, quarterly, semi-annual, annual, and one-time bills
@@ -305,6 +306,7 @@ Bills_tracker/
 - **Automatic Migration** - Existing plain text passwords are automatically encrypted on first load
 - **Key Management** - Encryption keys are generated and stored in `.encryption_key` and `.salt` files (excluded from git)
 - **Access Control** - 5-attempt limit for master password entry with automatic lockout
+- **Session Timeout/Auto-Lock** - The app automatically locks after inactivity (default: 15 minutes, configurable) and requires the master password to unlock
 - **Local Data Storage** - All data stays on your computer
 - **No External Dependencies** - Minimal risk from third-party libraries
 - **Backup Redundancy** - Multiple backup copies prevent data loss
@@ -656,6 +658,7 @@ This project is open source and available under the [MIT License](LICENSE).
 ### Version 3.2 (Current - June 29, 2025)
 - ✅ **Master Password Protection** - Application access now requires a master password with secure authentication
 - ✅ **Password Encryption** - All stored passwords are now encrypted using Fernet
+- ✅ **Session Timeout/Auto-Lock** - Application auto-locks after inactivity and requires master password to unlock
 - ✅ **Bill Templates** - Save and reuse bill configurations for quick bill creation
 - ✅ **Contact Information Management** - Comprehensive customer service details storage
 - ✅ **CSV Import/Export** - Bulk import/export with validation and sample templates
@@ -769,11 +772,15 @@ The application now requires a master password for access. On first run, you'll 
 ### Password Encryption
 All passwords in bills and templates are encrypted using the Fernet algorithm for strong security. Encryption and decryption are automatic and transparent to users. Keys are managed securely and excluded from version control.
 
+### Session Timeout/Auto-Lock
+If the app is inactive for a configurable period (default: 15 minutes), it will automatically lock and require the master password to unlock. This protects your data if you step away from your computer.
+
 ### Security Features
 - **Secure Authentication**: Master password with PBKDF2 hash and salt
 - **Access Control**: 5-attempt limit with automatic lockout
 - **Data Encryption**: All sensitive passwords encrypted at rest
 - **Key Management**: Secure key derivation from master password
 - **File Protection**: Security files excluded from version control
+- **Session Timeout/Auto-Lock**: Automatic lock after inactivity
 
 For technical details, troubleshooting, and recovery, see [docs/ENCRYPTION_README.md](docs/ENCRYPTION_README.md).

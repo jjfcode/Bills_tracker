@@ -85,7 +85,7 @@ import hashlib
 ```
 - [x] **Password encryption** - Encrypt stored passwords using Fernet
 - [x] **Master password** - Require password to access the application
-- [ ] **Session timeout** - Auto-lock after inactivity
+- [x] **Session timeout** - Auto-lock after inactivity
 - [ ] **Secure backups** - Encrypt backup files
 - [ ] **Data obfuscation** - Hide sensitive data in console output
 
@@ -256,20 +256,21 @@ class BillManager:
 3. Search and filter functionality
 4. Bill categories
 5. Better date handling for recurring bills
+6. ✅ Session timeout/auto-lock after inactivity
 
 ### Medium Priority (3-6 months)
-6. GUI interface
-7. Bill amount tracking
-8. Import/Export functionality
-9. Reporting and analytics
-10. Database migration
+7. GUI interface
+8. Bill amount tracking
+9. Import/Export functionality
+10. Reporting and analytics
+11. Database migration
 
 ### Low Priority (6+ months)
-11. Cloud integration
-12. Mobile app development
-13. Advanced analytics
-14. Multi-user support
-15. Machine learning features
+12. Cloud integration
+13. Mobile app development
+14. Advanced analytics
+15. Multi-user support
+16. Machine learning features
 
 ---
 

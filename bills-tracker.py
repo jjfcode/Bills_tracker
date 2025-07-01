@@ -41,8 +41,17 @@ ENCRYPTION_KEY_FILE = '.encryption_key'
 SALT_FILE = '.salt'
 MASTER_PASSWORD_FILE = '.master_password'
 
+# Session timeout configuration
+SESSION_TIMEOUT_MINUTES = 1  # Auto-lock after 15 minutes of inactivity
+SESSION_CONFIG_FILE = '.session_config'
+
 bills = []
 bill_templates = []
+
+# Global session variables
+session_start_time = None
+last_activity_time = None
+session_locked = False
 
 # 3. Color utility functions
 class Colors:
@@ -71,7 +80,10 @@ def colored_print(text, color=Colors.RESET):
     print(f"{color}{text}{Colors.RESET}")
 
 def colored_input(prompt, color=Colors.PROMPT):
-    """Get input with colored prompt."""
+    """Get input with colored prompt and session timeout check."""
+    if check_session_timeout():
+        unlock_session()
+    update_activity()
     return input(f"{color}{prompt}{Colors.RESET}")
 
 # 4.2 Encryption utility functions
@@ -2293,6 +2305,9 @@ def main():
     if CRYPTOGRAPHY_AVAILABLE:
         password_encryption.initialize_encryption(master_password)
 
+    # Start session timer
+    start_session()
+
     # Load existing bills and templates
     load_bills()
     load_templates()
@@ -4468,6 +4483,62 @@ def verify_master_password():
             print(f"❌ Incorrect password. Attempts left: {4 - attempt}")
     print("❌ Too many incorrect attempts. Exiting.")
     exit(1)
+
+# Session timeout management functions
+def start_session():
+    global session_start_time, last_activity_time, session_locked
+    session_start_time = datetime.now()
+    last_activity_time = session_start_time
+    session_locked = False
+
+def update_activity():
+    global last_activity_time
+    last_activity_time = datetime.now()
+
+def check_session_timeout():
+    global session_locked
+    if session_locked:
+        return True
+    if last_activity_time is None:
+        return False
+    if (datetime.now() - last_activity_time) > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
+        lock_session()
+        return True
+    return False
+
+def lock_session():
+    global session_locked
+    session_locked = True
+    print(f"\n🔒 Session locked due to {SESSION_TIMEOUT_MINUTES} minutes of inactivity.")
+
+def unlock_session(master_password=None):
+    global session_locked
+    for attempt in range(5):
+        password = getpass.getpass("Re-enter master password to unlock: ")
+        if master_password is not None and password == master_password:
+            print("✅ Session unlocked.")
+            session_locked = False
+            update_activity()
+            return True
+        # Fallback to hash check if master_password not provided
+        if master_password is None and verify_master_password_hash(password):
+            print("✅ Session unlocked.")
+            session_locked = False
+            update_activity()
+            return True
+        print(f"❌ Incorrect password. Attempts left: {4 - attempt}")
+    print("❌ Too many incorrect attempts. Exiting.")
+    exit(1)
+
+# Helper for hash check (for unlock without plain master_password)
+def verify_master_password_hash(password):
+    if not os.path.exists(MASTER_PASSWORD_FILE):
+        return False
+    with open(MASTER_PASSWORD_FILE, 'rb') as f:
+        data = f.read()
+        salt, stored_hash = data[:16], data[16:]
+    hash_ = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100_000)
+    return hash_ == stored_hash
 
 # Entry point
 if __name__ == "__main__":
