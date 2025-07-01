@@ -85,7 +85,8 @@ import hashlib
 ```
 - [x] **Password encryption** - Encrypt stored passwords using Fernet
 - [x] **Master password** - Require password to access the application
-- [x] **Session timeout** - Auto-lock after inactivity
+- [x] **Session timeout** - Auto-exit after inactivity
+- [ ] **Password management** - Change master password, recover password functionality
 - [ ] **Secure backups** - Encrypt backup files
 - [ ] **Data obfuscation** - Hide sensitive data in console output
 
@@ -127,7 +128,33 @@ class ContactInfo:
 - [ ] **Late fee warnings** - Calculate potential penalties
 - [ ] **Multi-currency support** - Handle different currencies
 
-### 3.2 Notifications & Reminders
+### 3.2 Password Management System
+```python
+# Example: Password management features
+class PasswordManager:
+    def change_master_password(self, current_password, new_password):
+        # Verify current password, update hash, re-encrypt all data
+        pass
+    
+    def recover_password(self, recovery_email, security_questions):
+        # Password recovery via email or security questions
+        pass
+    
+    def backup_recovery_key(self, recovery_key):
+        # Generate and backup recovery key for emergency access
+        pass
+```
+- [ ] **Change master password** - Allow users to change their master password securely
+- [ ] **Password recovery** - Email-based or security question recovery system
+- [ ] **Recovery key backup** - Generate and backup recovery keys for emergency access
+- [ ] **Security questions** - Set up security questions for password recovery
+- [ ] **Password strength validation** - Ensure strong password requirements
+- [ ] **Recovery email verification** - Verify recovery email address
+- [ ] **Emergency access** - Temporary access codes for urgent situations
+- [ ] **Password history** - Prevent reuse of recent passwords
+- [ ] **Account lockout recovery** - Unlock account after too many failed attempts
+
+### 3.3 Notifications & Reminders
 ```python
 # Example: Email notifications
 import smtplib
@@ -139,7 +166,7 @@ from email.mime.text import MIMEText
 - [ ] **Custom notification schedules** - Set multiple reminders per bill
 - [ ] **Notification history** - Track sent notifications
 
-### 3.3 Reporting & Analytics
+### 3.4 Reporting & Analytics
 - [ ] **Monthly reports** - Generate spending summaries
 - [ ] **Budget tracking** - Set and monitor spending limits
 - [ ] **Trend analysis** - Identify spending patterns
@@ -253,24 +280,24 @@ class BillManager:
 ### High Priority (Next 3 months)
 1. ✅ Password encryption
 2. ✅ Master password protection
-3. Search and filter functionality
-4. Bill categories
-5. Better date handling for recurring bills
-6. ✅ Session timeout/auto-lock after inactivity
+3. ✅ Session timeout/auto-exit after inactivity
+4. Password management (change password, recovery)
+5. Search and filter functionality
+6. Bill categories
 
 ### Medium Priority (3-6 months)
-7. GUI interface
-8. Bill amount tracking
-9. Import/Export functionality
-10. Reporting and analytics
-11. Database migration
+7. Better date handling for recurring bills
+8. GUI interface
+9. Bill amount tracking
+10. Import/Export functionality
+11. Reporting and analytics
 
 ### Low Priority (6+ months)
-12. Cloud integration
-13. Mobile app development
-14. Advanced analytics
-15. Multi-user support
-16. Machine learning features
+12. Database migration
+13. Cloud integration
+14. Mobile app development
+15. Advanced analytics
+16. Multi-user support
 
 ---
 
