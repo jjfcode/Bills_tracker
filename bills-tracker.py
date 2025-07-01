@@ -8,9 +8,23 @@ import urllib.parse
 import calendar
 import difflib
 import csv
+import base64
 from datetime import datetime, timedelta
 from colorama import Fore, Back, Style, init
 from tqdm import tqdm
+import getpass
+import hashlib
+
+# Cryptography imports for password encryption
+try:
+    from cryptography.fernet import Fernet
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    CRYPTOGRAPHY_AVAILABLE = True
+except ImportError:
+    CRYPTOGRAPHY_AVAILABLE = False
+    print("Warning: cryptography library not available. Passwords will be stored in plain text.")
+    print("Install with: pip install cryptography")
 
 # Initialize colorama for Windows compatibility
 init(autoreset=True)
@@ -21,6 +35,11 @@ BACKUP_DIR = 'backups'
 MAX_BACKUPS = 5
 DATE_FORMAT = '%Y-%m-%d'
 TEMPLATES_FILE = 'bill_templates.json'
+
+# Encryption configuration
+ENCRYPTION_KEY_FILE = '.encryption_key'
+SALT_FILE = '.salt'
+MASTER_PASSWORD_FILE = '.master_password'
 
 bills = []
 bill_templates = []
@@ -54,6 +73,131 @@ def colored_print(text, color=Colors.RESET):
 def colored_input(prompt, color=Colors.PROMPT):
     """Get input with colored prompt."""
     return input(f"{color}{prompt}{Colors.RESET}")
+
+# 4.2 Encryption utility functions
+class PasswordEncryption:
+    """Password encryption and decryption utilities using Fernet."""
+    
+    def __init__(self):
+        self.fernet = None
+        self.key = None
+        self.salt = None
+    
+    def generate_salt(self):
+        """Generate a random salt for key derivation."""
+        if not CRYPTOGRAPHY_AVAILABLE:
+            return None
+        return os.urandom(16)
+    
+    def derive_key_from_password(self, password, salt):
+        """Derive encryption key from password and salt."""
+        if not CRYPTOGRAPHY_AVAILABLE:
+            return None
+        
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=100000,
+        )
+        key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+        return key
+    
+    def initialize_encryption(self, master_password=None):
+        """Initialize encryption with master password or generate new key."""
+        if not CRYPTOGRAPHY_AVAILABLE:
+            return False
+        
+        try:
+            # Check if key file exists
+            if os.path.exists(ENCRYPTION_KEY_FILE) and os.path.exists(SALT_FILE):
+                # Load existing key
+                with open(SALT_FILE, 'rb') as f:
+                    self.salt = f.read()
+                
+                if master_password:
+                    # Derive key from provided password
+                    self.key = self.derive_key_from_password(master_password, self.salt)
+                else:
+                    # Load stored key
+                    with open(ENCRYPTION_KEY_FILE, 'rb') as f:
+                        self.key = f.read()
+            else:
+                # Generate new key
+                if master_password:
+                    # Use provided password
+                    self.salt = self.generate_salt()
+                    self.key = self.derive_key_from_password(master_password, self.salt)
+                else:
+                    # Generate random key
+                    self.key = Fernet.generate_key()
+                    self.salt = self.generate_salt()
+                
+                # Save key and salt
+                with open(ENCRYPTION_KEY_FILE, 'wb') as f:
+                    f.write(self.key)
+                with open(SALT_FILE, 'wb') as f:
+                    f.write(self.salt)
+            
+            self.fernet = Fernet(self.key)
+            return True
+            
+        except Exception as e:
+            error_msg(f"Failed to initialize encryption: {e}")
+            return False
+    
+    def encrypt_password(self, password):
+        """Encrypt a password."""
+        if not CRYPTOGRAPHY_AVAILABLE or not self.fernet or not password:
+            return password
+        
+        try:
+            encrypted = self.fernet.encrypt(password.encode())
+            return base64.urlsafe_b64encode(encrypted).decode()
+        except Exception as e:
+            error_msg(f"Failed to encrypt password: {e}")
+            return password
+    
+    def decrypt_password(self, encrypted_password):
+        """Decrypt a password."""
+        if not CRYPTOGRAPHY_AVAILABLE or not self.fernet or not encrypted_password:
+            return encrypted_password
+        
+        try:
+            # Check if password is already encrypted
+            if encrypted_password.startswith('gAAAAA'):
+                # This is a Fernet token, decrypt it
+                encrypted_bytes = base64.urlsafe_b64decode(encrypted_password.encode())
+                decrypted = self.fernet.decrypt(encrypted_bytes)
+                return decrypted.decode()
+            else:
+                # This might be a plain text password, return as is
+                return encrypted_password
+        except Exception as e:
+            # If decryption fails, assume it's plain text
+            return encrypted_password
+    
+    def migrate_passwords(self, bills_data):
+        """Migrate plain text passwords to encrypted format."""
+        if not CRYPTOGRAPHY_AVAILABLE or not self.fernet:
+            return bills_data
+        
+        migrated = False
+        for bill in bills_data:
+            if 'password' in bill and bill['password']:
+                # Check if password is already encrypted
+                if not bill['password'].startswith('gAAAAA'):
+                    # Encrypt plain text password
+                    bill['password'] = self.encrypt_password(bill['password'])
+                    migrated = True
+        
+        if migrated:
+            success_msg("Passwords migrated to encrypted format")
+        
+        return bills_data
+
+# Global encryption instance
+password_encryption = PasswordEncryption()
 
 def success_msg(message):
     """Print success message."""
@@ -283,6 +427,12 @@ def load_bills():
         with open(BILLS_FILE, 'r') as f:
             bills = json.load(f)
         
+        # Initialize encryption if available
+        if CRYPTOGRAPHY_AVAILABLE:
+            password_encryption.initialize_encryption()
+            # Migrate passwords to encrypted format if needed
+            bills = password_encryption.migrate_passwords(bills)
+        
         # Migrate bills to include reminder_days if missing
         migrated = False
         for bill in bills:
@@ -308,9 +458,18 @@ def save_bills():
         # Always create backup first
         backup_bills_with_progress()
         
+        # Encrypt passwords before saving
+        bills_to_save = bills.copy()
+        if CRYPTOGRAPHY_AVAILABLE and password_encryption.fernet:
+            for bill in bills_to_save:
+                if 'password' in bill and bill['password']:
+                    # Only encrypt if not already encrypted
+                    if not bill['password'].startswith('gAAAAA'):
+                        bill['password'] = password_encryption.encrypt_password(bill['password'])
+        
         # Save the bills
         with open(BILLS_FILE, 'w') as f:
-            json.dump(bills, f, indent=2)
+            json.dump(bills_to_save, f, indent=2)
         success_msg("Bills saved successfully")
         
     except Exception as e:
@@ -1006,7 +1165,12 @@ def edit_bill():
             if new_login_info:
                 bill['login_info'] = new_login_info
 
-            new_password = input(f"Password [{bill['password']}]: ").strip()
+            # Show decrypted password for editing
+            current_password = bill.get('password', '')
+            if current_password and CRYPTOGRAPHY_AVAILABLE and password_encryption.fernet:
+                current_password = password_encryption.decrypt_password(current_password)
+            
+            new_password = input(f"Password [{current_password}]: ").strip()
             if new_password:
                 bill['password'] = new_password
 
@@ -2073,9 +2237,14 @@ def display_bill_details(bill):
     print(f"Website: {Colors.INFO}{bill.get('web_page', 'Not provided')}{Colors.RESET}")
     print(f"Login Info: {Colors.INFO}{bill.get('login_info', 'Not provided')}{Colors.RESET}")
     
-    # Show password as asterisks
+    # Show password as asterisks (decrypt if encrypted)
     password = bill.get('password', '')
-    password_display = '*' * len(password) if password else 'Not provided'
+    if password and CRYPTOGRAPHY_AVAILABLE and password_encryption.fernet:
+        # Decrypt password for display
+        decrypted_password = password_encryption.decrypt_password(password)
+        password_display = '*' * len(decrypted_password) if decrypted_password else 'Not provided'
+    else:
+        password_display = '*' * len(password) if password else 'Not provided'
     print(f"Password: {Colors.INFO}{password_display}{Colors.RESET}")
     
     # Show billing cycle and reminder
@@ -2113,10 +2282,17 @@ def display_bill_details(bill):
 
 # 12. Main application
 def main():
-    """Main application loop with pagination support."""
+    """Main application loop with pagination support and master password protection."""
     clear_console()
     title_msg("Welcome to Bills Tracker! 🏠💳")
-    
+
+    # Require master password before proceeding
+    master_password = verify_master_password()
+
+    # Initialize encryption with master password
+    if CRYPTOGRAPHY_AVAILABLE:
+        password_encryption.initialize_encryption(master_password)
+
     # Load existing bills and templates
     load_bills()
     load_templates()
@@ -2309,7 +2485,12 @@ def edit_bill_details(bill):
     if new_login_info:
         bill['login_info'] = new_login_info
 
-    new_password = colored_input(f"Password [{bill.get('password', '')}]: ", Colors.PROMPT).strip()
+    # Show decrypted password for editing
+    current_password = bill.get('password', '')
+    if current_password and CRYPTOGRAPHY_AVAILABLE and password_encryption.fernet:
+        current_password = password_encryption.decrypt_password(current_password)
+    
+    new_password = colored_input(f"Password [{current_password}]: ", Colors.PROMPT).strip()
     if new_password:
         bill['password'] = new_password
 
@@ -2747,6 +2928,13 @@ def load_templates():
     try:
         with open(TEMPLATES_FILE, 'r') as f:
             bill_templates = json.load(f)
+        
+        # Initialize encryption if available and migrate passwords
+        if CRYPTOGRAPHY_AVAILABLE:
+            password_encryption.initialize_encryption()
+            # Migrate passwords to encrypted format if needed
+            bill_templates = password_encryption.migrate_passwords(bill_templates)
+        
         success_msg(f"Loaded {len(bill_templates)} bill templates")
     except FileNotFoundError:
         bill_templates = []
@@ -2758,8 +2946,17 @@ def load_templates():
 def save_templates():
     """Save bill templates to JSON file."""
     try:
+        # Encrypt passwords before saving
+        templates_to_save = bill_templates.copy()
+        if CRYPTOGRAPHY_AVAILABLE and password_encryption.fernet:
+            for template in templates_to_save:
+                if 'password' in template and template['password']:
+                    # Only encrypt if not already encrypted
+                    if not template['password'].startswith('gAAAAA'):
+                        template['password'] = password_encryption.encrypt_password(template['password'])
+        
         with open(TEMPLATES_FILE, 'w') as f:
-            json.dump(bill_templates, f, indent=2)
+            json.dump(templates_to_save, f, indent=2)
         success_msg("Templates saved successfully")
     except Exception as e:
         error_msg(f"Template save error: {e}")
@@ -3073,7 +3270,12 @@ def edit_template():
                 template['login_info'] = new_login_info
             
             # Password
-            new_password = colored_input(f"Password [{template.get('password', '')}]: ", Colors.PROMPT).strip()
+            # Show decrypted password for editing
+            current_password = template.get('password', '')
+            if current_password and CRYPTOGRAPHY_AVAILABLE and password_encryption.fernet:
+                current_password = password_encryption.decrypt_password(current_password)
+            
+            new_password = colored_input(f"Password [{current_password}]: ", Colors.PROMPT).strip()
             if new_password:
                 template['password'] = new_password
             
@@ -4227,6 +4429,45 @@ def show_csv_import_export_help():
     print()
     
     colored_input("Press Enter to continue...", Colors.INFO)
+
+# 2.1 Master password functions
+def set_master_password():
+    """Prompt the user to set a new master password and store its hash and salt."""
+    print("\n🔒 Set up a master password to protect your Bills Tracker data.")
+    while True:
+        password = getpass.getpass("Enter a new master password: ")
+        confirm = getpass.getpass("Confirm master password: ")
+        if password != confirm:
+            print("❌ Passwords do not match. Try again.")
+            continue
+        if len(password) < 6:
+            print("❌ Password must be at least 6 characters.")
+            continue
+        break
+    salt = os.urandom(16)
+    hash_ = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100_000)
+    with open(MASTER_PASSWORD_FILE, 'wb') as f:
+        f.write(salt + hash_)
+    print("✅ Master password set successfully!")
+    return password
+
+def verify_master_password():
+    """Prompt for the master password and verify it against the stored hash."""
+    if not os.path.exists(MASTER_PASSWORD_FILE):
+        return set_master_password()
+    with open(MASTER_PASSWORD_FILE, 'rb') as f:
+        data = f.read()
+        salt, stored_hash = data[:16], data[16:]
+    for attempt in range(5):
+        password = getpass.getpass("Enter master password: ")
+        hash_ = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100_000)
+        if hash_ == stored_hash:
+            print("✅ Access granted.")
+            return password
+        else:
+            print(f"❌ Incorrect password. Attempts left: {4 - attempt}")
+    print("❌ Too many incorrect attempts. Exiting.")
+    exit(1)
 
 # Entry point
 if __name__ == "__main__":

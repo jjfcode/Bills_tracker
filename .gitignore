@@ -1,3 +1,8 @@
 bills.json
 backups/
 *.json
+
+# Encryption keys (keep these secure and private)
+.encryption_key
+.salt
+.master_password

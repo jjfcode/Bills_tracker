@@ -57,6 +57,17 @@ This folder contains test scripts that validate the Bills Tracker application's 
   - Case sensitivity testing
 - **Usage:** `python test_autocomplete.py`
 
+### 🔐 Encryption Tests
+**File:** `test_encryption.py`
+- **Purpose:** Tests password encryption and master password functionality
+- **Tests Covered:**
+  - Basic encryption/decryption operations
+  - Key derivation from passwords
+  - File operations with encrypted data
+  - Fernet token validation
+  - Error handling for encryption failures
+- **Usage:** `python test_encryption.py`
+
 ## How to Run Test Scripts
 
 ### Run Individual Tests
@@ -67,6 +78,7 @@ python test_billing_cycles.py
 python test_edge_cases.py
 python test_menu_options.py
 python test_autocomplete.py
+python test_encryption.py
 ```
 
 ### Run from Main Directory
@@ -76,6 +88,7 @@ python test/test_billing_cycles.py
 python test/test_edge_cases.py
 python test/test_menu_options.py
 python test/test_autocomplete.py
+python test/test_encryption.py
 ```
 
 ### Run All Tests at Once

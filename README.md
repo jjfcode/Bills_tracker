@@ -1,4 +1,3 @@
-
 # Bills Tracker 🏠💳
 
 A comprehensive command-line application for managing household bills with advanced features like flexible billing cycles, custom reminder periods, bill templates, contact information management, CSV import/export, search, sorting, pagination, colored output, and automatic backups.
@@ -11,6 +10,8 @@ A comprehensive command-line application for managing household bills with advan
 - **Edit Bills** - Modify existing bill information including billing cycles, reminder periods, and contact details
 - **Delete Bills** - Remove bills with confirmation
 - **Pay Bills** - Mark bills as paid and automatically update due dates based on billing cycles
+- **Password Encryption** - All stored passwords are encrypted using the Fernet algorithm for enhanced security
+- **Master Password Protection** - Application access is protected by a master password with secure hash storage
 
 ### Advanced Date Management
 - **🔄 Flexible Billing Cycles** - Support for weekly, bi-weekly, monthly, quarterly, semi-annual, annual, and one-time bills
@@ -226,6 +227,16 @@ Bills_tracker/
 │   ├── bills_backup_20250629_143022.json
 │   ├── bills_backup_20250629_143045.json
 │   └── ... (up to 5 most recent backups)
+├── .encryption_key                    # Encryption key for password encryption (auto-generated)
+├── .salt                              # Salt for key derivation (auto-generated)
+├── .master_password                   # Master password hash and salt (auto-generated)
+├── docs/                              # Documentation and implementation guides
+│   ├── README.md                      # Documentation organization guide
+│   ├── BILLING_CYCLES_IMPLEMENTATION.md   # Billing cycles feature documentation
+│   ├── CUSTOM_REMINDERS_IMPLEMENTATION.md # Custom reminder periods documentation
+│   ├── ENCRYPTION_README.md           # Password encryption and security guide
+│   ├── organization_summary.txt       # Code organization overview
+│   └── autocomplete_implementation_summary.txt # Auto-complete feature summary
 ├── demo/                              # Demonstration scripts
 │   ├── README.md                      # Demo scripts documentation
 │   ├── demo_flexible_billing.py       # Billing cycles demonstration script
@@ -236,11 +247,11 @@ Bills_tracker/
 │   ├── test_billing_cycles.py        # Billing cycles testing script
 │   ├── test_edge_cases.py            # Date handling edge cases testing
 │   ├── test_menu_options.py          # Menu options functionality testing
-│   └── test_validation.py            # Validation functions testing script
+│   ├── test_validation.py            # Validation functions testing script
+│   ├── test_autocomplete.py          # Auto-complete functionality testing
+│   └── test_encryption.py            # Password encryption testing
 ├── README.md                          # This comprehensive documentation
 ├── Future_Update.md                   # Planned enhancements and roadmap
-├── BILLING_CYCLES_IMPLEMENTATION.md   # Billing cycles feature documentation
-├── CUSTOM_REMINDERS_IMPLEMENTATION.md # Custom reminder periods documentation
 └── .gitignore                        # Git ignore file
 ```
 
@@ -289,11 +300,18 @@ Bills_tracker/
 - **Data Structure Validation** - Ensures all required fields are present
 
 ### Security Features
+- **Master Password Protection** - Application access requires a master password with secure PBKDF2 hash storage
+- **Password Encryption** - All passwords are encrypted using the Fernet algorithm from the `cryptography` library
+- **Automatic Migration** - Existing plain text passwords are automatically encrypted on first load
+- **Key Management** - Encryption keys are generated and stored in `.encryption_key` and `.salt` files (excluded from git)
+- **Access Control** - 5-attempt limit for master password entry with automatic lockout
 - **Local Data Storage** - All data stays on your computer
-- **No External Dependencies** - Minimal risk from third-party libraries  
+- **No External Dependencies** - Minimal risk from third-party libraries
 - **Backup Redundancy** - Multiple backup copies prevent data loss
 - **Read-Only Backups** - Backup files are preserved from accidental modification
 - **Input Sanitization** - Prevents malicious input from causing issues
+
+See [ENCRYPTION_README.md](ENCRYPTION_README.md) for full details on encryption, key management, and recovery.
 
 ## 🔧 Advanced Features Details
 
@@ -473,8 +491,8 @@ See [Future_Update.md](Future_Update.md) for comprehensive planned improvements.
 - [ ] **Bulk import** - Import bills from CSV files
 
 ### 🛡️ Phase 3 Security & Data (High Priority)
-- [ ] **Password encryption** - Encrypt stored passwords using Fernet
-- [ ] **Master password** - Require password to access application
+- [x] **Password encryption** - Encrypt stored passwords using Fernet
+- [x] **Master password** - Require password to access application
 - [ ] **Secure backups** - Encrypt backup files
 - [ ] **Database migration** - Move from JSON to SQLite for better performance
 - [ ] **Import/Export** - Support CSV, Excel formats
@@ -528,8 +546,9 @@ This project is open source and available under the [MIT License](LICENSE).
 1. Read this comprehensive README for complete feature coverage
 2. Check [Future_Update.md](Future_Update.md) for planned enhancements and roadmap
 3. Review implementation documents for technical details:
-   - [BILLING_CYCLES_IMPLEMENTATION.md](BILLING_CYCLES_IMPLEMENTATION.md)
-   - [CUSTOM_REMINDERS_IMPLEMENTATION.md](CUSTOM_REMINDERS_IMPLEMENTATION.md)
+   - [docs/BILLING_CYCLES_IMPLEMENTATION.md](docs/BILLING_CYCLES_IMPLEMENTATION.md)
+   - [docs/CUSTOM_REMINDERS_IMPLEMENTATION.md](docs/CUSTOM_REMINDERS_IMPLEMENTATION.md)
+   - [docs/ENCRYPTION_README.md](docs/ENCRYPTION_README.md)
 
 **Troubleshooting:**
 1. Check the troubleshooting section above for common issues
@@ -537,6 +556,7 @@ This project is open source and available under the [MIT License](LICENSE).
    - `python demo/demo_flexible_billing.py` - Billing cycles demo
    - `python demo/demo_custom_reminders.py` - Custom reminders demo
 3. Test with edge cases using: `python test/test_edge_cases.py`
+4. Test encryption functionality: `python test/test_encryption.py`
 
 **Community Support:**
 1. Review existing issues on GitHub before creating new ones
@@ -634,6 +654,8 @@ This project is open source and available under the [MIT License](LICENSE).
 ## 🎯 Version History
 
 ### Version 3.2 (Current - June 29, 2025)
+- ✅ **Master Password Protection** - Application access now requires a master password with secure authentication
+- ✅ **Password Encryption** - All stored passwords are now encrypted using Fernet
 - ✅ **Bill Templates** - Save and reuse bill configurations for quick bill creation
 - ✅ **Contact Information Management** - Comprehensive customer service details storage
 - ✅ **CSV Import/Export** - Bulk import/export with validation and sample templates
@@ -738,3 +760,20 @@ This project is open source and available under the [MIT License](LICENSE).
 ---
 
 *🏠 Bills Tracker v3.2 - The Complete Personal Finance Bill Management Solution 💳*
+
+## 🔒 Security Features Overview
+
+### Master Password Protection
+The application now requires a master password for access. On first run, you'll set up a secure password that protects all your bill data. The password is securely hashed and never stored in plain text.
+
+### Password Encryption
+All passwords in bills and templates are encrypted using the Fernet algorithm for strong security. Encryption and decryption are automatic and transparent to users. Keys are managed securely and excluded from version control.
+
+### Security Features
+- **Secure Authentication**: Master password with PBKDF2 hash and salt
+- **Access Control**: 5-attempt limit with automatic lockout
+- **Data Encryption**: All sensitive passwords encrypted at rest
+- **Key Management**: Secure key derivation from master password
+- **File Protection**: Security files excluded from version control
+
+For technical details, troubleshooting, and recovery, see [docs/ENCRYPTION_README.md](docs/ENCRYPTION_README.md).
