@@ -42,11 +42,11 @@ SALT_FILE = '.salt'
 MASTER_PASSWORD_FILE = '.master_password'
 
 # Session timeout configuration
-SESSION_TIMEOUT_MINUTES = 1  # Auto-exit after 15 minutes of inactivity
+SESSION_TIMEOUT_MINUTES = 0.5  # Auto-exit after 15 minutes of inactivity
 SESSION_CONFIG_FILE = '.session_config'
 
 bills = []
-bill_templates = []
+templates = []
 
 # Global session variables
 session_start_time = None
@@ -81,11 +81,14 @@ def colored_print(text, color=Colors.RESET):
 
 def colored_input(prompt, color=Colors.PROMPT):
     """Get input with colored prompt and session timeout check."""
+    # Check timeout before accepting input
     if check_session_timeout():
-        # Session timeout will exit the app, so this line won't be reached
+        # Session timeout will exit the app
         pass
+    # Get input and update activity
+    user_input = input(f"{color}{prompt}{Colors.RESET}")
     update_activity()
-    return input(f"{color}{prompt}{Colors.RESET}")
+    return user_input
 
 # 4.2 Encryption utility functions
 class PasswordEncryption:
@@ -211,6 +214,19 @@ class PasswordEncryption:
 
 # Global encryption instance
 password_encryption = PasswordEncryption()
+
+def check_session_timeout():
+    """Check if session has timed out."""
+    if last_activity_time is None:
+        return False
+    
+    if (datetime.now() - last_activity_time) > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
+        print(f"\n🔒 Session expired due to {SESSION_TIMEOUT_MINUTES} minutes of inactivity.")
+        print("🔄 Exiting application for security...")
+        success_msg("Thank you for using Bills Tracker! 👋")
+        os._exit(0)  # Force exit immediately
+        return True
+    return False
 
 def success_msg(message):
     """Print success message."""
@@ -4487,33 +4503,25 @@ def verify_master_password():
 
 # Session timeout management functions
 def start_session():
+    """Start the session timer."""
     global session_start_time, last_activity_time, session_locked
     session_start_time = datetime.now()
     last_activity_time = session_start_time
     session_locked = False
 
 def update_activity():
+    """Update the last activity time."""
     global last_activity_time
     last_activity_time = datetime.now()
 
-def check_session_timeout():
-    global session_locked
-    if session_locked:
-        return True
-    if last_activity_time is None:
-        return False
-    if (datetime.now() - last_activity_time) > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
-        exit_session()
-        return True
-    return False
-
 def exit_session():
+    """Exit the session immediately."""
     global session_locked
     session_locked = True
     print(f"\n🔒 Session expired due to {SESSION_TIMEOUT_MINUTES} minutes of inactivity.")
     print("🔄 Exiting application for security...")
     success_msg("Thank you for using Bills Tracker! 👋")
-    exit(0)
+    os._exit(0)  # Force exit immediately
 
 # Note: unlock_session and verify_master_password_hash functions removed
 # as the app now exits completely on timeout instead of locking

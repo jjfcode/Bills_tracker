@@ -12,7 +12,7 @@ A comprehensive command-line application for managing household bills with advan
 - **Pay Bills** - Mark bills as paid and automatically update due dates based on billing cycles
 - **Password Encryption** - All stored passwords are encrypted using the Fernet algorithm for enhanced security
 - **Master Password Protection** - Application access is protected by a master password with secure hash storage
-- **Session Timeout/Auto-Exit** - The app automatically exits after 15 minutes of inactivity for enhanced security
+- **Session Timeout/Auto-Exit** - The app automatically exits after 15 minutes of inactivity for enhanced security (improved with input-based checking)
 
 ### Advanced Date Management
 - **🔄 Flexible Billing Cycles** - Support for weekly, bi-weekly, monthly, quarterly, semi-annual, annual, and one-time bills

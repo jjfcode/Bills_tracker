@@ -85,7 +85,7 @@ import hashlib
 ```
 - [x] **Password encryption** - Encrypt stored passwords using Fernet
 - [x] **Master password** - Require password to access the application
-- [x] **Session timeout** - Auto-exit after inactivity
+- [x] **Session timeout** - Auto-exit after inactivity (improved with input-based checking)
 - [ ] **Password management** - Change master password, recover password functionality
 - [ ] **Secure backups** - Encrypt backup files
 - [ ] **Data obfuscation** - Hide sensitive data in console output
