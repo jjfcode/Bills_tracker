@@ -733,48 +733,18 @@ def get_yes_no(prompt):
         print("Please enter 'yes' or 'no'")
 
 # 6.2 Enhanced validation functions
+# Import the comprehensive validation module
+from validation import DataValidator, ValidationError
+
 def validate_url(url):
-    """Validate URL format and return cleaned URL."""
-    if not url.strip():
-        return ""  # Empty URLs are allowed
-    
-    # Clean the URL
-    url = url.strip()
-    
-    # Add protocol if missing
-    if not url.startswith(('http://', 'https://')):
-        url = 'https://' + url
-    
-    try:
-        # Parse URL to validate structure
-        parsed = urllib.parse.urlparse(url)
-        
-        # Check if domain is valid
-        if not parsed.netloc:
-            return None
-        
-        # Basic domain validation
-        domain_pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$'
-        if not re.match(domain_pattern, parsed.netloc.split(':')[0]):
-            return None
-            
-        return url
-    except Exception:
-        return None
+    """Legacy URL validation function for backward compatibility."""
+    is_valid, error_msg, cleaned_url = DataValidator.validate_url(url)
+    return cleaned_url if is_valid else None
 
 def validate_email(email):
-    """Validate email format."""
-    if not email.strip():
-        return ""  # Empty emails are allowed
-    
-    email = email.strip().lower()
-    
-    # Basic email regex pattern
-    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    
-    if re.match(email_pattern, email):
-        return email
-    return None
+    """Legacy email validation function for backward compatibility."""
+    is_valid, error_msg = DataValidator.validate_email(email)
+    return email.strip().lower() if is_valid else None
 
 def validate_date_range(start_date, end_date):
     """Validate that start_date is before end_date."""
@@ -786,36 +756,18 @@ def validate_date_range(start_date, end_date):
         return False
 
 def validate_reminder_days(days_str):
-    """Validate reminder days input (1-365)."""
-    try:
-        days = int(days_str)
-        return 1 <= days <= 365
-    except ValueError:
-        return False
+    """Legacy reminder days validation function for backward compatibility."""
+    is_valid, error_msg = DataValidator.validate_reminder_days(days_str)
+    return is_valid
 
 def validate_future_date(date_str):
-    """Validate that the date is not too far in the past (more than 1 year)."""
-    try:
-        date_obj = datetime.strptime(date_str, DATE_FORMAT)
-        today = datetime.now()
-        one_year_ago = today - timedelta(days=365)
-        
-        if date_obj < one_year_ago:
-            return False, f"Date is more than 1 year in the past. Please enter a more recent date."
-        
-        # Warning for dates more than 5 years in the future
-        five_years_future = today + timedelta(days=5*365)
-        if date_obj > five_years_future:
-            return False, f"Date is more than 5 years in the future. Please check the date."
-            
-        return True, None
-    except ValueError:
-        return False, "Invalid date format"
+    """Legacy future date validation function for backward compatibility."""
+    return DataValidator.validate_due_date(date_str)
 
 def get_valid_url(prompt):
-    """Get a valid URL input with validation."""
+    """Get a valid URL input with enhanced validation."""
     while True:
-        url = input(f"{Colors.PROMPT}{prompt}{Colors.RESET}").strip()
+        url = colored_input(f"{prompt}: ", Colors.PROMPT).strip()
         
         if url.lower() == 'cancel':
             return None
@@ -823,18 +775,18 @@ def get_valid_url(prompt):
         if not url:  # Empty URL is allowed
             return ""
             
-        validated_url = validate_url(url)
-        if validated_url is not None:
+        is_valid, error_msg_text, validated_url = DataValidator.validate_url(url)
+        if is_valid:
             if validated_url != url:
-                colored_print(f"✅ URL corrected to: {validated_url}", Colors.SUCCESS)
+                success_msg(f"URL corrected to: {validated_url}")
             return validated_url
         else:
-            error_msg("Invalid URL format. Please enter a valid website URL (e.g., example.com)")
+            error_msg(f"Invalid URL: {error_msg_text}")
 
 def get_valid_email(prompt):
-    """Get a valid email input with validation."""
+    """Get a valid email input with enhanced validation."""
     while True:
-        email = input(f"{Colors.PROMPT}{prompt}{Colors.RESET}").strip()
+        email = colored_input(f"{prompt}: ", Colors.PROMPT).strip()
         
         if email.lower() == 'cancel':
             return None
@@ -842,16 +794,16 @@ def get_valid_email(prompt):
         if not email:  # Empty email is allowed
             return ""
             
-        validated_email = validate_email(email)
-        if validated_email is not None:
-            return validated_email
+        is_valid, error_msg_text = DataValidator.validate_email(email)
+        if is_valid:
+            return email.strip().lower()
         else:
-            error_msg("Invalid email format. Please enter a valid email address (e.g., user@example.com)")
+            error_msg(f"Invalid email: {error_msg_text}")
 
 def get_valid_reminder_days(prompt, default=7):
-    """Get valid reminder days with validation."""
+    """Get valid reminder days with enhanced validation."""
     while True:
-        days_input = input(f"{Colors.PROMPT}{prompt} [default: {default}]: {Colors.RESET}").strip()
+        days_input = colored_input(f"{prompt} [default: {default}]: ", Colors.PROMPT).strip()
         
         if days_input.lower() == 'cancel':
             return None
@@ -859,30 +811,24 @@ def get_valid_reminder_days(prompt, default=7):
         if not days_input:
             return default
             
-        if validate_reminder_days(days_input):
+        is_valid, error_msg_text = DataValidator.validate_reminder_days(days_input)
+        if is_valid:
             return int(days_input)
         else:
-            error_msg("Please enter a number between 1 and 365 days")
+            error_msg(f"Invalid reminder days: {error_msg_text}")
 
 def get_valid_date_with_range_check(prompt):
-    """Get a valid date input with range validation."""
+    """Get a valid date input with enhanced range validation."""
     while True:
         date_str = get_required_input(prompt)
         if date_str is None:  # User cancelled
             return None
             
-        try:
-            datetime.strptime(date_str, DATE_FORMAT)
-            
-            # Check date range
-            is_valid, error_msg_text = validate_future_date(date_str)
-            if not is_valid:
-                error_msg(error_msg_text)
-                continue
-                
+        is_valid, error_msg_text = DataValidator.validate_due_date(date_str)
+        if is_valid:
             return date_str
-        except ValueError:
-            error_msg(f"Invalid date format. Please use {DATE_FORMAT} (YYYY-MM-DD)")
+        else:
+            error_msg(f"Invalid date: {error_msg_text}")
 
 # 6.1 Billing cycle constants and functions
 class BillingCycle:
@@ -1113,8 +1059,8 @@ def add_bill():
         warning_msg("Bill addition cancelled.")
         return
 
-    # Create and save bill
-    bill = {
+    # Create bill data
+    bill_data = {
         "name": name,
         "due_date": due_date,
         "web_page": web_page,
@@ -1133,7 +1079,16 @@ def add_bill():
         "support_chat_url": support_chat_url,
         "mobile_app": mobile_app
     }
-    bills.append(bill)
+    
+    # Validate complete bill data before saving
+    is_valid, error_msg_text, cleaned_data = DataValidator.validate_bill_data(bill_data)
+    if not is_valid:
+        error_msg(f"Bill validation failed: {error_msg_text}")
+        warning_msg("Bill addition cancelled due to validation errors.")
+        return
+    
+    # Add validated bill to list
+    bills.append(cleaned_data)
     save_bills()
     success_msg(f"Bill '{name}' added successfully with {billing_cycle} billing cycle!")
     colored_input("Press Enter to continue...", Colors.INFO)
@@ -3705,7 +3660,7 @@ def import_bills_from_csv():
                         continue
                     
                     # Create bill object
-                    bill = {
+                    bill_data = {
                         'name': name,
                         'due_date': due_date,
                         'paid': False,
@@ -3724,41 +3679,13 @@ def import_bills_from_csv():
                         'mobile_app': row.get('mobile_app', '').strip()
                     }
                     
-                    # Validate billing cycle
-                    valid_cycles = BillingCycle.get_all_cycles()
-                    if bill['billing_cycle'] not in valid_cycles:
-                        bill['billing_cycle'] = 'monthly'  # Default to monthly
-                        warning_msg(f"Row {row_count}: Invalid billing cycle, defaulting to monthly")
+                    # Use comprehensive validation
+                    is_valid, error_msg_text, cleaned_bill = DataValidator.validate_bill_data(bill_data)
+                    if not is_valid:
+                        errors.append(f"Row {row_count}: Validation failed - {error_msg_text}")
+                        continue
                     
-                    # Validate reminder days
-                    if not (1 <= bill['reminder_days'] <= 365):
-                        bill['reminder_days'] = 7  # Default to 7 days
-                        warning_msg(f"Row {row_count}: Invalid reminder days, defaulting to 7")
-                    
-                    # Validate URLs
-                    if bill['web_page']:
-                        validated_url = validate_url(bill['web_page'])
-                        if validated_url is not None:
-                            bill['web_page'] = validated_url
-                        else:
-                            warning_msg(f"Row {row_count}: Invalid website URL, keeping as-is")
-                    
-                    if bill['support_chat_url']:
-                        validated_url = validate_url(bill['support_chat_url'])
-                        if validated_url is not None:
-                            bill['support_chat_url'] = validated_url
-                        else:
-                            warning_msg(f"Row {row_count}: Invalid support chat URL, keeping as-is")
-                    
-                    # Validate email
-                    if bill['company_email']:
-                        validated_email = validate_email(bill['company_email'])
-                        if validated_email is not None:
-                            bill['company_email'] = validated_email
-                        else:
-                            warning_msg(f"Row {row_count}: Invalid email format, keeping as-is")
-                    
-                    imported_bills.append(bill)
+                    imported_bills.append(cleaned_bill)
                     
                 except Exception as e:
                     errors.append(f"Row {row_count}: {str(e)}")
