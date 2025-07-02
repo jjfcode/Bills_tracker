@@ -47,7 +47,7 @@ SALT_FILE = '.salt'
 MASTER_PASSWORD_FILE = '.master_password'
 
 # Session timeout configuration
-SESSION_TIMEOUT_MINUTES = 0.5  # Auto-exit after 15 minutes of inactivity
+SESSION_TIMEOUT_MINUTES = 30  # Auto-exit after 30 minutes of inactivity
 SESSION_CONFIG_FILE = '.session_config'
 
 bills = []
@@ -2519,6 +2519,7 @@ def main():
             clear_console()
             run_data_integrity_check()
         elif choice == '13':
+            clear_console()
             show_help_menu()
         elif choice == '14':
             success_msg("Thank you for using Bills Tracker! 👋")
