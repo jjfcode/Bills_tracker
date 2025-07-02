@@ -294,6 +294,18 @@ def check_session_timeout():
         return True
     return False
 
+def start_session():
+    """Start a new session and initialize activity tracking."""
+    global session_start_time, last_activity_time, session_locked
+    session_start_time = datetime.now()
+    last_activity_time = datetime.now()
+    session_locked = False
+
+def update_activity():
+    """Update the last activity time to prevent session timeout."""
+    global last_activity_time
+    last_activity_time = datetime.now()
+
 def success_msg(message):
     """Print success message."""
     colored_print(f"✅ {message}", Colors.SUCCESS)
@@ -3971,9 +3983,12 @@ def csv_import_export_menu():
         print(f"{Colors.MENU}1.{Colors.RESET} 📥 Import bills from CSV")
         print(f"{Colors.MENU}2.{Colors.RESET} 📤 Export bills to CSV")
         print(f"{Colors.MENU}3.{Colors.RESET} 📋 Create sample CSV file")
-        print(f"{Colors.MENU}4.{Colors.RESET} 🚪 Back to main menu")
+        print(f"{Colors.MENU}4.{Colors.RESET} 📥 Import bills from Excel (.xlsx)")
+        print(f"{Colors.MENU}5.{Colors.RESET} 📤 Export bills to Excel (.xlsx)")
+        print(f"{Colors.MENU}6.{Colors.RESET} 📋 Create sample Excel file (.xlsx)")
+        print(f"{Colors.MENU}7.{Colors.RESET} 🚪 Back to main menu")
         
-        choice = colored_input("\nChoose option (1-4): ", Colors.PROMPT).strip()
+        choice = colored_input("\nChoose option (1-7): ", Colors.PROMPT).strip()
         
         if choice == '1':
             clear_console()
@@ -3985,905 +4000,402 @@ def csv_import_export_menu():
             clear_console()
             create_sample_csv()
         elif choice == '4':
-            break
-        else:
-            error_msg("Invalid option. Please choose 1-4.")
-            colored_input("Press Enter to continue...", Colors.WARNING)
-
-# 13. Help System
-def show_help_menu():
-    """Display the main help menu."""
-    while True:
-        clear_console()
-        title_msg("Help & Documentation")
-        
-        print(f"{Colors.MENU}1.{Colors.RESET} 📖 What is Bills Tracker?")
-        print(f"{Colors.MENU}2.{Colors.RESET} 🚀 Getting Started Guide")
-        print(f"{Colors.MENU}3.{Colors.RESET} 📝 Adding & Managing Bills")
-        print(f"{Colors.MENU}4.{Colors.RESET} 🔍 Searching & Sorting")
-        print(f"{Colors.MENU}5.{Colors.RESET} ⏰ Due Bills & Reminders")
-        print(f"{Colors.MENU}6.{Colors.RESET} 💰 Paying Bills")
-        print(f"{Colors.MENU}7.{Colors.RESET} 📋 Bill Templates")
-        print(f"{Colors.MENU}8.{Colors.RESET} 📥 CSV Import/Export")
-        print(f"{Colors.MENU}9.{Colors.RESET} 🔧 Tips & Troubleshooting")
-        print(f"{Colors.MENU}10.{Colors.RESET} 🚪 Back to main menu")
-        
-        choice = colored_input("\nChoose help topic (1-10): ", Colors.PROMPT).strip()
-        
-        if choice == '1':
             clear_console()
-            show_what_is_bills_tracker()
-        elif choice == '2':
-            clear_console()
-            show_getting_started_guide()
-        elif choice == '3':
-            clear_console()
-            show_adding_managing_bills()
-        elif choice == '4':
-            clear_console()
-            show_searching_sorting()
+            import_bills_from_excel()
         elif choice == '5':
             clear_console()
-            show_due_bills_reminders()
+            export_bills_to_excel()
         elif choice == '6':
             clear_console()
-            show_paying_bills()
+            create_sample_excel()
         elif choice == '7':
-            clear_console()
-            show_bill_templates_help()
-        elif choice == '8':
-            clear_console()
-            show_csv_import_export_help()
-        elif choice == '9':
-            clear_console()
-            show_tips_troubleshooting()
-        elif choice == '10':
             break
         else:
-            error_msg("Invalid option. Please choose 1-10.")
+            error_msg("Invalid option. Please choose 1-7.")
             colored_input("Press Enter to continue...", Colors.WARNING)
 
-def show_what_is_bills_tracker():
-    """Explain what Bills Tracker is and its purpose."""
-    clear_console()
-    title_msg("What is Bills Tracker?")
-    
-    print(f"{Colors.INFO}Bills Tracker is a comprehensive command-line application designed to help you manage your bills and payments efficiently.{Colors.RESET}")
-    print()
-    
-    print(f"{Colors.TITLE}🎯 Main Purpose:{Colors.RESET}")
-    print("• Keep track of all your bills in one place")
-    print("• Never miss a payment deadline")
-    print("• Organize billing information securely")
-    print("• Simplify bill management with templates")
-    print()
-    
-    print(f"{Colors.TITLE}✨ Key Features:{Colors.RESET}")
-    print("• 📝 Add, edit, and delete bills")
-    print("• 📅 Track due dates with custom reminders")
-    print("• 🔄 Handle different billing cycles (weekly, monthly, etc.)")
-    print("• 💰 Mark bills as paid with automatic due date updates")
-    print("• 🔍 Search and sort bills easily")
-    print("• 📋 Use templates for quick bill creation")
-    print("• 💾 Automatic backup system")
-    print("• 🎨 Color-coded interface for better visibility")
-    print()
-    
-    print(f"{Colors.TITLE}🔒 Data Security:{Colors.RESET}")
-    print("• All data is stored locally on your computer")
-    print("• Automatic backups protect against data loss")
-    print("• No internet connection required")
-    print("• Your information stays private")
-    print()
-    
-    colored_input("Press Enter to continue...", Colors.INFO)
-
-def show_getting_started_guide():
-    """Show a step-by-step getting started guide."""
-    clear_console()
-    title_msg("Getting Started Guide")
-    
-    print(f"{Colors.TITLE}🚀 Step 1: First Launch{Colors.RESET}")
-    print("When you first run Bills Tracker, it will:")
-    print("• Create necessary files and folders")
-    print("• Set up the backup system")
-    print("• Load any existing bills (if any)")
-    print()
-    
-    print(f"{Colors.TITLE}📝 Step 2: Add Your First Bill{Colors.RESET}")
-    print("1. Choose option 1 from the main menu")
-    print("2. Enter the bill name (e.g., 'Netflix Subscription')")
-    print("3. Set the due date (YYYY-MM-DD format)")
-    print("4. Choose the billing cycle (monthly, weekly, etc.)")
-    print("5. Set reminder days (how many days before due date)")
-    print("6. Add optional information (website, login, password)")
-    print()
-    
-    print(f"{Colors.TITLE}⏰ Step 3: Check Due Bills{Colors.RESET}")
-    print("1. Choose option 5 from the main menu")
-    print("2. Select 'Check bills with custom reminder periods'")
-    print("3. View bills that are due soon")
-    print("4. Use this regularly to stay on top of payments")
-    print()
-    
-    print(f"{Colors.TITLE}💰 Step 4: Pay Bills{Colors.RESET}")
-    print("1. Choose option 6 from the main menu")
-    print("2. Select the bill you want to pay")
-    print("3. Choose payment option (advance cycle or mark as paid)")
-    print("4. The due date will update automatically")
-    print()
-    
-    print(f"{Colors.TITLE}📋 Step 5: Create Templates (Optional){Colors.RESET}")
-    print("1. Choose option 9 from the main menu")
-    print("2. Create templates for bills you add frequently")
-    print("3. Use templates to quickly add new bills")
-    print()
-    
-    print(f"{Colors.TITLE}💡 Pro Tips:{Colors.RESET}")
-    print("• Check due bills daily or weekly")
-    print("• Use templates for recurring bills")
-    print("• Set appropriate reminder periods")
-    print("• Keep backup files safe")
-    print()
-    
-    colored_input("Press Enter to continue...", Colors.INFO)
-
-def show_adding_managing_bills():
-    """Explain how to add and manage bills."""
-    clear_console()
-    title_msg("Adding & Managing Bills")
-    
-    print(f"{Colors.TITLE}📝 Adding a New Bill{Colors.RESET}")
-    print("1. Choose 'Add a bill' from the main menu")
-    print("2. Enter the bill name (required)")
-    print("3. Set the due date in YYYY-MM-DD format")
-    print("4. Choose billing cycle:")
-    print("   • Weekly - Every 7 days")
-    print("   • Bi-weekly - Every 14 days")
-    print("   • Monthly - Every month")
-    print("   • Quarterly - Every 3 months")
-    print("   • Semi-annually - Every 6 months")
-    print("   • Annually - Every 12 months")
-    print("   • One-time - No recurrence")
-    print("5. Set reminder days (1-365 days before due)")
-    print("6. Add optional website URL")
-    print("7. Add optional login information")
-    print("8. Add optional password")
-    print()
-    
-    print(f"{Colors.TITLE}✏️ Editing Bills{Colors.RESET}")
-    print("1. Choose 'Edit a bill' from the main menu")
-    print("2. Select the bill to edit")
-    print("3. Modify any field (press Enter to keep current value)")
-    print("4. Changes are saved automatically")
-    print()
-    
-    print(f"{Colors.TITLE}🗑️ Deleting Bills{Colors.RESET}")
-    print("1. Choose 'Delete a bill' from the main menu")
-    print("2. Select the bill to delete")
-    print("3. Confirm deletion")
-    print("⚠️  Warning: Deletion cannot be undone")
-    print()
-    
-    print(f"{Colors.TITLE}📋 Viewing Bills{Colors.RESET}")
-    print("• Choose 'View all bills' to see all bills")
-    print("• Bills are color-coded by status:")
-    print("  🟢 Green - Paid bills")
-    print("  🟡 Yellow - Unpaid bills")
-    print("  🔴 Red - Overdue bills")
-    print("• Large lists use pagination for better navigation")
-    print()
-    
-    print(f"{Colors.TITLE}🔍 Auto-complete Features{Colors.RESET}")
-    print("• Type partial bill names to see suggestions")
-    print("• Use '?' to see all available options")
-    print("• Type 'cancel' to exit any input")
-    print("• Use 'help' for context-sensitive help")
-    print()
-    
-    colored_input("Press Enter to continue...", Colors.INFO)
-
-def show_searching_sorting():
-    """Explain search and sort functionality."""
-    clear_console()
-    title_msg("Searching & Sorting Bills")
-    
-    print(f"{Colors.TITLE}🔍 Search Options{Colors.RESET}")
-    print("1. Search by name - Find bills by partial name match")
-    print("2. Search by due date - Find bills due on specific dates")
-    print("3. Search by website - Find bills by website URL")
-    print("4. Search by contact information")
-    print("5. Search all fields - Search across all bill information")
-    print()
-    
-    print(f"{Colors.TITLE}🔍 Search by Name{Colors.RESET}")
-    print("• Use auto-complete for bill name suggestions")
-    print("• Case-insensitive partial matching")
-    print("• Shows similar names if exact match not found")
-    print("• Can view, pay, or edit bills from search results")
-    print()
-    
-    print(f"{Colors.TITLE}📅 Search by Date{Colors.RESET}")
-    print("• Exact date (YYYY-MM-DD)")
-    print("• Month and year (YYYY-MM)")
-    print("• Year only (YYYY)")
-    print("• Useful for finding bills due in specific periods")
-    print()
-    
-    print(f"{Colors.TITLE}🌐 Search by Website{Colors.RESET}")
-    print("• Search by website URL or domain")
-    print("• Auto-complete shows previously used websites")
-    print("• Useful for finding bills from the same company")
-    print()
-    
-    print(f"{Colors.TITLE}🔄 Sort Options{Colors.RESET}")
-    print("1. Sort by due date (earliest first)")
-    print("2. Sort by due date (latest first)")
-    print("3. Sort by name (A-Z)")
-    print("4. Sort by name (Z-A)")
-    print("5. Sort by payment status (unpaid first)")
-    print("6. Sort by payment status (paid first)")
-    print("7. Reset to original order")
-    print()
-    
-    print(f"{Colors.TITLE}💡 Search Tips{Colors.RESET}")
-    print("• Use partial words for broader searches")
-    print("• Search results show bill status and due dates")
-    print("• You can perform actions directly from search results")
-    print("• Large result sets use pagination")
-    print()
-    
-    colored_input("Press Enter to continue...", Colors.INFO)
-
-def show_due_bills_reminders():
-    """Explain due bills and reminder system."""
-    clear_console()
-    title_msg("Due Bills & Reminders")
-    
-    print(f"{Colors.TITLE}⏰ Reminder System{Colors.RESET}")
-    print("Bills Tracker uses a smart reminder system:")
-    print("• Each bill has its own custom reminder period")
-    print("• Default reminder is 7 days before due date")
-    print("• You can set reminders from 1 to 365 days")
-    print("• Reminders are checked automatically")
-    print()
-    
-    print(f"{Colors.TITLE}📅 Checking Due Bills{Colors.RESET}")
-    print("Two ways to check due bills:")
-    print()
-    print("1. Custom Reminder Periods:")
-    print("   • Uses each bill's individual reminder setting")
-    print("   • Shows bills that are due within their reminder period")
-    print("   • Most personalized approach")
-    print()
-    print("2. Specific Day Range:")
-    print("   • Check bills due within X days")
-    print("   • Useful for weekly or monthly planning")
-    print("   • Good for bulk payment planning")
-    print()
-    
-    print(f"{Colors.TITLE}🎨 Status Indicators{Colors.RESET}")
-    print("Bills are color-coded by urgency:")
-    print("🔴 Red - OVERDUE (past due date)")
-    print("🟠 Orange - DUE TODAY")
-    print("🟡 Yellow - Due within 3 days")
-    print("🔵 Blue - Due within reminder period")
-    print()
-    
-    print(f"{Colors.TITLE}📊 Due Bills Features{Colors.RESET}")
-    print("• View all due bills in one place")
-    print("• Sort by urgency (overdue first)")
-    print("• Pay individual bills directly")
-    print("• Bulk pay multiple bills")
-    print("• Change reminder periods")
-    print("• Navigate with pagination for large lists")
-    print()
-    
-    print(f"{Colors.TITLE}💡 Best Practices{Colors.RESET}")
-    print("• Check due bills daily or weekly")
-    print("• Set appropriate reminder periods for each bill")
-    print("• Use bulk payment for multiple due bills")
-    print("• Review overdue bills immediately")
-    print("• Adjust reminder periods based on your payment habits")
-    print()
-    
-    colored_input("Press Enter to continue...", Colors.INFO)
-
-def show_paying_bills():
-    """Explain the bill payment process."""
-    clear_console()
-    title_msg("Paying Bills")
-    
-    print(f"{Colors.TITLE}💰 Payment Process{Colors.RESET}")
-    print("1. Choose 'Pay a bill' from the main menu")
-    print("2. Select the bill you want to pay")
-    print("3. Choose payment option")
-    print("4. Bill status and due date are updated automatically")
-    print()
-    
-    print(f"{Colors.TITLE}🔄 Payment Options{Colors.RESET}")
-    print("For recurring bills, you have two options:")
-    print()
-    print("1. Pay and Advance to Next Cycle:")
-    print("   • Marks current bill as paid")
-    print("   • Automatically calculates next due date")
-    print("   • Bill remains active for next cycle")
-    print("   • Recommended for ongoing subscriptions")
-    print()
-    print("2. Mark as Permanently Paid:")
-    print("   • Marks bill as permanently paid")
-    print("   • Bill won't appear in due bills")
-    print("   • Use for one-time payments or cancelled services")
-    print("   • Can be reactivated by editing the bill")
-    print()
-    
-    print(f"{Colors.TITLE}📅 Due Date Updates{Colors.RESET}")
-    print("When you pay a recurring bill:")
-    print("• Next due date is calculated automatically")
-    print("• Handles different month lengths correctly")
-    print("• Respects the billing cycle (weekly, monthly, etc.)")
-    print("• One-time bills don't change due dates")
-    print()
-    
-    print(f"{Colors.TITLE}💳 Payment Methods{Colors.RESET}")
-    print("Bills Tracker tracks payment status, not actual payments:")
-    print("• You pay bills through your usual methods")
-    print("• Mark bills as paid in the app")
-    print("• Store payment information (websites, login details)")
-    print("• Track payment history and due dates")
-    print()
-    
-    print(f"{Colors.TITLE}📋 Bulk Payments{Colors.RESET}")
-    print("From the due bills screen:")
-    print("• Pay multiple bills at once")
-    print("• Useful for monthly bill management")
-    print("• Saves time when many bills are due")
-    print("• Each bill follows its own payment rules")
-    print()
-    
-    print(f"{Colors.TITLE}💡 Payment Tips{Colors.RESET}")
-    print("• Pay bills as soon as they appear in due bills")
-    print("• Use bulk payment for efficiency")
-    print("• Keep payment information updated")
-    print("• Review payment history regularly")
-    print("• Set up auto-pay where possible")
-    print()
-    
-    colored_input("Press Enter to continue...", Colors.INFO)
-
-def show_bill_templates_help():
-    """Explain bill templates functionality."""
-    clear_console()
-    title_msg("Bill Templates")
-    
-    print(f"{Colors.TITLE}📋 What are Templates?{Colors.RESET}")
-    print("Templates are reusable bill configurations that save time:")
-    print("• Store common bill information")
-    print("• Quick bill creation with minimal input")
-    print("• Standardize billing cycles and reminders")
-    print("• Perfect for recurring bills")
-    print()
-    
-    print(f"{Colors.TITLE}📝 Creating Templates{Colors.RESET}")
-    print("Two ways to create templates:")
-    print()
-    print("1. From Existing Bills:")
-    print("   • Choose 'Save bill as template'")
-    print("   • Select an existing bill")
-    print("   • Template is created with all bill details")
-    print("   • Excludes due date (you set this for each new bill)")
-    print()
-    print("2. Manual Creation:")
-    print("   • Choose 'Create new template'")
-    print("   • Enter template name and details")
-    print("   • Set billing cycle and reminder period")
-    print("   • Add optional website and login information")
-    print()
-    
-    print(f"{Colors.TITLE}🚀 Using Templates{Colors.RESET}")
-    print("To add a bill from a template:")
-    print("1. Choose 'Use template to add bill'")
-    print("2. Select the template to use")
-    print("3. Enter only the due date")
-    print("4. Bill is created with all template details")
-    print("5. Much faster than manual entry")
-    print()
-    
-    print(f"{Colors.TITLE}✏️ Managing Templates{Colors.RESET}")
-    print("Template management options:")
-    print("• View all templates with details")
-    print("• Edit template information")
-    print("• Delete unused templates")
-    print("• Use templates to create bills")
-    print("• Templates are saved automatically")
-    print()
-    
-    print(f"{Colors.TITLE}💡 Template Best Practices{Colors.RESET}")
-    print("• Create templates for bills you add frequently")
-    print("• Use descriptive template names")
-    print("• Include website and login information")
-    print("• Set appropriate reminder periods")
-    print("• Update templates when information changes")
-    print("• Delete templates you no longer use")
-    print()
-    
-    print(f"{Colors.TITLE}🔄 Template vs Bill{Colors.RESET}")
-    print("Templates:")
-    print("• Reusable configurations")
-    print("• No due dates")
-    print("• Used to create bills quickly")
-    print()
-    print("Bills:")
-    print("• Actual bill instances")
-    print("• Have specific due dates")
-    print("• Track payment status")
-    print("• Can be paid and updated")
-    print()
-    
-    colored_input("Press Enter to continue...", Colors.INFO)
-
-def show_tips_troubleshooting():
-    """Show helpful tips and tricks for using Bills Tracker."""
-    clear_console()
-    title_msg("Tips & Troubleshooting")
-    
-    print(f"{Colors.TITLE}⚡ Quick Actions{Colors.RESET}")
-    print("• Type 'cancel' to exit any input")
-    print("• Type 'help' for context-sensitive help")
-    print("• Use '?' to see all available options")
-    print("• Press Enter to continue after messages")
-    print()
-    
-    print(f"{Colors.TITLE}🎯 Efficient Workflow{Colors.RESET}")
-    print("1. Check due bills daily (option 5)")
-    print("2. Pay bills as they appear")
-    print("3. Use templates for new bills")
-    print("4. Search when you need to find something")
-    print("5. Sort bills when organizing")
-    print("6. Use CSV import for bulk operations")
-    print()
-    
-    print(f"{Colors.TITLE}📅 Date Management{Colors.RESET}")
-    print("• Use YYYY-MM-DD format for dates")
-    print("• Set appropriate reminder periods")
-    print("• Check due bills regularly")
-    print("• Use custom reminder periods for different bills")
-    print()
-    
-    print(f"{Colors.TITLE}🔍 Search Strategies{Colors.RESET}")
-    print("• Use partial names for broader searches")
-    print("• Search by website for company-specific bills")
-    print("• Use date searches for monthly planning")
-    print("• Search all fields when unsure")
-    print("• Use auto-complete for faster input")
-    print()
-    
-    print(f"{Colors.TITLE}📋 Template Strategy{Colors.RESET}")
-    print("• Create templates for recurring bills")
-    print("• Include website and login information")
-    print("• Use descriptive template names")
-    print("• Update templates when information changes")
-    print("• Save existing bills as templates")
-    print()
-    
-    print(f"{Colors.TITLE}📥 CSV Import/Export Tips{Colors.RESET}")
-    print("• Use the sample CSV file as a template")
-    print("• Export your data regularly for backup")
-    print("• Import is great for migrating from other systems")
-    print("• Validate your CSV format before importing")
-    print("• Use Excel or Google Sheets to create CSV files")
-    print()
-    
-    print(f"{Colors.TITLE}📞 Contact Information{Colors.RESET}")
-    print("• Add customer service details for easy access")
-    print("• Include account numbers for quick reference")
-    print("• Store support phone numbers for emergencies")
-    print("• Add mobile app information for convenience")
-    print("• Use live chat URLs when available")
-    print()
-    
-    print(f"{Colors.TITLE}💾 Data Safety{Colors.RESET}")
-    print("• Backups are created automatically")
-    print("• Keep backup files in a safe location")
-    print("• Don't delete the bills.json file")
-    print("• Export data regularly for additional backup")
-    print("• Use CSV export for data portability")
-    print()
-    
-    print(f"{Colors.TITLE}🎨 Interface Tips{Colors.RESET}")
-    print("• Color coding helps identify bill status")
-    print("• Use pagination for large lists")
-    print("• Pay attention to warning messages")
-    print("• Read success messages for confirmation")
-    print("• Use the help system for detailed guidance")
-    print()
-    
-    print(f"{Colors.TITLE}🚨 Troubleshooting{Colors.RESET}")
-    print("• If the app won't start, check file permissions")
-    print("• If bills don't load, check bills.json file")
-    print("• If dates are wrong, use YYYY-MM-DD format")
-    print("• If you see errors, check the backup files")
-    print("• If CSV import fails, check the file format")
-    print("• If URLs don't work, ensure they include http:// or https://")
-    print("• If emails are invalid, check the format (user@domain.com)")
-    print()
-    
-    print(f"{Colors.TITLE}🔄 Billing Cycles{Colors.RESET}")
-    print("• Choose the right billing cycle for each bill")
-    print("• One-time bills don't recur after payment")
-    print("• Recurring bills automatically update due dates")
-    print("• Use custom reminder periods for different bills")
-    print("• Check upcoming bills calendar for planning")
-    print()
-    
-    colored_input("Press Enter to continue...", Colors.INFO)
-
-def show_csv_import_export_help():
-    """Explain CSV import/export functionality."""
-    clear_console()
-    title_msg("CSV Import/Export Help")
-    
-    print(f"{Colors.TITLE}📥 Importing Bills from CSV{Colors.RESET}")
-    print("The CSV import feature allows you to add multiple bills at once from a CSV file.")
-    print()
-    print(f"{Colors.INFO}Step-by-step process:{Colors.RESET}")
-    print("1. Prepare your CSV file with the correct format")
-    print("2. Choose 'CSV Import/Export' from the main menu")
-    print("3. Select 'Import bills from CSV'")
-    print("4. Enter the path to your CSV file")
-    print("5. Review the import results and confirm")
-    print()
-    
-    print(f"{Colors.TITLE}📤 Exporting Bills to CSV{Colors.RESET}")
-    print("Export your bills to a CSV file for backup, sharing, or analysis.")
-    print()
-    print(f"{Colors.INFO}How to export:{Colors.RESET}")
-    print("1. Choose 'CSV Import/Export' from the main menu")
-    print("2. Select 'Export bills to CSV'")
-    print("3. Enter a filename (or use the default)")
-    print("4. Confirm the export")
-    print()
-    
-    print(f"{Colors.TITLE}📋 Required CSV Format{Colors.RESET}")
-    print("Your CSV file must have these columns (headers are case-insensitive):")
-    print()
-    print(f"{Colors.WARNING}Required Columns:{Colors.RESET}")
-    print(f"  • {Colors.INFO}name{Colors.RESET} - Bill name (required)")
-    print(f"  • {Colors.INFO}due_date{Colors.RESET} - Due date in YYYY-MM-DD format (required)")
-    print()
-    print(f"{Colors.WARNING}Optional Columns:{Colors.RESET}")
-    print(f"  • {Colors.INFO}billing_cycle{Colors.RESET} - weekly, bi-weekly, monthly, quarterly, semi-annually, annually, one-time")
-    print(f"  • {Colors.INFO}reminder_days{Colors.RESET} - Days before due date for reminders (default: 7)")
-    print(f"  • {Colors.INFO}web_page{Colors.RESET} - Website URL")
-    print(f"  • {Colors.INFO}login_info{Colors.RESET} - Login information")
-    print(f"  • {Colors.INFO}password{Colors.RESET} - Password")
-    print(f"  • {Colors.INFO}company_email{Colors.RESET} - Customer service email")
-    print(f"  • {Colors.INFO}support_phone{Colors.RESET} - Support phone number")
-    print(f"  • {Colors.INFO}billing_phone{Colors.RESET} - Billing phone number")
-    print(f"  • {Colors.INFO}customer_service_hours{Colors.RESET} - Service hours")
-    print(f"  • {Colors.INFO}account_number{Colors.RESET} - Account number")
-    print(f"  • {Colors.INFO}reference_id{Colors.RESET} - Reference ID")
-    print(f"  • {Colors.INFO}support_chat_url{Colors.RESET} - Live chat URL")
-    print(f"  • {Colors.INFO}mobile_app{Colors.RESET} - Mobile app info")
-    print()
-    
-    print(f"{Colors.TITLE}✅ Validation Features{Colors.RESET}")
-    print("The import process includes comprehensive validation:")
-    print(f"  • {Colors.SUCCESS}Date format validation{Colors.RESET} - Ensures YYYY-MM-DD format")
-    print(f"  • {Colors.SUCCESS}URL validation{Colors.RESET} - Validates and corrects website URLs")
-    print(f"  • {Colors.SUCCESS}Email validation{Colors.RESET} - Validates email formats")
-    print(f"  • {Colors.SUCCESS}Duplicate detection{Colors.RESET} - Prevents importing duplicate bills")
-    print(f"  • {Colors.SUCCESS}Billing cycle validation{Colors.RESET} - Defaults to monthly if invalid")
-    print(f"  • {Colors.SUCCESS}Reminder days validation{Colors.RESET} - Ensures 1-365 day range")
-    print()
-    
-    print(f"{Colors.TITLE}📋 Sample CSV File{Colors.RESET}")
-    print("Use the 'Create sample CSV file' option to generate a template with:")
-    print("  • Correct column headers")
-    print("  • Example data for all fields")
-    print("  • Proper date format")
-    print("  • Contact information examples")
-    print()
-    
-    print(f"{Colors.TITLE}💡 Tips{Colors.RESET}")
-    print("  • Use Excel or Google Sheets to create your CSV file")
-    print("  • Save as CSV format (not Excel format)")
-    print("  • Use UTF-8 encoding for special characters")
-    print("  • Test with a small file first")
-    print("  • Backup your data before importing")
-    print()
-    
-    print(f"{Colors.TITLE}🚨 Common Issues{Colors.RESET}")
-    print("  • Wrong date format - Use YYYY-MM-DD")
-    print("  • Missing required columns - name and due_date are required")
-    print("  • Duplicate bill names - Each bill must have a unique name")
-    print("  • Invalid URLs - Must be valid website addresses")
-    print("  • Invalid email format - Must be a valid email address")
-    print()
-    
-    colored_input("Press Enter to continue...", Colors.INFO)
-
-# 2.1 Master password functions
-def set_master_password():
-    """Prompt the user to set a new master password and store its hash and salt."""
-    print("\n🔒 Set up a master password to protect your Bills Tracker data.")
-    while True:
-        password = getpass.getpass("Enter a new master password: ")
-        confirm = getpass.getpass("Confirm master password: ")
-        if password != confirm:
-            print("❌ Passwords do not match. Try again.")
-            continue
-        if len(password) < 6:
-            print("❌ Password must be at least 6 characters.")
-            continue
-        break
-    salt = os.urandom(16)
-    hash_ = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100_000)
-    with open(MASTER_PASSWORD_FILE, 'wb') as f:
-        f.write(salt + hash_)
-    print("✅ Master password set successfully!")
-    return password
-
-def verify_master_password():
-    """Prompt for the master password and verify it against the stored hash."""
-    if not os.path.exists(MASTER_PASSWORD_FILE):
-        return set_master_password()
-    with open(MASTER_PASSWORD_FILE, 'rb') as f:
-        data = f.read()
-        salt, stored_hash = data[:16], data[16:]
-    for attempt in range(5):
-        password = getpass.getpass("Enter master password: ")
-        hash_ = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100_000)
-        if hash_ == stored_hash:
-            print("✅ Access granted.")
-            return password
-        else:
-            print(f"❌ Incorrect password. Attempts left: {4 - attempt}")
-    print("❌ Too many incorrect attempts. Exiting.")
-    exit(1)
-
-# Session timeout management functions
-def start_session():
-    """Start the session timer."""
-    global session_start_time, last_activity_time, session_locked
-    session_start_time = datetime.now()
-    last_activity_time = session_start_time
-    session_locked = False
-
-def update_activity():
-    """Update the last activity time."""
-    global last_activity_time
-    last_activity_time = datetime.now()
-
-def exit_session():
-    """Exit the session immediately."""
-    global session_locked
-    session_locked = True
-    print(f"\n🔒 Session expired due to {SESSION_TIMEOUT_MINUTES} minutes of inactivity.")
-    print("🔄 Exiting application for security...")
-    success_msg("Thank you for using Bills Tracker! 👋")
-    os._exit(0)  # Force exit immediately
-
-# Note: unlock_session and verify_master_password_hash functions removed
-# as the app now exits completely on timeout instead of locking
-
-# Password Management Functions
-def change_master_password():
-    """Change the master password with verification."""
-    title_msg("Change Master Password")
-    info_msg("You will need to enter your current password to change it.")
-    
-    # First verify current password
-    if not os.path.exists(MASTER_PASSWORD_FILE):
-        error_msg("No master password set. Please set one first.")
+def import_bills_from_excel():
+    """Import bills from an Excel (.xlsx) file using openpyxl and full validation."""
+    from openpyxl import load_workbook
+    title_msg("Import Bills from Excel (.xlsx)")
+    info_msg("This will import bills from an Excel file. Make sure your file has the correct format.")
+    
+    # Show Excel format requirements (same as CSV)
+    print(f"\n{Colors.TITLE}📋 Required Excel Format:{Colors.RESET}")
+    print("Your Excel file should have these columns (headers are case-insensitive):")
+    print(f"{Colors.INFO}• name{Colors.RESET} - Bill name (required)")
+    print(f"{Colors.INFO}• due_date{Colors.RESET} - Due date in YYYY-MM-DD format (required)")
+    print(f"{Colors.INFO}• billing_cycle{Colors.RESET} - weekly, bi-weekly, monthly, quarterly, semi-annually, annually, one-time")
+    print(f"{Colors.INFO}• reminder_days{Colors.RESET} - Days before due date for reminders (default: 7)")
+    print(f"{Colors.INFO}• web_page{Colors.RESET} - Website URL (optional)")
+    print(f"{Colors.INFO}• login_info{Colors.RESET} - Login information (optional)")
+    print(f"{Colors.INFO}• password{Colors.RESET} - Password (optional)")
+    print(f"{Colors.INFO}• company_email{Colors.RESET} - Customer service email (optional)")
+    print(f"{Colors.INFO}• support_phone{Colors.RESET} - Support phone number (optional)")
+    print(f"{Colors.INFO}• billing_phone{Colors.RESET} - Billing phone number (optional)")
+    print(f"{Colors.INFO}• customer_service_hours{Colors.RESET} - Service hours (optional)")
+    print(f"{Colors.INFO}• account_number{Colors.RESET} - Account number (optional)")
+    print(f"{Colors.INFO}• reference_id{Colors.RESET} - Reference ID (optional)")
+    print(f"{Colors.INFO}• support_chat_url{Colors.RESET} - Live chat URL (optional)")
+    print(f"{Colors.INFO}• mobile_app{Colors.RESET} - Mobile app info (optional)")
+    
+    # Get Excel file path
+    xlsx_file = colored_input(f"\n{Colors.PROMPT}Enter the path to your Excel file: {Colors.RESET}").strip()
+    if not xlsx_file:
+        warning_msg("Import cancelled.")
+        return
+    if not os.path.exists(xlsx_file):
+        error_msg(f"File '{xlsx_file}' not found.")
         colored_input("Press Enter to continue...", Colors.INFO)
         return
-    
-    with open(MASTER_PASSWORD_FILE, 'rb') as f:
-        data = f.read()
-        salt, stored_hash = data[:16], data[16:]
-    
-    # Verify current password
-    for attempt in range(3):
-        current_password = getpass.getpass("Enter current master password: ")
-        hash_ = hashlib.pbkdf2_hmac('sha256', current_password.encode(), salt, 100_000)
-        if hash_ == stored_hash:
-            break
-        else:
-            print(f"❌ Incorrect password. Attempts left: {2 - attempt}")
-            if attempt == 2:
-                error_msg("Too many incorrect attempts. Password change cancelled.")
-                colored_input("Press Enter to continue...", Colors.INFO)
-                return
-    else:
-        error_msg("Password verification failed.")
+    if not xlsx_file.lower().endswith('.xlsx'):
+        error_msg("File must have a .xlsx extension.")
         colored_input("Press Enter to continue...", Colors.INFO)
         return
-    
-    # Get new password
-    print(f"\n{Colors.SUCCESS}Current password verified. Enter new password:{Colors.RESET}")
-    while True:
-        new_password = getpass.getpass("Enter new master password: ")
-        if len(new_password) < 6:
-            error_msg("Password must be at least 6 characters.")
-            continue
-        
-        confirm_password = getpass.getpass("Confirm new master password: ")
-        if new_password != confirm_password:
-            error_msg("Passwords do not match. Try again.")
-            continue
-        
-        # Check if new password is different from current
-        if new_password == current_password:
-            error_msg("New password must be different from current password.")
-            continue
-        
-        break
-    
-    # Create backup of current password file
-    backup_file = f"{MASTER_PASSWORD_FILE}.backup.{int(time.time())}"
     try:
-        shutil.copy2(MASTER_PASSWORD_FILE, backup_file)
-        info_msg(f"Current password backed up to {backup_file}")
-    except Exception as e:
-        warning_msg(f"Could not create backup: {e}")
-    
-    # Save new password
-    try:
-        new_salt = os.urandom(16)
-        new_hash = hashlib.pbkdf2_hmac('sha256', new_password.encode(), new_salt, 100_000)
-        with open(MASTER_PASSWORD_FILE, 'wb') as f:
-            f.write(new_salt + new_hash)
-        
-        success_msg("Master password changed successfully!")
-        info_msg("You will need to use the new password next time you start the application.")
-        
-        # Update encryption key if cryptography is available
-        if CRYPTOGRAPHY_AVAILABLE:
-            info_msg("Updating encryption keys for bill passwords...")
-            try:
-                # Re-encrypt all passwords with new master password
-                re_encrypt_passwords_with_new_master(current_password, new_password)
-                success_msg("All bill passwords have been re-encrypted with the new master password.")
-            except Exception as e:
-                warning_msg(f"Could not re-encrypt passwords: {e}")
-                warning_msg("You may need to re-enter passwords for your bills.")
-        
-    except Exception as e:
-        error_msg(f"Failed to save new password: {e}")
-        # Try to restore backup
-        if os.path.exists(backup_file):
-            try:
-                shutil.copy2(backup_file, MASTER_PASSWORD_FILE)
-                info_msg("Restored previous password from backup.")
-            except Exception as restore_error:
-                error_msg(f"Could not restore backup: {restore_error}")
-    
-    colored_input("Press Enter to continue...", Colors.INFO)
-
-def re_encrypt_passwords_with_new_master(old_password, new_password):
-    """Re-encrypt all bill passwords with the new master password."""
-    if not CRYPTOGRAPHY_AVAILABLE:
-        return
-    
-    # Load old salt and derive old key
-    if os.path.exists(SALT_FILE):
-        with open(SALT_FILE, 'rb') as f:
-            old_salt = f.read()
-        old_key = password_encryption.derive_key_from_password(old_password, old_salt)
-    else:
-        # If no salt file, we can't re-encrypt
-        return
-    
-    # Create new salt and derive new key
-    new_salt = password_encryption.generate_salt()
-    new_key = password_encryption.derive_key_from_password(new_password, new_salt)
-    
-    # Create temporary Fernet instances
-    old_fernet = Fernet(old_key)
-    new_fernet = Fernet(new_key)
-    
-    # Re-encrypt all passwords in bills
-    re_encrypted_bills = False
-    for bill in bills:
-        if 'password' in bill and bill['password']:
-            try:
-                # Decrypt with old key
-                if bill['password'].startswith('gAAAAA'):
-                    encrypted_bytes = base64.urlsafe_b64decode(bill['password'].encode())
-                    decrypted = old_fernet.decrypt(encrypted_bytes)
-                    # Re-encrypt with new key
-                    re_encrypted = new_fernet.encrypt(decrypted)
-                    bill['password'] = base64.urlsafe_b64encode(re_encrypted).decode()
-                    re_encrypted_bills = True
-            except Exception:
-                # If decryption fails, skip this password
+        wb = load_workbook(xlsx_file)
+        ws = wb.active
+        # Read headers
+        headers = [str(cell.value).strip().lower() if cell.value else '' for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+        required_headers = ['name', 'due_date']
+        missing_required = [h for h in required_headers if h not in headers]
+        if missing_required:
+            error_msg(f"Missing required columns: {', '.join(missing_required)}")
+            colored_input("Press Enter to continue...", Colors.INFO)
+            return
+        # Read and validate rows
+        imported_bills = []
+        skipped_bills = []
+        errors = []
+        for row_idx, row in enumerate(ws.iter_rows(min_row=2), start=2):
+            row_data = {headers[i]: (cell.value if cell.value is not None else '') for i, cell in enumerate(row) if i < len(headers)}
+            name = str(row_data.get('name', '')).strip()
+            due_date = str(row_data.get('due_date', '')).strip()
+            if not name:
+                errors.append(f"Row {row_idx}: Missing bill name")
                 continue
-    
-    # Re-encrypt all passwords in templates
-    re_encrypted_templates = False
-    for template in bill_templates:
-        if 'password' in template and template['password']:
-            try:
-                # Decrypt with old key
-                if template['password'].startswith('gAAAAA'):
-                    encrypted_bytes = base64.urlsafe_b64decode(template['password'].encode())
-                    decrypted = old_fernet.decrypt(encrypted_bytes)
-                    # Re-encrypt with new key
-                    re_encrypted = new_fernet.encrypt(decrypted)
-                    template['password'] = base64.urlsafe_b64encode(re_encrypted).decode()
-                    re_encrypted_templates = True
-            except Exception:
-                # If decryption fails, skip this password
+            if not due_date:
+                errors.append(f"Row {row_idx}: Missing due date")
                 continue
-    
-    # Save new salt and update encryption key file
-    with open(SALT_FILE, 'wb') as f:
-        f.write(new_salt)
-    with open(ENCRYPTION_KEY_FILE, 'wb') as f:
-        f.write(new_key)
-    
-    # Save updated data
-    if re_encrypted_bills:
-        save_bills()
-    if re_encrypted_templates:
-        save_templates()
+            # Validate date format
+            try:
+                datetime.strptime(due_date, DATE_FORMAT)
+            except ValueError:
+                errors.append(f"Row {row_idx}: Invalid date format '{due_date}' (use YYYY-MM-DD)")
+                continue
+            # Check for duplicate names
+            if any(bill['name'].lower() == name.lower() for bill in bills):
+                skipped_bills.append(f"Row {row_idx}: '{name}' (duplicate name)")
+                continue
+            # Build bill dict
+            bill_data = {
+                'name': name,
+                'due_date': due_date,
+                'paid': False,
+                'billing_cycle': str(row_data.get('billing_cycle', 'monthly')).strip().lower(),
+                'reminder_days': int(row_data.get('reminder_days', 7)) if str(row_data.get('reminder_days', '')).strip().isdigit() else 7,
+                'web_page': str(row_data.get('web_page', '')).strip(),
+                'login_info': str(row_data.get('login_info', '')).strip(),
+                'password': str(row_data.get('password', '')).strip(),
+                'company_email': str(row_data.get('company_email', '')).strip(),
+                'support_phone': str(row_data.get('support_phone', '')).strip(),
+                'billing_phone': str(row_data.get('billing_phone', '')).strip(),
+                'customer_service_hours': str(row_data.get('customer_service_hours', '')).strip(),
+                'account_number': str(row_data.get('account_number', '')).strip(),
+                'reference_id': str(row_data.get('reference_id', '')).strip(),
+                'support_chat_url': str(row_data.get('support_chat_url', '')).strip(),
+                'mobile_app': str(row_data.get('mobile_app', '')).strip()
+            }
+            # Use comprehensive validation
+            is_valid, error_msg_text, cleaned_bill = DataValidator.validate_bill_data(bill_data)
+            if not is_valid:
+                errors.append(f"Row {row_idx}: Validation failed - {error_msg_text}")
+                continue
+            imported_bills.append(cleaned_bill)
+        # Show import results
+        print(f"\n{Colors.TITLE}📊 Import Results:{Colors.RESET}")
+        success_msg(f"Successfully imported {len(imported_bills)} bills")
+        if skipped_bills:
+            warning_msg(f"Skipped {len(skipped_bills)} bills (duplicates)")
+            for skipped in skipped_bills[:5]:
+                print(f"  • {skipped}")
+            if len(skipped_bills) > 5:
+                print(f"  ... and {len(skipped_bills) - 5} more")
+        if errors:
+            error_msg(f"Found {len(errors)} errors")
+            for error in errors[:5]:
+                print(f"  • {error}")
+            if len(errors) > 5:
+                print(f"  ... and {len(errors) - 5} more")
+        # Ask user to confirm import
+        if imported_bills:
+            confirm = colored_input(f"\n{Colors.WARNING}Import {len(imported_bills)} bills? (yes/no): {Colors.RESET}").strip().lower()
+            if confirm in ['yes', 'y']:
+                bills.extend(imported_bills)
+                save_bills()
+                success_msg(f"Successfully imported {len(imported_bills)} bills!")
+                print(f"\n{Colors.INFO}📋 Sample of imported bills:{Colors.RESET}")
+                for i, bill in enumerate(imported_bills[:3], 1):
+                    print(f"  {i}. {bill['name']} - Due: {bill['due_date']} ({bill['billing_cycle']})")
+                if len(imported_bills) > 3:
+                    print(f"  ... and {len(imported_bills) - 3} more bills")
+            else:
+                info_msg("Import cancelled.")
+        else:
+            warning_msg("No bills to import.")
+    except Exception as e:
+        error_msg(f"Error reading Excel file: {str(e)}")
+    colored_input("\nPress Enter to continue...", Colors.INFO)
 
-def reset_master_password():
-    """Reset the master password (for recovery scenarios)."""
-    title_msg("Reset Master Password")
-    warning_msg("⚠️  WARNING: This will reset your master password and may affect encrypted data.")
-    print(f"\n{Colors.WARNING}This action will:{Colors.RESET}")
-    print("• Remove the current master password")
-    print("• Require you to set a new master password")
-    print("• Potentially affect encrypted bill passwords")
-    print("• Create a backup of your current data")
-    print()
+def export_bills_to_excel():
+    """Export bills to an Excel (.xlsx) file using openpyxl."""
+    from openpyxl import Workbook
+    from openpyxl.utils import get_column_letter
+    title_msg("Export Bills to Excel (.xlsx)")
     
-    confirm = colored_input("Are you sure you want to reset the master password? (yes/no): ", Colors.WARNING).strip().lower()
-    if confirm not in ['yes', 'y']:
-        info_msg("Password reset cancelled.")
+    if not bills:
+        warning_msg("No bills to export.")
         colored_input("Press Enter to continue...", Colors.INFO)
         return
     
-    # Create backup of current data
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    backup_dir = f"password_reset_backup_{timestamp}"
+    # Get export file path
+    default_filename = f"bills_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    xlsx_file = colored_input(f"{Colors.PROMPT}Enter export filename [{default_filename}]: {Colors.RESET}").strip()
+    if not xlsx_file:
+        xlsx_file = default_filename
+    if not xlsx_file.lower().endswith('.xlsx'):
+        xlsx_file += '.xlsx'
+    
+    # Define columns/fields (same as CSV)
+    fieldnames = [
+        'name', 'due_date', 'paid', 'billing_cycle', 'reminder_days',
+        'web_page', 'login_info', 'password', 'company_email',
+        'support_phone', 'billing_phone', 'customer_service_hours',
+        'account_number', 'reference_id', 'support_chat_url', 'mobile_app'
+    ]
     
     try:
-        os.makedirs(backup_dir, exist_ok=True)
-        
-        # Backup current files
-        files_to_backup = [BILLS_FILE, TEMPLATES_FILE]
-        if os.path.exists(MASTER_PASSWORD_FILE):
-            files_to_backup.append(MASTER_PASSWORD_FILE)
-        if os.path.exists(ENCRYPTION_KEY_FILE):
-            files_to_backup.append(ENCRYPTION_KEY_FILE)
-        if os.path.exists(SALT_FILE):
-            files_to_backup.append(SALT_FILE)
-        
-        for file_path in files_to_backup:
-            if os.path.exists(file_path):
-                shutil.copy2(file_path, os.path.join(backup_dir, file_path))
-        
-        success_msg(f"Backup created in: {backup_dir}")
-        
-        # Remove current password files
-        if os.path.exists(MASTER_PASSWORD_FILE):
-            os.remove(MASTER_PASSWORD_FILE)
-        if os.path.exists(ENCRYPTION_KEY_FILE):
-            os.remove(ENCRYPTION_KEY_FILE)
-        if os.path.exists(SALT_FILE):
-            os.remove(SALT_FILE)
-        
-        success_msg("Master password reset successfully!")
-        info_msg("You will need to set a new master password next time you start the application.")
-        warning_msg("Note: Encrypted bill passwords may need to be re-entered.")
-        
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Bills"
+        # Write header
+        ws.append(fieldnames)
+        # Write each bill
+        for bill in bills:
+            row = [
+                bill.get('name', ''),
+                bill.get('due_date', ''),
+                'yes' if bill.get('paid', False) else 'no',
+                bill.get('billing_cycle', 'monthly'),
+                bill.get('reminder_days', 7),
+                bill.get('web_page', ''),
+                bill.get('login_info', ''),
+                bill.get('password', ''),
+                bill.get('company_email', ''),
+                bill.get('support_phone', ''),
+                bill.get('billing_phone', ''),
+                bill.get('customer_service_hours', ''),
+                bill.get('account_number', ''),
+                bill.get('reference_id', ''),
+                bill.get('support_chat_url', ''),
+                bill.get('mobile_app', '')
+            ]
+            ws.append(row)
+        # Auto-size columns
+        for col in ws.columns:
+            max_length = 0
+            col_letter = get_column_letter(col[0].column)
+            for cell in col:
+                try:
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                except Exception:
+                    pass
+            ws.column_dimensions[col_letter].width = max(12, min(max_length + 2, 40))
+        wb.save(xlsx_file)
+        success_msg(f"Successfully exported {len(bills)} bills to '{xlsx_file}'")
+        info_msg(f"File location: {os.path.abspath(xlsx_file)}")
     except Exception as e:
+        error_msg(f"Error exporting to Excel: {str(e)}")
         error_msg(f"Error during password reset: {e}")
     
     colored_input("Press Enter to continue...", Colors.INFO)
+
+def create_sample_excel():
+    """Create a sample Excel file for import."""
+    from openpyxl import Workbook
+    from openpyxl.utils import get_column_letter
+    
+    title_msg("Create Sample Excel File")
+    info_msg("This will create a sample Excel file with the correct format for importing bills.")
+    
+    # Get filename
+    default_filename = "sample_bills_template.xlsx"
+    filename = colored_input(f"{Colors.PROMPT}Enter filename [{default_filename}]: {Colors.RESET}").strip()
+    if not filename:
+        filename = default_filename
+    if not filename.lower().endswith('.xlsx'):
+        filename += '.xlsx'
+    
+    try:
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Bills Template"
+        
+        # Define headers (same as CSV)
+        headers = [
+            'name', 'due_date', 'billing_cycle', 'reminder_days', 'web_page', 
+            'login_info', 'password', 'company_email', 'support_phone', 
+            'billing_phone', 'customer_service_hours', 'account_number', 
+            'reference_id', 'support_chat_url', 'mobile_app'
+        ]
+        
+        # Write headers
+        ws.append(headers)
+        
+        # Add sample data
+        sample_bills = [
+            {
+                'name': 'Electric Bill',
+                'due_date': '2024-12-15',
+                'billing_cycle': 'monthly',
+                'reminder_days': 7,
+                'web_page': 'https://www.electriccompany.com',
+                'login_info': 'username@email.com',
+                'password': 'your_password_here',
+                'company_email': 'support@electriccompany.com',
+                'support_phone': '1-800-ELECTRIC',
+                'billing_phone': '1-800-BILLING',
+                'customer_service_hours': 'Mon-Fri 8AM-6PM',
+                'account_number': '123456789',
+                'reference_id': 'ELEC-2024-001',
+                'support_chat_url': 'https://www.electriccompany.com/chat',
+                'mobile_app': 'Electric Company App'
+            },
+            {
+                'name': 'Internet Service',
+                'due_date': '2024-12-20',
+                'billing_cycle': 'monthly',
+                'reminder_days': 5,
+                'web_page': 'https://www.internetprovider.com',
+                'login_info': 'your_username',
+                'password': 'your_password_here',
+                'company_email': 'help@internetprovider.com',
+                'support_phone': '1-800-INTERNET',
+                'billing_phone': '1-800-BILLING',
+                'customer_service_hours': '24/7',
+                'account_number': '987654321',
+                'reference_id': 'INT-2024-002',
+                'support_chat_url': 'https://www.internetprovider.com/support',
+                'mobile_app': 'Internet Provider App'
+            },
+            {
+                'name': 'Phone Bill',
+                'due_date': '2024-12-25',
+                'billing_cycle': 'monthly',
+                'reminder_days': 3,
+                'web_page': 'https://www.phonecompany.com',
+                'login_info': 'phone_number@phonecompany.com',
+                'password': 'your_password_here',
+                'company_email': 'support@phonecompany.com',
+                'support_phone': '1-800-PHONE',
+                'billing_phone': '1-800-BILLING',
+                'customer_service_hours': 'Mon-Sun 7AM-10PM',
+                'account_number': '555-123-4567',
+                'reference_id': 'PHONE-2024-003',
+                'support_chat_url': 'https://www.phonecompany.com/help',
+                'mobile_app': 'Phone Company App'
+            }
+        ]
+        
+        # Write sample data
+        for bill in sample_bills:
+            row = [bill.get(header, '') for header in headers]
+            ws.append(row)
+        
+        # Auto-size columns
+        for col in ws.columns:
+            max_length = 0
+            col_letter = get_column_letter(col[0].column)
+            for cell in col:
+                try:
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                except Exception:
+                    pass
+            ws.column_dimensions[col_letter].width = max(12, min(max_length + 2, 40))
+        
+        wb.save(filename)
+        success_msg(f"Sample Excel file created: {filename}")
+        info_msg(f"File location: {os.path.abspath(filename)}")
+        print(f"\n{Colors.INFO}📋 Sample file includes:{Colors.RESET}")
+        print("  • Correct column headers")
+        print("  • Example data for all fields")
+        print("  • Proper date format (YYYY-MM-DD)")
+        print("  • Contact information examples")
+        print("  • Website URLs and login info")
+        
+    except Exception as e:
+        error_msg(f"Error creating sample Excel file: {str(e)}")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def set_master_password():
+    """Set up the master password for the first time."""
+    if os.path.exists(MASTER_PASSWORD_FILE):
+        info_msg("Master password already set.")
+        return None
+    
+    print(f"\n{Colors.TITLE}🔐 Set Master Password{Colors.RESET}")
+    print("This password will protect all your bill passwords.")
+    print("Make sure to remember it - it cannot be recovered if forgotten!")
+    
+    while True:
+        password = getpass.getpass("Enter master password: ").strip()
+        if len(password) < 8:
+            error_msg("Password must be at least 8 characters long.")
+            continue
+        
+        confirm_password = getpass.getpass("Confirm master password: ").strip()
+        if password != confirm_password:
+            error_msg("Passwords do not match. Please try again.")
+            continue
+        
+        # Hash and save the password
+        salt = os.urandom(16)
+        password_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
+        
+        with open(MASTER_PASSWORD_FILE, 'wb') as f:
+            f.write(salt + password_hash)
+        
+        success_msg("Master password set successfully!")
+        return password
+
+def verify_master_password():
+    """Verify the master password and return it if correct."""
+    if not os.path.exists(MASTER_PASSWORD_FILE):
+        # First time setup
+        return set_master_password()
+    
+    print(f"\n{Colors.TITLE}🔐 Master Password Required{Colors.RESET}")
+    
+    while True:
+        password = getpass.getpass("Enter master password: ").strip()
+        
+        # Read stored password hash
+        with open(MASTER_PASSWORD_FILE, 'rb') as f:
+            data = f.read()
+            salt = data[:16]
+            stored_hash = data[16:]
+        
+        # Verify password
+        password_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
+        
+        if password_hash == stored_hash:
+            success_msg("Password verified successfully!")
+            return password
+        else:
+            error_msg("Incorrect password. Please try again.")
 
 def show_password_recovery_options():
     """Show password recovery options and guidance."""
@@ -5193,6 +4705,188 @@ def delete_backup(backup_files):
             error_msg("Invalid backup number.")
     except ValueError:
         error_msg("Please enter a valid number.")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def change_master_password():
+    """Change the master password."""
+    print(f"\n{Colors.TITLE}🔐 Change Master Password{Colors.RESET}")
+    
+    # Verify current password first
+    current_password = getpass.getpass("Enter current master password: ").strip()
+    
+    # Verify current password
+    with open(MASTER_PASSWORD_FILE, 'rb') as f:
+        data = f.read()
+        salt = data[:16]
+        stored_hash = data[16:]
+    
+    current_hash = hashlib.pbkdf2_hmac('sha256', current_password.encode(), salt, 100000)
+    
+    if current_hash != stored_hash:
+        error_msg("Current password is incorrect.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Get new password
+    while True:
+        new_password = getpass.getpass("Enter new master password: ").strip()
+        if len(new_password) < 8:
+            error_msg("Password must be at least 8 characters long.")
+            continue
+        
+        confirm_password = getpass.getpass("Confirm new master password: ").strip()
+        if new_password != confirm_password:
+            error_msg("Passwords do not match. Please try again.")
+            continue
+        
+        break
+    
+    # Create backup before changing
+    backup_timestamp = str(int(time.time()))
+    backup_file = f".master_password.backup.{backup_timestamp}"
+    shutil.copy2(MASTER_PASSWORD_FILE, backup_file)
+    
+    # Hash and save new password
+    new_salt = os.urandom(16)
+    new_password_hash = hashlib.pbkdf2_hmac('sha256', new_password.encode(), new_salt, 100000)
+    
+    with open(MASTER_PASSWORD_FILE, 'wb') as f:
+        f.write(new_salt + new_password_hash)
+    
+    # Re-encrypt all passwords with new master password
+    if CRYPTOGRAPHY_AVAILABLE:
+        re_encrypt_passwords_with_new_master(current_password, new_password)
+    
+    success_msg("Master password changed successfully!")
+    info_msg(f"Backup created: {backup_file}")
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def reset_master_password():
+    """Reset the master password (destructive operation)."""
+    print(f"\n{Colors.TITLE}🔄 Reset Master Password{Colors.RESET}")
+    warning_msg("⚠️  WARNING: This will remove the current master password!")
+    warning_msg("⚠️  Encrypted bill passwords may become inaccessible!")
+    print()
+    
+    confirm = colored_input("Are you sure you want to reset the master password? (yes/no): ", Colors.WARNING).strip().lower()
+    if confirm not in ['yes', 'y']:
+        info_msg("Password reset cancelled.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Create comprehensive backup
+    backup_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_dir = f"password_reset_backup_{backup_timestamp}"
+    os.makedirs(backup_dir, exist_ok=True)
+    
+    # Backup all important files
+    files_to_backup = [BILLS_FILE, TEMPLATES_FILE, MASTER_PASSWORD_FILE]
+    if os.path.exists(ENCRYPTION_KEY_FILE):
+        files_to_backup.append(ENCRYPTION_KEY_FILE)
+    if os.path.exists(SALT_FILE):
+        files_to_backup.append(SALT_FILE)
+    
+    for file_path in files_to_backup:
+        if os.path.exists(file_path):
+            shutil.copy2(file_path, os.path.join(backup_dir, os.path.basename(file_path)))
+    
+    # Remove password files
+    if os.path.exists(MASTER_PASSWORD_FILE):
+        os.remove(MASTER_PASSWORD_FILE)
+    if os.path.exists(ENCRYPTION_KEY_FILE):
+        os.remove(ENCRYPTION_KEY_FILE)
+    if os.path.exists(SALT_FILE):
+        os.remove(SALT_FILE)
+    
+    success_msg("Master password reset successfully!")
+    info_msg(f"Backup created in: {backup_dir}")
+    warning_msg("You will need to set a new master password on next startup.")
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def re_encrypt_passwords_with_new_master(old_password, new_password):
+    """Re-encrypt all bill passwords with the new master password."""
+    if not CRYPTOGRAPHY_AVAILABLE:
+        return
+    
+    try:
+        # Initialize encryption with old password
+        old_encryption = PasswordEncryption()
+        old_encryption.initialize_encryption(old_password)
+        
+        # Initialize encryption with new password
+        new_encryption = PasswordEncryption()
+        new_encryption.initialize_encryption(new_password)
+        
+        # Re-encrypt all bill passwords
+        for bill in bills:
+            if bill.get('password'):
+                # Decrypt with old password
+                decrypted = old_encryption.decrypt_password(bill['password'])
+                # Encrypt with new password
+                bill['password'] = new_encryption.encrypt_password(decrypted)
+        
+        # Save bills with re-encrypted passwords
+        save_bills()
+        
+        success_msg("All passwords re-encrypted with new master password.")
+        
+    except Exception as e:
+        error_msg(f"Error re-encrypting passwords: {e}")
+
+def export_bills_for_recovery():
+    """Export bills with decrypted passwords for recovery purposes."""
+    title_msg("Export Bills for Recovery")
+    info_msg("This will export your bills with decrypted passwords for backup/recovery.")
+    warning_msg("⚠️  WARNING: This file will contain sensitive information in plain text!")
+    print()
+    
+    confirm = colored_input("Are you sure you want to export bills with decrypted passwords? (yes/no): ", Colors.WARNING).strip().lower()
+    if confirm not in ['yes', 'y']:
+        info_msg("Export cancelled.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Create recovery export
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    recovery_file = f"bills_recovery_export_{timestamp}.json"
+    
+    try:
+        # Create a copy of bills with decrypted passwords
+        recovery_bills = []
+        for bill in bills:
+            recovery_bill = bill.copy()
+            
+            # Decrypt password if available
+            if 'password' in recovery_bill and recovery_bill['password']:
+                if CRYPTOGRAPHY_AVAILABLE and password_encryption.fernet:
+                    decrypted_password = password_encryption.decrypt_password(recovery_bill['password'])
+                    recovery_bill['password'] = decrypted_password
+                    recovery_bill['password_encrypted'] = True
+                else:
+                    recovery_bill['password_encrypted'] = False
+            
+            recovery_bills.append(recovery_bill)
+        
+        # Add metadata
+        recovery_data = {
+            'export_date': datetime.now().isoformat(),
+            'export_type': 'recovery_export',
+            'total_bills': len(recovery_bills),
+            'encryption_available': CRYPTOGRAPHY_AVAILABLE,
+            'bills': recovery_bills
+        }
+        
+        # Save to file
+        with open(recovery_file, 'w') as f:
+            json.dump(recovery_data, f, indent=2)
+        
+        success_msg(f"Recovery export created: {recovery_file}")
+        warning_msg("⚠️  Keep this file secure - it contains sensitive information!")
+        info_msg("Store this file in a safe location for emergency recovery.")
+        
+    except Exception as e:
+        error_msg(f"Error creating recovery export: {e}")
     
     colored_input("Press Enter to continue...", Colors.INFO)
 
