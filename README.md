@@ -236,6 +236,7 @@ Bills_tracker/
 │   ├── BILLING_CYCLES_IMPLEMENTATION.md   # Billing cycles feature documentation
 │   ├── CUSTOM_REMINDERS_IMPLEMENTATION.md # Custom reminder periods documentation
 │   ├── ENCRYPTION_README.md           # Password encryption and security guide
+│   ├── PASSWORD_MANAGEMENT_README.md  # Password management and recovery guide
 │   ├── organization_summary.txt       # Code organization overview
 │   └── autocomplete_implementation_summary.txt # Auto-complete feature summary
 ├── demo/                              # Demonstration scripts
@@ -250,7 +251,8 @@ Bills_tracker/
 │   ├── test_menu_options.py          # Menu options functionality testing
 │   ├── test_validation.py            # Validation functions testing script
 │   ├── test_autocomplete.py          # Auto-complete functionality testing
-│   └── test_encryption.py            # Password encryption testing
+│   ├── test_encryption.py            # Password encryption testing
+│   └── test_password_management.py   # Password management functionality testing
 ├── README.md                          # This comprehensive documentation
 ├── Future_Update.md                   # Planned enhancements and roadmap
 └── .gitignore                        # Git ignore file
@@ -307,6 +309,9 @@ Bills_tracker/
 - **Key Management** - Encryption keys are generated and stored in `.encryption_key` and `.salt` files (excluded from git)
 - **Access Control** - 5-attempt limit for master password entry with automatic lockout
 - **Session Timeout/Auto-Exit** - The app automatically exits after 15 minutes of inactivity for enhanced security
+- **Password Management** - Change master password, reset functionality, and comprehensive recovery options
+- **Secure Recovery** - Export data for recovery while maintaining security, backup management and restoration
+- **Re-encryption** - Automatically re-encrypts all bill passwords when master password changes
 - **Local Data Storage** - All data stays on your computer
 - **No External Dependencies** - Minimal risk from third-party libraries
 - **Backup Redundancy** - Multiple backup copies prevent data loss
@@ -314,6 +319,30 @@ Bills_tracker/
 - **Input Sanitization** - Prevents malicious input from causing issues
 
 See [ENCRYPTION_README.md](ENCRYPTION_README.md) for full details on encryption, key management, and recovery.
+
+### Password Management System
+
+**Comprehensive Password Management:**
+- **Change Master Password** - Update master password with current password verification
+- **Password Reset** - Complete password reset for forgotten passwords or security breaches
+- **Recovery Options** - Step-by-step guidance for password recovery scenarios
+- **Data Export** - Export bills to CSV with decrypted passwords for recovery
+- **Backup Management** - View, restore, and manage backup files for data recovery
+
+**Security Features:**
+- **Current Password Verification** - Must enter current password to change it
+- **Automatic Backup** - Creates backup before any password changes
+- **Re-encryption** - All bill passwords automatically re-encrypted with new master password
+- **Rollback Protection** - Can restore previous password if change fails
+- **Comprehensive Backup** - Complete backup of all data before password reset
+
+**Recovery Tools:**
+- **Password Reset** - Remove current password and set new one
+- **Data Export** - Export all bills to CSV (decrypted for recovery)
+- **Backup Restoration** - Restore data from previous backups
+- **Recovery Guidance** - Detailed instructions for various recovery scenarios
+
+See [docs/PASSWORD_MANAGEMENT_README.md](docs/PASSWORD_MANAGEMENT_README.md) for comprehensive password management documentation.
 
 ## 🔧 Advanced Features Details
 

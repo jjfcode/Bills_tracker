@@ -47,6 +47,7 @@ SESSION_CONFIG_FILE = '.session_config'
 
 bills = []
 templates = []
+bill_templates = []
 
 # Global session variables
 session_start_time = None
@@ -1071,8 +1072,9 @@ def display_menu():
     print(f"{Colors.MENU}8.{Colors.RESET} 🗑️  Delete a bill")
     print(f"{Colors.MENU}9.{Colors.RESET} 📋 Bill templates")
     print(f"{Colors.MENU}10.{Colors.RESET} 📥 CSV Import/Export")
-    print(f"{Colors.MENU}11.{Colors.RESET} 📖 Help")
-    print(f"{Colors.MENU}12.{Colors.RESET} 🚪 Exit")
+    print(f"{Colors.MENU}11.{Colors.RESET} 🔐 Password Management")
+    print(f"{Colors.MENU}12.{Colors.RESET} 📖 Help")
+    print(f"{Colors.MENU}13.{Colors.RESET} 🚪 Exit")
     print(Colors.MENU + "="*40 + Colors.RESET)
 
 def view_bills():
@@ -2331,7 +2333,7 @@ def main():
 
     while True:
         display_menu()
-        choice = colored_input("Choose an option (1-12): ", Colors.PROMPT).strip()
+        choice = colored_input("Choose an option (1-13): ", Colors.PROMPT).strip()
         
         if choice == '1':
             clear_console()
@@ -2369,12 +2371,15 @@ def main():
             clear_console()
             csv_import_export_menu()
         elif choice == '11':
-            show_help_menu()
+            clear_console()
+            password_management_menu()
         elif choice == '12':
+            show_help_menu()
+        elif choice == '13':
             success_msg("Thank you for using Bills Tracker! 👋")
             break
         else:
-            error_msg("Invalid option. Please choose 1-12.")
+            error_msg("Invalid option. Please choose 1-13.")
             colored_input("Press Enter to continue...", Colors.WARNING)
 
 # 10. Missing pagination helper functions
@@ -4525,6 +4530,573 @@ def exit_session():
 
 # Note: unlock_session and verify_master_password_hash functions removed
 # as the app now exits completely on timeout instead of locking
+
+# Password Management Functions
+def change_master_password():
+    """Change the master password with verification."""
+    title_msg("Change Master Password")
+    info_msg("You will need to enter your current password to change it.")
+    
+    # First verify current password
+    if not os.path.exists(MASTER_PASSWORD_FILE):
+        error_msg("No master password set. Please set one first.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    with open(MASTER_PASSWORD_FILE, 'rb') as f:
+        data = f.read()
+        salt, stored_hash = data[:16], data[16:]
+    
+    # Verify current password
+    for attempt in range(3):
+        current_password = getpass.getpass("Enter current master password: ")
+        hash_ = hashlib.pbkdf2_hmac('sha256', current_password.encode(), salt, 100_000)
+        if hash_ == stored_hash:
+            break
+        else:
+            print(f"❌ Incorrect password. Attempts left: {2 - attempt}")
+            if attempt == 2:
+                error_msg("Too many incorrect attempts. Password change cancelled.")
+                colored_input("Press Enter to continue...", Colors.INFO)
+                return
+    else:
+        error_msg("Password verification failed.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Get new password
+    print(f"\n{Colors.SUCCESS}Current password verified. Enter new password:{Colors.RESET}")
+    while True:
+        new_password = getpass.getpass("Enter new master password: ")
+        if len(new_password) < 6:
+            error_msg("Password must be at least 6 characters.")
+            continue
+        
+        confirm_password = getpass.getpass("Confirm new master password: ")
+        if new_password != confirm_password:
+            error_msg("Passwords do not match. Try again.")
+            continue
+        
+        # Check if new password is different from current
+        if new_password == current_password:
+            error_msg("New password must be different from current password.")
+            continue
+        
+        break
+    
+    # Create backup of current password file
+    backup_file = f"{MASTER_PASSWORD_FILE}.backup.{int(time.time())}"
+    try:
+        shutil.copy2(MASTER_PASSWORD_FILE, backup_file)
+        info_msg(f"Current password backed up to {backup_file}")
+    except Exception as e:
+        warning_msg(f"Could not create backup: {e}")
+    
+    # Save new password
+    try:
+        new_salt = os.urandom(16)
+        new_hash = hashlib.pbkdf2_hmac('sha256', new_password.encode(), new_salt, 100_000)
+        with open(MASTER_PASSWORD_FILE, 'wb') as f:
+            f.write(new_salt + new_hash)
+        
+        success_msg("Master password changed successfully!")
+        info_msg("You will need to use the new password next time you start the application.")
+        
+        # Update encryption key if cryptography is available
+        if CRYPTOGRAPHY_AVAILABLE:
+            info_msg("Updating encryption keys for bill passwords...")
+            try:
+                # Re-encrypt all passwords with new master password
+                re_encrypt_passwords_with_new_master(current_password, new_password)
+                success_msg("All bill passwords have been re-encrypted with the new master password.")
+            except Exception as e:
+                warning_msg(f"Could not re-encrypt passwords: {e}")
+                warning_msg("You may need to re-enter passwords for your bills.")
+        
+    except Exception as e:
+        error_msg(f"Failed to save new password: {e}")
+        # Try to restore backup
+        if os.path.exists(backup_file):
+            try:
+                shutil.copy2(backup_file, MASTER_PASSWORD_FILE)
+                info_msg("Restored previous password from backup.")
+            except Exception as restore_error:
+                error_msg(f"Could not restore backup: {restore_error}")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def re_encrypt_passwords_with_new_master(old_password, new_password):
+    """Re-encrypt all bill passwords with the new master password."""
+    if not CRYPTOGRAPHY_AVAILABLE:
+        return
+    
+    # Load old salt and derive old key
+    if os.path.exists(SALT_FILE):
+        with open(SALT_FILE, 'rb') as f:
+            old_salt = f.read()
+        old_key = password_encryption.derive_key_from_password(old_password, old_salt)
+    else:
+        # If no salt file, we can't re-encrypt
+        return
+    
+    # Create new salt and derive new key
+    new_salt = password_encryption.generate_salt()
+    new_key = password_encryption.derive_key_from_password(new_password, new_salt)
+    
+    # Create temporary Fernet instances
+    old_fernet = Fernet(old_key)
+    new_fernet = Fernet(new_key)
+    
+    # Re-encrypt all passwords in bills
+    re_encrypted_bills = False
+    for bill in bills:
+        if 'password' in bill and bill['password']:
+            try:
+                # Decrypt with old key
+                if bill['password'].startswith('gAAAAA'):
+                    encrypted_bytes = base64.urlsafe_b64decode(bill['password'].encode())
+                    decrypted = old_fernet.decrypt(encrypted_bytes)
+                    # Re-encrypt with new key
+                    re_encrypted = new_fernet.encrypt(decrypted)
+                    bill['password'] = base64.urlsafe_b64encode(re_encrypted).decode()
+                    re_encrypted_bills = True
+            except Exception:
+                # If decryption fails, skip this password
+                continue
+    
+    # Re-encrypt all passwords in templates
+    re_encrypted_templates = False
+    for template in bill_templates:
+        if 'password' in template and template['password']:
+            try:
+                # Decrypt with old key
+                if template['password'].startswith('gAAAAA'):
+                    encrypted_bytes = base64.urlsafe_b64decode(template['password'].encode())
+                    decrypted = old_fernet.decrypt(encrypted_bytes)
+                    # Re-encrypt with new key
+                    re_encrypted = new_fernet.encrypt(decrypted)
+                    template['password'] = base64.urlsafe_b64encode(re_encrypted).decode()
+                    re_encrypted_templates = True
+            except Exception:
+                # If decryption fails, skip this password
+                continue
+    
+    # Save new salt and update encryption key file
+    with open(SALT_FILE, 'wb') as f:
+        f.write(new_salt)
+    with open(ENCRYPTION_KEY_FILE, 'wb') as f:
+        f.write(new_key)
+    
+    # Save updated data
+    if re_encrypted_bills:
+        save_bills()
+    if re_encrypted_templates:
+        save_templates()
+
+def reset_master_password():
+    """Reset the master password (for recovery scenarios)."""
+    title_msg("Reset Master Password")
+    warning_msg("⚠️  WARNING: This will reset your master password and may affect encrypted data.")
+    print(f"\n{Colors.WARNING}This action will:{Colors.RESET}")
+    print("• Remove the current master password")
+    print("• Require you to set a new master password")
+    print("• Potentially affect encrypted bill passwords")
+    print("• Create a backup of your current data")
+    print()
+    
+    confirm = colored_input("Are you sure you want to reset the master password? (yes/no): ", Colors.WARNING).strip().lower()
+    if confirm not in ['yes', 'y']:
+        info_msg("Password reset cancelled.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Create backup of current data
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_dir = f"password_reset_backup_{timestamp}"
+    
+    try:
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        # Backup current files
+        files_to_backup = [BILLS_FILE, TEMPLATES_FILE]
+        if os.path.exists(MASTER_PASSWORD_FILE):
+            files_to_backup.append(MASTER_PASSWORD_FILE)
+        if os.path.exists(ENCRYPTION_KEY_FILE):
+            files_to_backup.append(ENCRYPTION_KEY_FILE)
+        if os.path.exists(SALT_FILE):
+            files_to_backup.append(SALT_FILE)
+        
+        for file_path in files_to_backup:
+            if os.path.exists(file_path):
+                shutil.copy2(file_path, os.path.join(backup_dir, file_path))
+        
+        success_msg(f"Backup created in: {backup_dir}")
+        
+        # Remove current password files
+        if os.path.exists(MASTER_PASSWORD_FILE):
+            os.remove(MASTER_PASSWORD_FILE)
+        if os.path.exists(ENCRYPTION_KEY_FILE):
+            os.remove(ENCRYPTION_KEY_FILE)
+        if os.path.exists(SALT_FILE):
+            os.remove(SALT_FILE)
+        
+        success_msg("Master password reset successfully!")
+        info_msg("You will need to set a new master password next time you start the application.")
+        warning_msg("Note: Encrypted bill passwords may need to be re-entered.")
+        
+    except Exception as e:
+        error_msg(f"Error during password reset: {e}")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def show_password_recovery_options():
+    """Show password recovery options and guidance."""
+    clear_console()
+    title_msg("Password Recovery Options")
+    
+    print(f"{Colors.TITLE}🔑 Master Password Recovery{Colors.RESET}")
+    print("If you've forgotten your master password, here are your options:")
+    print()
+    
+    print(f"{Colors.WARNING}Option 1: Reset Master Password{Colors.RESET}")
+    print("• This will remove the current master password")
+    print("• You'll need to set a new master password")
+    print("• Encrypted bill passwords may need to be re-entered")
+    print("• A backup of your current data will be created")
+    print()
+    
+    print(f"{Colors.WARNING}Option 2: Export Bills for Recovery{Colors.RESET}")
+    print("• Export your bills with decrypted passwords")
+    print("• Save the export file in a secure location")
+    print("• Use this file to restore your bills if needed")
+    print()
+    
+    print(f"{Colors.WARNING}Option 3: Manual Recovery{Colors.RESET}")
+    print("• Check for backup files in the backups directory")
+    print("• Look for password reset backup directories")
+    print("• Restore from a previous backup if available")
+    print()
+    
+    print(f"{Colors.TITLE}💡 Prevention Tips{Colors.RESET}")
+    print("• Write down your master password in a secure location")
+    print("• Use a password manager for additional security")
+    print("• Create regular backups of your data")
+    print("• Export bills periodically for safekeeping")
+    print()
+    
+    print(f"{Colors.TITLE}🚨 Important Notes{Colors.RESET}")
+    print("• Master passwords cannot be recovered if forgotten")
+    print("• Encrypted data may be lost if password is forgotten")
+    print("• Always keep backups in multiple secure locations")
+    print("• Consider using a password manager for the master password")
+    print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def export_bills_for_recovery():
+    """Export bills with decrypted passwords for recovery purposes."""
+    title_msg("Export Bills for Recovery")
+    info_msg("This will export your bills with decrypted passwords for backup/recovery.")
+    warning_msg("⚠️  WARNING: This file will contain sensitive information in plain text!")
+    print()
+    
+    confirm = colored_input("Are you sure you want to export bills with decrypted passwords? (yes/no): ", Colors.WARNING).strip().lower()
+    if confirm not in ['yes', 'y']:
+        info_msg("Export cancelled.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Create recovery export
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    recovery_file = f"bills_recovery_export_{timestamp}.json"
+    
+    try:
+        # Create a copy of bills with decrypted passwords
+        recovery_bills = []
+        for bill in bills:
+            recovery_bill = bill.copy()
+            
+            # Decrypt password if available
+            if 'password' in recovery_bill and recovery_bill['password']:
+                if CRYPTOGRAPHY_AVAILABLE and password_encryption.fernet:
+                    decrypted_password = password_encryption.decrypt_password(recovery_bill['password'])
+                    recovery_bill['password'] = decrypted_password
+                    recovery_bill['password_encrypted'] = True
+                else:
+                    recovery_bill['password_encrypted'] = False
+            
+            recovery_bills.append(recovery_bill)
+        
+        # Add metadata
+        recovery_data = {
+            'export_date': datetime.now().isoformat(),
+            'export_type': 'recovery_export',
+            'total_bills': len(recovery_bills),
+            'encryption_available': CRYPTOGRAPHY_AVAILABLE,
+            'bills': recovery_bills
+        }
+        
+        # Save to file
+        with open(recovery_file, 'w') as f:
+            json.dump(recovery_data, f, indent=2)
+        
+        success_msg(f"Recovery export created: {recovery_file}")
+        warning_msg("⚠️  Keep this file secure - it contains sensitive information!")
+        info_msg("Store this file in a safe location for emergency recovery.")
+        
+    except Exception as e:
+        error_msg(f"Error creating recovery export: {e}")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def view_backup_files():
+    """View available backup files."""
+    clear_console()
+    title_msg("Backup Files")
+    
+    backup_files = []
+    
+    # Check for bills backups
+    if os.path.exists(BACKUP_DIR):
+        for file in os.listdir(BACKUP_DIR):
+            if file.endswith('.json'):
+                file_path = os.path.join(BACKUP_DIR, file)
+                file_size = os.path.getsize(file_path)
+                file_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                backup_files.append({
+                    'name': file,
+                    'path': file_path,
+                    'size': file_size,
+                    'time': file_time,
+                    'type': 'bills_backup'
+                })
+    
+    # Check for password reset backups
+    for item in os.listdir('.'):
+        if item.startswith('password_reset_backup_') and os.path.isdir(item):
+            backup_files.append({
+                'name': item,
+                'path': item,
+                'size': 'Directory',
+                'time': datetime.fromtimestamp(os.path.getmtime(item)),
+                'type': 'password_reset_backup'
+            })
+    
+    if not backup_files:
+        info_msg("No backup files found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Sort by time (newest first)
+    backup_files.sort(key=lambda x: x['time'], reverse=True)
+    
+    print(f"{Colors.INFO}Available backup files:{Colors.RESET}")
+    print()
+    
+    for i, backup in enumerate(backup_files, 1):
+        print(f"{Colors.MENU}{i:2}.{Colors.RESET} {Colors.TITLE}{backup['name']}{Colors.RESET}")
+        print(f"    Type: {Colors.INFO}{backup['type']}{Colors.RESET}")
+        print(f"    Date: {Colors.INFO}{backup['time'].strftime('%Y-%m-%d %H:%M:%S')}{Colors.RESET}")
+        if backup['size'] != 'Directory':
+            print(f"    Size: {Colors.INFO}{backup['size']} bytes{Colors.RESET}")
+        print()
+    
+    print(f"{Colors.MENU}Options:{Colors.RESET}")
+    print("1. View backup contents")
+    print("2. Restore from backup")
+    print("3. Delete backup")
+    print("4. Back to menu")
+    
+    choice = colored_input("Choose option (1-4): ", Colors.PROMPT).strip()
+    
+    if choice == '1':
+        view_backup_contents(backup_files)
+    elif choice == '2':
+        restore_from_backup(backup_files)
+    elif choice == '3':
+        delete_backup(backup_files)
+    elif choice == '4':
+        return
+    else:
+        error_msg("Invalid option.")
+
+def view_backup_contents(backup_files):
+    """View the contents of a backup file."""
+    if not backup_files:
+        return
+    
+    try:
+        choice = int(colored_input(f"Enter backup number to view (1-{len(backup_files)}): ", Colors.PROMPT))
+        if 1 <= choice <= len(backup_files):
+            backup = backup_files[choice - 1]
+            
+            if backup['type'] == 'bills_backup':
+                try:
+                    with open(backup['path'], 'r') as f:
+                        backup_data = json.load(f)
+                    
+                    print(f"\n{Colors.TITLE}Backup Contents: {backup['name']}{Colors.RESET}")
+                    print(f"Total bills: {len(backup_data)}")
+                    print()
+                    
+                    for i, bill in enumerate(backup_data[:5], 1):  # Show first 5 bills
+                        print(f"{i}. {bill.get('name', 'Unknown')} - {bill.get('due_date', 'No date')}")
+                    
+                    if len(backup_data) > 5:
+                        print(f"... and {len(backup_data) - 5} more bills")
+                    
+                except Exception as e:
+                    error_msg(f"Error reading backup: {e}")
+            
+            elif backup['type'] == 'password_reset_backup':
+                print(f"\n{Colors.TITLE}Password Reset Backup: {backup['name']}{Colors.RESET}")
+                print("This is a directory containing backup files.")
+                try:
+                    files = os.listdir(backup['path'])
+                    print(f"Files in backup: {', '.join(files)}")
+                except Exception as e:
+                    error_msg(f"Error reading backup directory: {e}")
+        
+        else:
+            error_msg("Invalid backup number.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def restore_from_backup(backup_files):
+    """Restore data from a backup file."""
+    global bills
+    
+    if not backup_files:
+        return
+    
+    try:
+        choice = int(colored_input(f"Enter backup number to restore (1-{len(backup_files)}): ", Colors.PROMPT))
+        if 1 <= choice <= len(backup_files):
+            backup = backup_files[choice - 1]
+            
+            warning_msg(f"⚠️  This will overwrite your current data with backup: {backup['name']}")
+            confirm = colored_input("Are you sure? (yes/no): ", Colors.WARNING).strip().lower()
+            
+            if confirm not in ['yes', 'y']:
+                info_msg("Restore cancelled.")
+                colored_input("Press Enter to continue...", Colors.INFO)
+                return
+            
+            if backup['type'] == 'bills_backup':
+                # Restore bills backup
+                try:
+                    with open(backup['path'], 'r') as f:
+                        backup_data = json.load(f)
+                    
+                    # Create backup of current data first
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    current_backup = f"pre_restore_backup_{timestamp}.json"
+                    with open(current_backup, 'w') as f:
+                        json.dump(bills, f, indent=2)
+                    
+                    # Restore the backup data
+                    bills = backup_data
+                    save_bills()
+                    
+                    success_msg(f"Successfully restored {len(bills)} bills from backup")
+                    info_msg(f"Current data backed up to: {current_backup}")
+                    
+                except Exception as e:
+                    error_msg(f"Error restoring backup: {e}")
+            
+            elif backup['type'] == 'password_reset_backup':
+                # Restore password reset backup
+                try:
+                    # This would require more complex logic to restore specific files
+                    warning_msg("Password reset backup restoration requires manual file copying.")
+                    info_msg(f"Backup location: {backup['path']}")
+                    info_msg("You may need to manually copy files from this directory.")
+                    
+                except Exception as e:
+                    error_msg(f"Error with password reset backup: {e}")
+        
+        else:
+            error_msg("Invalid backup number.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def delete_backup(backup_files):
+    """Delete a backup file."""
+    if not backup_files:
+        return
+    
+    try:
+        choice = int(colored_input(f"Enter backup number to delete (1-{len(backup_files)}): ", Colors.PROMPT))
+        if 1 <= choice <= len(backup_files):
+            backup = backup_files[choice - 1]
+            
+            warning_msg(f"⚠️  This will permanently delete backup: {backup['name']}")
+            confirm = colored_input("Are you sure? (yes/no): ", Colors.WARNING).strip().lower()
+            
+            if confirm not in ['yes', 'y']:
+                info_msg("Deletion cancelled.")
+                colored_input("Press Enter to continue...", Colors.INFO)
+                return
+            
+            try:
+                if backup['type'] == 'password_reset_backup':
+                    shutil.rmtree(backup['path'])
+                else:
+                    os.remove(backup['path'])
+                
+                success_msg(f"Successfully deleted backup: {backup['name']}")
+                
+            except Exception as e:
+                error_msg(f"Error deleting backup: {e}")
+        
+        else:
+            error_msg("Invalid backup number.")
+    except ValueError:
+        error_msg("Please enter a valid number.")
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def password_management_menu():
+    """Display password management menu."""
+    while True:
+        clear_console()
+        title_msg("Password Management")
+        
+        print(f"{Colors.MENU}1.{Colors.RESET} 🔑 Change master password")
+        print(f"{Colors.MENU}2.{Colors.RESET} 🔄 Reset master password")
+        print(f"{Colors.MENU}3.{Colors.RESET} 📋 Password recovery options")
+        print(f"{Colors.MENU}4.{Colors.RESET} 📤 Export bills for recovery")
+        print(f"{Colors.MENU}5.{Colors.RESET} 📁 View backup files")
+        print(f"{Colors.MENU}6.{Colors.RESET} 🚪 Back to main menu")
+        
+        choice = colored_input("\nChoose option (1-6): ", Colors.PROMPT).strip()
+        
+        if choice == '1':
+            clear_console()
+            change_master_password()
+        elif choice == '2':
+            clear_console()
+            reset_master_password()
+        elif choice == '3':
+            clear_console()
+            show_password_recovery_options()
+        elif choice == '4':
+            clear_console()
+            export_bills_for_recovery()
+        elif choice == '5':
+            clear_console()
+            view_backup_files()
+        elif choice == '6':
+            break
+        else:
+            error_msg("Invalid option. Please choose 1-6.")
+            colored_input("Press Enter to continue...", Colors.WARNING)
+
+# ... existing code ...
 
 # Entry point
 if __name__ == "__main__":
