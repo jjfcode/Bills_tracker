@@ -2527,6 +2527,80 @@ def main():
             error_msg("Invalid option. Please choose 1-14.")
             colored_input("Press Enter to continue...", Colors.WARNING)
 
+def show_help_menu():
+    """Display comprehensive help information for the Bills Tracker application."""
+    clear_console()
+    title_msg("📚 Bills Tracker Help")
+    print("=" * 60)
+    
+    print(f"\n{Colors.TITLE}🔧 Main Features:{Colors.RESET}")
+    print("• Add, view, edit, and delete bills")
+    print("• Track due dates with automatic notifications")
+    print("• Flexible billing cycles (weekly, monthly, quarterly, etc.)")
+    print("• Custom reminder periods per bill")
+    print("• Password encryption and master password protection")
+    print("• Automatic backup system")
+    print("• Search and filter bills")
+    print("• Import/export CSV and Excel files")
+    print("• Bill templates for quick adding")
+    print("• Contact information storage")
+    print("• Data integrity checks")
+    
+    print(f"\n{Colors.TITLE}📋 Menu Options:{Colors.RESET}")
+    print("1. Add Bill - Create a new bill with all details")
+    print("2. View Bills - Display all bills with pagination")
+    print("3. Search Bills - Find bills by various criteria")
+    print("4. Sort Bills - Arrange bills by different criteria")
+    print("5. Due Bills - View bills due within specified days")
+    print("6. Pay Bill - Mark bills as paid and update due dates")
+    print("7. Edit Bill - Modify existing bill information")
+    print("8. Delete Bill - Remove a bill from tracking")
+    print("9. Templates - Save and reuse bill configurations")
+    print("10. Import/Export - CSV and Excel file operations")
+    print("11. Password Management - Secure password handling")
+    print("12. Data Integrity - Check and repair data consistency")
+    print("13. Help - This help menu")
+    print("14. Exit - Close the application")
+    
+    print(f"\n{Colors.TITLE}🔐 Security Features:{Colors.RESET}")
+    print("• Master password protection for all bill passwords")
+    print("• Automatic session timeout after inactivity")
+    print("• Encrypted password storage using Fernet encryption")
+    print("• Secure password recovery options")
+    print("• Data integrity verification on startup")
+    
+    print(f"\n{Colors.TITLE}📊 Data Management:{Colors.RESET}")
+    print("• SQLite database for reliable data storage")
+    print("• Automatic backup system with progress tracking")
+    print("• CSV and Excel import/export with validation")
+    print("• Data integrity checks and automatic repairs")
+    print("• Bill templates for efficient data entry")
+    
+    print(f"\n{Colors.TITLE}🎯 Tips for Best Use:{Colors.RESET}")
+    print("• Set up a master password on first use")
+    print("• Use bill templates for recurring bills")
+    print("• Set appropriate reminder periods for each bill")
+    print("• Regularly check due bills to avoid late payments")
+    print("• Use search and sort features to organize bills")
+    print("• Export data regularly for backup purposes")
+    print("• Run integrity checks if you notice data issues")
+    
+    print(f"\n{Colors.TITLE}🔧 Keyboard Shortcuts:{Colors.RESET}")
+    print("• Use Tab for autocomplete suggestions")
+    print("• Press Enter to accept suggestions")
+    print("• Use arrow keys for navigation in paginated views")
+    print("• Type 'q' to quit paginated views")
+    print("• Use 'clear' to remove website/contact information")
+    
+    print(f"\n{Colors.TITLE}📞 Support:{Colors.RESET}")
+    print("• Check the documentation in the 'docs' folder")
+    print("• Review test files for usage examples")
+    print("• Use data integrity checks for troubleshooting")
+    print("• Export data before making major changes")
+    
+    print("\n" + "=" * 60)
+    colored_input("\nPress Enter to return to main menu...", Colors.INFO)
+
 # 10. Missing pagination helper functions
 def view_bill_details_from_search(results):
     """View detailed information of a bill from search results."""
