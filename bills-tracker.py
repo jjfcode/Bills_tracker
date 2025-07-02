@@ -9,6 +9,7 @@ import calendar
 import difflib
 import csv
 import base64
+import sqlite3
 from datetime import datetime, timedelta
 from colorama import Fore, Back, Style, init
 from tqdm import tqdm
@@ -30,11 +31,14 @@ except ImportError:
 init(autoreset=True)
 
 # 2. Configuration
-BILLS_FILE = 'bills.json'
+BILLS_FILE = 'bills.json'  # Legacy JSON file (for migration)
 BACKUP_DIR = 'backups'
 MAX_BACKUPS = 5
 DATE_FORMAT = '%Y-%m-%d'
-TEMPLATES_FILE = 'bill_templates.json'
+TEMPLATES_FILE = 'bill_templates.json'  # Legacy JSON file (for migration)
+
+# Database configuration
+DB_FILE = 'bills_tracker.db'
 
 # Encryption configuration
 ENCRYPTION_KEY_FILE = '.encryption_key'
@@ -215,6 +219,66 @@ class PasswordEncryption:
 
 # Global encryption instance
 password_encryption = PasswordEncryption()
+
+# Database functions
+def get_db_connection():
+    """Get a connection to the SQLite database."""
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def initialize_database():
+    """Initialize the SQLite database with required tables."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Create bills table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS bills (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            due_date TEXT NOT NULL,
+            billing_cycle TEXT,
+            reminder_days INTEGER,
+            web_page TEXT,
+            login_info TEXT,
+            password TEXT,
+            paid INTEGER DEFAULT 0,
+            company_email TEXT,
+            support_phone TEXT,
+            billing_phone TEXT,
+            customer_service_hours TEXT,
+            account_number TEXT,
+            reference_id TEXT,
+            support_chat_url TEXT,
+            mobile_app TEXT
+        )
+    ''')
+    
+    # Create templates table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            due_date TEXT,
+            billing_cycle TEXT,
+            reminder_days INTEGER,
+            web_page TEXT,
+            login_info TEXT,
+            password TEXT,
+            company_email TEXT,
+            support_phone TEXT,
+            billing_phone TEXT,
+            customer_service_hours TEXT,
+            account_number TEXT,
+            reference_id TEXT,
+            support_chat_url TEXT,
+            mobile_app TEXT
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
 
 def check_session_timeout():
     """Check if session has timed out."""
@@ -451,56 +515,74 @@ def show_all_options(autocomplete_type):
 
 # 5. File operations
 def load_bills():
-    """Load bills from JSON file with colored feedback."""
+    """Load bills from SQLite database."""
     global bills
     try:
-        with open(BILLS_FILE, 'r') as f:
-            bills = json.load(f)
+        # Initialize database if it doesn't exist
+        initialize_database()
         
-        # Initialize encryption if available
-        if CRYPTOGRAPHY_AVAILABLE:
-            password_encryption.initialize_encryption()
-            # Migrate passwords to encrypted format if needed
-            bills = password_encryption.migrate_passwords(bills)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM bills ORDER BY due_date')
+        rows = cursor.fetchall()
         
-        # Migrate bills to include reminder_days if missing
-        migrated = False
-        for bill in bills:
-            if 'reminder_days' not in bill:
-                bill['reminder_days'] = 7  # Default to 7 days
-                migrated = True
-        
-        if migrated:
-            save_bills()
-            info_msg("Bills migrated to include custom reminder periods")
-        
-        success_msg(f"Loaded {len(bills)} bills")
-    except FileNotFoundError:
         bills = []
-        info_msg("Starting with empty bills list")
-    except json.JSONDecodeError:
+        for row in rows:
+            bill = dict(row)
+            # Convert paid from integer to boolean
+            bill['paid'] = bool(bill['paid'])
+            bills.append(bill)
+        
+        conn.close()
+        success_msg(f"Loaded {len(bills)} bills from database")
+        
+    except Exception as e:
+        error_msg(f"Error loading bills from database: {e}")
         bills = []
-        error_msg("Corrupted bills file. Starting fresh.")
 
 def save_bills():
-    """Save bills (with progress if many bills)."""
+    """Save bills to SQLite database."""
     try:
-        # Always create backup first
-        backup_bills_with_progress()
+        # Initialize database if it doesn't exist
+        initialize_database()
         
-        # Encrypt passwords before saving
-        bills_to_save = bills.copy()
-        if CRYPTOGRAPHY_AVAILABLE and password_encryption.fernet:
-            for bill in bills_to_save:
-                if 'password' in bill and bill['password']:
-                    # Only encrypt if not already encrypted
-                    if not bill['password'].startswith('gAAAAA'):
-                        bill['password'] = password_encryption.encrypt_password(bill['password'])
+        conn = get_db_connection()
+        cursor = conn.cursor()
         
-        # Save the bills
-        with open(BILLS_FILE, 'w') as f:
-            json.dump(bills_to_save, f, indent=2)
-        success_msg("Bills saved successfully")
+        # Clear existing bills
+        cursor.execute('DELETE FROM bills')
+        
+        # Insert all bills
+        for bill in bills:
+            cursor.execute('''
+                INSERT INTO bills (
+                    name, due_date, billing_cycle, reminder_days, web_page,
+                    login_info, password, paid, company_email, support_phone,
+                    billing_phone, customer_service_hours, account_number,
+                    reference_id, support_chat_url, mobile_app
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                bill.get('name', ''),
+                bill.get('due_date', ''),
+                bill.get('billing_cycle', 'monthly'),
+                bill.get('reminder_days', 7),
+                bill.get('web_page', ''),
+                bill.get('login_info', ''),
+                bill.get('password', ''),
+                1 if bill.get('paid', False) else 0,
+                bill.get('company_email', ''),
+                bill.get('support_phone', ''),
+                bill.get('billing_phone', ''),
+                bill.get('customer_service_hours', ''),
+                bill.get('account_number', ''),
+                bill.get('reference_id', ''),
+                bill.get('support_chat_url', ''),
+                bill.get('mobile_app', '')
+            ))
+        
+        conn.commit()
+        conn.close()
+        success_msg("Bills saved to database successfully")
         
     except Exception as e:
         error_msg(f"Save error: {e}")
@@ -2276,7 +2358,7 @@ def display_bill_details(bill):
         password_display = '*' * len(decrypted_password) if decrypted_password else 'Not provided'
     else:
         password_display = '*' * len(password) if password else 'Not provided'
-    print(f"Password: {Colors.INFO}{password_display}{Colors.RESET}")
+        print(f"Password: {Colors.INFO}{password_display}{Colors.RESET}")
     
     # Show billing cycle and reminder
     cycle = bill.get('billing_cycle', 'monthly')
@@ -2326,7 +2408,7 @@ def main():
 
     # Start session timer
     start_session()
-
+    
     # Load existing bills and templates
     load_bills()
     load_templates()
@@ -2960,41 +3042,72 @@ def billing_cycle_menu():
 
 # 5.1 Template operations
 def load_templates():
-    """Load bill templates from JSON file."""
+    """Load bill templates from SQLite database."""
     global bill_templates
     try:
-        with open(TEMPLATES_FILE, 'r') as f:
-            bill_templates = json.load(f)
+        # Initialize database if it doesn't exist
+        initialize_database()
         
-        # Initialize encryption if available and migrate passwords
-        if CRYPTOGRAPHY_AVAILABLE:
-            password_encryption.initialize_encryption()
-            # Migrate passwords to encrypted format if needed
-            bill_templates = password_encryption.migrate_passwords(bill_templates)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM templates ORDER BY name')
+        rows = cursor.fetchall()
         
-        success_msg(f"Loaded {len(bill_templates)} bill templates")
-    except FileNotFoundError:
         bill_templates = []
-        info_msg("Starting with empty templates list")
-    except json.JSONDecodeError:
+        for row in rows:
+            template = dict(row)
+            bill_templates.append(template)
+        
+        conn.close()
+        success_msg(f"Loaded {len(bill_templates)} bill templates from database")
+        
+    except Exception as e:
+        error_msg(f"Error loading templates from database: {e}")
         bill_templates = []
-        error_msg("Corrupted templates file. Starting fresh.")
 
 def save_templates():
-    """Save bill templates to JSON file."""
+    """Save bill templates to SQLite database."""
     try:
-        # Encrypt passwords before saving
-        templates_to_save = bill_templates.copy()
-        if CRYPTOGRAPHY_AVAILABLE and password_encryption.fernet:
-            for template in templates_to_save:
-                if 'password' in template and template['password']:
-                    # Only encrypt if not already encrypted
-                    if not template['password'].startswith('gAAAAA'):
-                        template['password'] = password_encryption.encrypt_password(template['password'])
+        # Initialize database if it doesn't exist
+        initialize_database()
         
-        with open(TEMPLATES_FILE, 'w') as f:
-            json.dump(templates_to_save, f, indent=2)
-        success_msg("Templates saved successfully")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Clear existing templates
+        cursor.execute('DELETE FROM templates')
+        
+        # Insert all templates
+        for template in bill_templates:
+            cursor.execute('''
+                INSERT INTO templates (
+                    name, due_date, billing_cycle, reminder_days, web_page,
+                    login_info, password, company_email, support_phone,
+                    billing_phone, customer_service_hours, account_number,
+                    reference_id, support_chat_url, mobile_app
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                template.get('name', ''),
+                template.get('due_date', ''),
+                template.get('billing_cycle', 'monthly'),
+                template.get('reminder_days', 7),
+                template.get('web_page', ''),
+                template.get('login_info', ''),
+                template.get('password', ''),
+                template.get('company_email', ''),
+                template.get('support_phone', ''),
+                template.get('billing_phone', ''),
+                template.get('customer_service_hours', ''),
+                template.get('account_number', ''),
+                template.get('reference_id', ''),
+                template.get('support_chat_url', ''),
+                template.get('mobile_app', '')
+            ))
+        
+        conn.commit()
+        conn.close()
+        success_msg("Templates saved to database successfully")
+        
     except Exception as e:
         error_msg(f"Template save error: {e}")
 

@@ -10,6 +10,7 @@ A comprehensive command-line application for managing household bills with advan
 - **Edit Bills** - Modify existing bill information including billing cycles, reminder periods, and contact details
 - **Delete Bills** - Remove bills with confirmation
 - **Pay Bills** - Mark bills as paid and automatically update due dates based on billing cycles
+- **🗄️ SQLite Database** - Fast and reliable data storage with SQLite database for better performance and data integrity
 - **Password Encryption** - All stored passwords are encrypted using the Fernet algorithm for enhanced security
 - **Master Password Protection** - Application access is protected by a master password with secure hash storage
 - **Session Timeout/Auto-Exit** - The app automatically exits after 15 minutes of inactivity for enhanced security (improved with input-based checking)
