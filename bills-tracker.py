@@ -15,6 +15,7 @@ from colorama import Fore, Back, Style, init
 from tqdm import tqdm
 import getpass
 import hashlib
+from integrity_checker import DataIntegrityChecker
 
 # Cryptography imports for password encryption
 try:
@@ -1110,8 +1111,9 @@ def display_menu():
     print(f"{Colors.MENU}9.{Colors.RESET} 📋 Bill templates")
     print(f"{Colors.MENU}10.{Colors.RESET} 📥 CSV Import/Export")
     print(f"{Colors.MENU}11.{Colors.RESET} 🔐 Password Management")
-    print(f"{Colors.MENU}12.{Colors.RESET} 📖 Help")
-    print(f"{Colors.MENU}13.{Colors.RESET} 🚪 Exit")
+    print(f"{Colors.MENU}12.{Colors.RESET} 🔍 Data Integrity Check")
+    print(f"{Colors.MENU}13.{Colors.RESET} 📖 Help")
+    print(f"{Colors.MENU}14.{Colors.RESET} 🚪 Exit")
     print(Colors.MENU + "="*40 + Colors.RESET)
 
 def view_bills():
@@ -2348,6 +2350,67 @@ def display_bill_details(bill):
     if not any(bill.get(field) for field in contact_fields):
         print(f"  {Colors.WARNING}No contact information provided{Colors.RESET}")
 
+def run_data_integrity_check():
+    """Run a comprehensive data integrity check and provide repair options."""
+    clear_console()
+    title_msg("🔍 Data Integrity Check")
+    print("=" * 50)
+    
+    info_msg("Running comprehensive data integrity check...")
+    print()
+    
+    # Create integrity checker
+    integrity_checker = DataIntegrityChecker(DB_FILE)
+    
+    # Run the check
+    is_healthy, issues = integrity_checker.check_database_integrity()
+    
+    # Display the report
+    integrity_checker.print_report()
+    
+    if not is_healthy:
+        print("\n" + "=" * 50)
+        print("🔧 Repair Options:")
+        print("1. Attempt automatic repairs")
+        print("2. View detailed issues")
+        print("3. Return to main menu")
+        
+        repair_choice = colored_input("\nChoose an option (1-3): ", Colors.PROMPT).strip()
+        
+        if repair_choice == '1':
+            info_msg("🔧 Attempting automatic repairs...")
+            repairs = integrity_checker.repair_issues(auto_repair=True)
+            
+            if repairs:
+                success_msg("✅ Repairs completed successfully!")
+                print("\nRepairs made:")
+                for i, repair in enumerate(repairs, 1):
+                    print(f"  {i}. {repair}")
+                
+                # Run integrity check again to confirm
+                info_msg("\n🔍 Running integrity check again...")
+                is_healthy, issues = integrity_checker.check_database_integrity()
+                
+                if is_healthy:
+                    success_msg("✅ Database is now healthy!")
+                else:
+                    warning_msg("⚠️  Some issues remain after repair.")
+                    integrity_checker.print_report()
+            else:
+                warning_msg("⚠️  No automatic repairs were possible.")
+        
+        elif repair_choice == '2':
+            print("\n" + "=" * 50)
+            print("📋 Detailed Issues:")
+            for i, issue in enumerate(issues, 1):
+                print(f"{i}. {issue}")
+        
+        # Always wait for user input before returning
+        colored_input("\nPress Enter to return to main menu...", Colors.INFO)
+    else:
+        success_msg("✅ Database integrity check passed successfully!")
+        colored_input("\nPress Enter to return to main menu...", Colors.INFO)
+
 # 12. Main application
 def main():
     """Main application loop with pagination support and master password protection."""
@@ -2364,13 +2427,43 @@ def main():
     # Start session timer
     start_session()
     
+    # Run data integrity check on startup
+    info_msg("🔍 Running data integrity check...")
+    integrity_checker = DataIntegrityChecker(DB_FILE)
+    is_healthy, issues = integrity_checker.check_database_integrity()
+    
+    if not is_healthy:
+        warning_msg("⚠️  Data integrity issues found!")
+        integrity_checker.print_report()
+        
+        # Ask user if they want to attempt repairs
+        repair_choice = get_yes_no("Would you like to attempt automatic repairs? (y/n): ")
+        if repair_choice:
+            info_msg("🔧 Attempting automatic repairs...")
+            repairs = integrity_checker.repair_issues(auto_repair=True)
+            
+            if repairs:
+                success_msg("✅ Repairs completed successfully!")
+                # Run integrity check again to confirm
+                is_healthy, issues = integrity_checker.check_database_integrity()
+                if is_healthy:
+                    success_msg("✅ Database is now healthy!")
+                else:
+                    warning_msg("⚠️  Some issues remain after repair.")
+            else:
+                warning_msg("⚠️  No automatic repairs were possible.")
+        
+        colored_input("Press Enter to continue...", Colors.INFO)
+    else:
+        success_msg("✅ Data integrity check passed!")
+    
     # Load existing bills and templates
     load_bills()
     load_templates()
 
     while True:
         display_menu()
-        choice = colored_input("Choose an option (1-13): ", Colors.PROMPT).strip()
+        choice = colored_input("Choose an option (1-14): ", Colors.PROMPT).strip()
         
         if choice == '1':
             clear_console()
@@ -2411,12 +2504,15 @@ def main():
             clear_console()
             password_management_menu()
         elif choice == '12':
-            show_help_menu()
+            clear_console()
+            run_data_integrity_check()
         elif choice == '13':
+            show_help_menu()
+        elif choice == '14':
             success_msg("Thank you for using Bills Tracker! 👋")
             break
         else:
-            error_msg("Invalid option. Please choose 1-13.")
+            error_msg("Invalid option. Please choose 1-14.")
             colored_input("Press Enter to continue...", Colors.WARNING)
 
 # 10. Missing pagination helper functions
