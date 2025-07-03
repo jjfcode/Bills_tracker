@@ -515,6 +515,7 @@ class BillManager:
 6. **Comprehensive Validation** - Enhanced input validation for all data fields
 7. **Bill Categories** - Organize, view, sort, and search bills by category (utilities, subscriptions, loans, etc.)
 8. **Payment Methods** - Track, view, sort, and search bills by payment method (auto-pay, manual, credit card, etc.)
+9. **Next Month Filter** - Filter bills to show only those due in the next month with proper year transition handling
 
 ### 🔧 **Technical Improvements:**
 - Fixed missing password management functions
@@ -528,7 +529,7 @@ class BillManager:
 - **Core Features**: 99% Complete
 - **Security Features**: 100% Complete
 - **Data Management**: 98% Complete
-- **User Experience**: 95% Complete
+- **User Experience**: 97% Complete
 - **Import/Export**: 100% Complete
 
 ---
@@ -596,9 +597,9 @@ If you'd like to contribute to any of these features:
 
 ---
 
-*Last Updated: July 2, 2025*
-*Next Review: August 2, 2025*
-*Current Version: v2.0 - Excel Support & Enhanced Security*
+*Last Updated: July 3, 2025*
+*Next Review: August 3, 2025*
+*Current Version: v3.6 - Next Month Filter & Enhanced Filtering*
 
 ## Bill Categories Feature (v3.4)
 
@@ -618,3 +619,13 @@ If you'd like to contribute to any of these features:
 - All bill views, sorting, and exports now support payment methods
 - 12 payment methods supported: auto-pay, manual, credit card, bank transfer, check, cash, PayPal, Venmo, Zelle, Apple Pay, Google Pay, other
 - See README for usage details
+
+## Next Month Filter Feature (v3.6)
+
+- Added "Next Month" as a new period filter option in the bills view
+- Users can now filter bills to show only those due in the next month
+- Properly handles year transitions (December → January)
+- Works seamlessly with existing status and search filters
+- Includes demo script for testing the functionality
+- Period filter options now include: All, This Month, Last Month, Previous Month, **Next Month**, This Year, Last Year
+- See demo/demo_next_month_filter.py for testing and demo/README.md for documentation
