@@ -3,7 +3,7 @@ from tkinter import ttk
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "core"))
-from db import fetch_all_bills, insert_bill, update_bill, delete_bill, fetch_all_categories
+from db import fetch_all_bills, insert_bill, update_bill, delete_bill, fetch_all_categories, fetch_all_payment_methods
 from datetime import datetime, timedelta
 from tkinter import StringVar
 from tkinter import IntVar
@@ -190,7 +190,7 @@ class AddBillDialog(ctk.CTkToplevel):
     def __init__(self, master, on_success):
         super().__init__(master)
         self.title("Add Bill")
-        self.geometry("550x650")
+        self.geometry("550x700")
         self.on_success = on_success
         self._setup_ui()
         self.lift()
@@ -229,6 +229,13 @@ class AddBillDialog(ctk.CTkToplevel):
         self.reminder_days_var = IntVar(value=7)
         self.reminder_days_combo = ttk.Combobox(self, textvariable=self.reminder_days_var, values=REMINDER_DAYS, state="readonly")
         self.reminder_days_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Payment Method (dropdown)
+        ctk.CTkLabel(self, text="Payment Method:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.payment_method_var = StringVar(value="Not Set")
+        self.payment_method_combo = ttk.Combobox(self, textvariable=self.payment_method_var, state="readonly")
+        self.payment_method_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self._load_payment_methods()
         row += 1
         # Web Page
         ctk.CTkLabel(self, text="Web Page:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
@@ -276,6 +283,16 @@ class AddBillDialog(ctk.CTkToplevel):
             self.categories = []
             self.category_combo['values'] = ["Uncategorized"]
 
+    def _load_payment_methods(self):
+        try:
+            self.payment_methods = fetch_all_payment_methods()
+            method_names = ["Not Set"] + [pm['name'] for pm in self.payment_methods]
+            self.payment_method_combo['values'] = method_names
+        except Exception as e:
+            print(f"Error loading payment methods: {e}")
+            self.payment_methods = []
+            self.payment_method_combo['values'] = ["Not Set"]
+
     def _on_add(self):
         name = self.name_entry.get().strip()
         due_date = self.date_selector.get_date().strip()
@@ -316,7 +333,13 @@ class AddBillDialog(ctk.CTkToplevel):
                 if category['name'] == self.category_var.get():
                     category_id = category['id']
                     break
-        
+        # Get payment method ID
+        payment_method_id = None
+        if self.payment_method_var.get() != "Not Set":
+            for pm in self.payment_methods:
+                if pm['name'] == self.payment_method_var.get():
+                    payment_method_id = pm['id']
+                    break
         bill_data = {
             "name": name,
             "due_date": due_date,
@@ -327,7 +350,8 @@ class AddBillDialog(ctk.CTkToplevel):
             "company_email": company_email,
             "support_phone": support_phone,
             "account_number": account_number,
-            "category_id": category_id
+            "category_id": category_id,
+            "payment_method_id": payment_method_id
         }
         insert_bill(bill_data)
         show_popup(self, "Success", "Bill added successfully!", color="green")
@@ -338,7 +362,7 @@ class EditBillDialog(ctk.CTkToplevel):
     def __init__(self, master, bill_data, on_success):
         super().__init__(master)
         self.title("Edit Bill")
-        self.geometry("550x650")
+        self.geometry("550x700")
         self.bill_data = bill_data
         self.on_success = on_success
         self._setup_ui()
@@ -379,6 +403,13 @@ class EditBillDialog(ctk.CTkToplevel):
         self.reminder_days_var = IntVar(value=self.bill_data.get("reminder_days", 7))
         self.reminder_days_combo = ttk.Combobox(self, textvariable=self.reminder_days_var, values=REMINDER_DAYS, state="readonly")
         self.reminder_days_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Payment Method (dropdown)
+        ctk.CTkLabel(self, text="Payment Method:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.payment_method_var = StringVar(value="Not Set")
+        self.payment_method_combo = ttk.Combobox(self, textvariable=self.payment_method_var, state="readonly")
+        self.payment_method_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self._load_payment_methods()
         row += 1
         # Web Page
         ctk.CTkLabel(self, text="Web Page:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
@@ -425,7 +456,6 @@ class EditBillDialog(ctk.CTkToplevel):
             self.categories = fetch_all_categories()
             category_names = ["Uncategorized"] + [cat['name'] for cat in self.categories]
             self.category_combo['values'] = category_names
-            
             # Set current category
             current_category = self.bill_data.get("category_name", "Uncategorized")
             self.category_var.set(current_category)
@@ -433,6 +463,19 @@ class EditBillDialog(ctk.CTkToplevel):
             print(f"Error loading categories: {e}")
             self.categories = []
             self.category_combo['values'] = ["Uncategorized"]
+
+    def _load_payment_methods(self):
+        try:
+            self.payment_methods = fetch_all_payment_methods()
+            method_names = ["Not Set"] + [pm['name'] for pm in self.payment_methods]
+            self.payment_method_combo['values'] = method_names
+            # Set current payment method
+            current_method = self.bill_data.get("payment_method_name", "Not Set")
+            self.payment_method_var.set(current_method)
+        except Exception as e:
+            print(f"Error loading payment methods: {e}")
+            self.payment_methods = []
+            self.payment_method_combo['values'] = ["Not Set"]
 
     def _on_save(self):
         name = self.name_entry.get().strip()
@@ -474,6 +517,13 @@ class EditBillDialog(ctk.CTkToplevel):
                 if category['name'] == self.category_var.get():
                     category_id = category['id']
                     break
+        # Get payment method ID
+        payment_method_id = None
+        if self.payment_method_var.get() != "Not Set":
+            for pm in self.payment_methods:
+                if pm['name'] == self.payment_method_var.get():
+                    payment_method_id = pm['id']
+                    break
         
         bill_data = self.bill_data.copy()
         bill_data["name"] = name
@@ -486,6 +536,7 @@ class EditBillDialog(ctk.CTkToplevel):
         bill_data["support_phone"] = support_phone
         bill_data["account_number"] = account_number
         bill_data["category_id"] = category_id
+        bill_data["payment_method_id"] = payment_method_id
         update_bill(bill_data["id"], bill_data)
         show_popup(self, "Success", "Bill updated successfully!", color="green")
         self.on_success()
@@ -743,7 +794,7 @@ class MainWindow(ctk.CTk):
         self.bills_table_frame.grid_rowconfigure(0, weight=1)
         self.bills_table_frame.grid_columnconfigure(0, weight=1)
 
-        columns = ("Paid", "Name", "Due Date", "Amount", "Category", "Status")
+        columns = ("Paid", "Name", "Due Date", "Amount", "Category", "Status", "Payment Method")
         self.bills_table = ttk.Treeview(self.bills_table_frame, columns=columns, show="headings", height=15)
         self._sort_column = None
         self._sort_reverse = False
@@ -752,7 +803,7 @@ class MainWindow(ctk.CTk):
         self.bills_table.heading("Paid", text="Paid", command=lambda c="Paid": self.sort_by_column(c))
         self.bills_table.column("Paid", width=60, anchor="center")
         
-        for col in ["Name", "Due Date", "Amount", "Category", "Status"]:
+        for col in ["Name", "Due Date", "Amount", "Category", "Status", "Payment Method"]:
             self.bills_table.heading(col, text=col, command=lambda c=col: self.sort_by_column(c))
             self.bills_table.column(col, width=120, anchor="center")
         
@@ -905,13 +956,15 @@ class MainWindow(ctk.CTk):
         for bill in bills:
             paid_status = "✓" if bill.get("paid", False) else "☐"
             category_name = bill.get("category_name", "Uncategorized")
+            payment_method_name = bill.get("payment_method_name", "Not Set")
             row = (
                 paid_status,
                 bill.get("name", ""),
                 bill.get("due_date", ""),
                 bill.get("amount", ""),
                 category_name,
-                "Paid" if bill.get("paid", False) else "Pending"
+                "Paid" if bill.get("paid", False) else "Pending",
+                payment_method_name
             )
             item_id = self.bills_table.insert("", "end", values=row)
             self.bills_by_id[item_id] = bill
@@ -952,7 +1005,7 @@ class MainWindow(ctk.CTk):
             sorted_bills = sorted(self._filtered_bills, key=lambda b: (b.get(key) or ""), reverse=reverse)
         self.populate_bills_table(sorted_bills)
         # Update header text to show sort order
-        for c in ("Paid", "Name", "Due Date", "Amount", "Category", "Status"):
+        for c in ("Paid", "Name", "Due Date", "Amount", "Category", "Status", "Payment Method"):
             arrow = ""
             if c == col:
                 arrow = " ↓" if reverse else " ↑"
@@ -1093,7 +1146,7 @@ class MainWindow(ctk.CTk):
         try:
             with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
                 fieldnames = ['name', 'due_date', 'billing_cycle', 'reminder_days', 'web_page', 
-                             'company_email', 'support_phone', 'account_number', 'paid']
+                             'company_email', 'support_phone', 'account_number', 'paid', 'payment_method']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
                 
@@ -1107,7 +1160,8 @@ class MainWindow(ctk.CTk):
                         'company_email': bill.get('company_email', ''),
                         'support_phone': bill.get('support_phone', ''),
                         'account_number': bill.get('account_number', ''),
-                        'paid': 'Yes' if bill.get('paid', False) else 'No'
+                        'paid': 'Yes' if bill.get('paid', False) else 'No',
+                        'payment_method': bill.get('payment_method_name', 'Not Set')
                     })
             
             show_popup(self, "Success", f"Exported {len(self._bills_data)} bills to {os.path.basename(file_path)}", color="green")
@@ -1156,7 +1210,8 @@ class MainWindow(ctk.CTk):
                         'company_email': row.get('company_email', ''),
                         'support_phone': row.get('support_phone', ''),
                         'account_number': row.get('account_number', ''),
-                        'paid': row.get('paid', 'No').lower() == 'yes'
+                        'paid': row.get('paid', 'No').lower() == 'yes',
+                        'payment_method_name': row.get('payment_method', 'Not Set')
                     }
                     
                     insert_bill(bill_data)
