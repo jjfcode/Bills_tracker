@@ -12,8 +12,6 @@ import csv
 from tkinter import filedialog
 from tkcalendar import DateEntry
 from tkinter import messagebox
-from .auth_ui import LoginDialog, SignupDialog, UserProfileDialog
-from core.auth import validate_session, logout_user, change_password, get_user_by_id, cleanup_expired_sessions
 
 BILLING_CYCLES = [
     "weekly", "bi-weekly", "monthly", "quarterly", "semi-annually", "annually", "one-time"
@@ -722,106 +720,12 @@ class MainWindow(ctk.CTk):
         # Inicializar pending_changes para evitar errores
         self.pending_changes = {}
         
-        # Authentication state
-        self.current_user = None
-        self.session_token = None
-        
-        # Initialize authentication
-        self._initialize_auth()
-        
         # Setup UI
         self._setup_ui()
         
-        # Show login if not authenticated
-        if not self.current_user:
-            self.show_login()
+        # Show bills view by default
+        self.show_bills_view()
     
-    def _initialize_auth(self):
-        """Initialize authentication system"""
-        try:
-            # Clean up expired sessions
-            cleanup_expired_sessions()
-            
-            # Check for existing session (could be stored in a file)
-            # For now, we'll require login each time
-            pass
-            
-        except Exception as e:
-            print(f"Authentication initialization error: {e}")
-    
-    def show_login(self):
-        print("DEBUG: Entrando a show_login")
-        self.withdraw()  # Hide main window
-        login_dialog = LoginDialog(self, self.on_login_success)
-        login_dialog.wait_window()
-        print(f"DEBUG: show_login después de wait_window, current_user: {self.current_user}")
-        if not self.current_user:
-            print("DEBUG: Usuario no autenticado, cerrando app")
-            self.quit()
-        else:
-            print("DEBUG: Usuario autenticado, mostrando ventana principal")
-            self.deiconify()
-            try:
-                self.lift()
-                self.focus_force()
-            except Exception:
-                pass
-            self.title(f"Bills Tracker v3 - {self.current_user['username']}")
-
-    def on_login_success(self, auth_result):
-        print(f"DEBUG: on_login_success llamado con: {auth_result}")
-        self.current_user = {
-            'user_id': auth_result['user_id'],
-            'username': auth_result['username'],
-            'email': auth_result['email'],
-            'is_admin': auth_result['is_admin']
-        }
-        self.session_token = auth_result['session_token']
-        print(f"DEBUG: current_user asignado: {self.current_user}")
-        # Update window title
-        self.title(f"Bills Tracker v3 - {self.current_user['username']}")
-        # Update user info in sidebar
-        role_text = "Admin" if self.current_user['is_admin'] else "User"
-        self.user_info_label.configure(text=f"👤 {self.current_user['username']}\n{role_text}")
-        # Refresh data
-        self.refresh_bills_data()
-        print("DEBUG: on_login_success finalizado")
-    
-    def logout(self):
-        """Logout current user"""
-        if self.session_token:
-            logout_user(self.session_token)
-        
-        # Clear user data
-        self.current_user = None
-        self.session_token = None
-        
-        # Show login again
-        self.show_login()
-    
-    def show_user_profile(self):
-        """Show user profile dialog"""
-        if not self.current_user:
-            return
-        
-        # Get full user info
-        user_info = get_user_by_id(self.current_user['user_id'])
-        if not user_info:
-            messagebox.showerror("Error", "Could not load user information")
-            return
-        
-        # Show profile dialog
-        profile_dialog = UserProfileDialog(self, user_info, self.on_password_change)
-        profile_dialog.wait_window()
-    
-    def on_password_change(self, current_password: str, new_password: str):
-        """Handle password change request"""
-        if not self.current_user:
-            return {"success": False, "error": "No user logged in"}
-        
-        return change_password(self.current_user['user_id'], current_password, new_password)
-        self.pending_changes = {}  # item_id -> bill_data for pending changes
-
     def _setup_ui(self):
         # Configure grid
         self.grid_rowconfigure(0, weight=1)
@@ -838,27 +742,9 @@ class MainWindow(ctk.CTk):
         ctk.CTkButton(self.sidebar, text="Categories", command=self.show_categories_view).grid(row=2, column=0, padx=20, pady=10)
         ctk.CTkButton(self.sidebar, text="Settings", command=self.show_settings_view).grid(row=3, column=0, padx=20, pady=10)
         
-        # Authentication section
-        auth_frame = ctk.CTkFrame(self.sidebar)
-        auth_frame.grid(row=4, column=0, padx=20, pady=20, sticky="ew")
-        
-        # User info label
-        self.user_info_label = ctk.CTkLabel(auth_frame, text="Not logged in", font=("Arial", 12))
-        self.user_info_label.pack(pady=(10, 5))
-        
-        # Auth buttons
-        self.profile_btn = ctk.CTkButton(auth_frame, text="👤 Profile", command=self.show_user_profile, height=30)
-        self.profile_btn.pack(fill="x", padx=10, pady=2)
-        
-        self.logout_btn = ctk.CTkButton(auth_frame, text="🚪 Logout", command=self.logout, height=30, fg_color="red")
-        self.logout_btn.pack(fill="x", padx=10, pady=(2, 10))
-
         # Main content area
         self.content = ctk.CTkFrame(self)
         self.content.grid(row=0, column=1, sticky="nswe", padx=10, pady=10)
-
-        # Show bills view by default
-        self.show_bills_view()
 
     def clear_content(self):
         for widget in self.content.winfo_children():
