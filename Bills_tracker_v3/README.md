@@ -61,24 +61,61 @@ A modern, feature-rich desktop application for managing bills and recurring paym
 - **Historical Tracking** - Keeps paid bills for reporting while creating new ones
 - **Billing Cycle Support** - Handles all common billing cycles automatically
 
+### 💳 Payment Confirmation Number 🆕
+- **Confirmation Number Dialog** - When marking a bill as paid, a dialog prompts for a payment confirmation number (optional)
+- **Confirmation Column** - New column in the bills table displays the confirmation number
+- **Editable** - Confirmation number can be added/edited in the Add/Edit Bill dialogs
+- **Search & Filter** - Search and filter bills by confirmation number
+- **Auto-clear** - Confirmation number is cleared if a bill is marked as unpaid
+
+### 🔐 Authentication System 🆕
+- **User Registration** - Create new user accounts with username and email
+- **User Login** - Secure authentication with username and password
+- **User Logout** - Secure session termination
+- **Profile Management** - View and update account information
+- **Password Change** - Secure password update functionality
+- **Session Management** - Automatic session expiration (24 hours)
+- **Role-based Access** - Admin and regular user roles
+- **Security Features** - SHA-256 password hashing with salt
+
 ## 📁 Project Structure
 
 ```
 Bills_tracker_v3/
 ├── src/
 │   ├── gui/
-│   │   └── main_window.py      # Main application window and dialogs
+│   │   ├── main_window.py     # Main application window and dialogs
+│   │   └── auth_ui.py         # Authentication UI components
 │   ├── core/
-│   │   └── db.py              # Database operations and schema
+│   │   ├── db.py              # Database operations and schema
+│   │   └── auth.py            # Authentication system
 │   └── utils/                 # Utilities and helpers
+├── migrations/
+│   ├── migrate_confirmation_number.py  # Add confirmation_number column
+│   ├── migrate_payment_methods.py      # Add payment_methods table
+│   ├── migrate_auth_tables.py          # Add authentication tables
+│   └── README.md              # Migration documentation
+├── tests/
+│   ├── test_export_import.py  # Export/import functionality tests
+│   ├── test_authentication.py # Authentication system tests
+│   └── README.md              # Testing documentation
+├── docs/
+│   ├── future_update_v3.md    # Feature roadmap and plans
+│   ├── AUTHENTICATION_README.md # Authentication system documentation
+│   └── README.md              # Documentation guide
+├── demo/
+│   ├── demo_confirmation_number.py     # Payment confirmation demo
+│   ├── demo_date_selector.py          # Date selection demo
+│   ├── demo_advanced_filtering.py     # Advanced filtering demo
+│   ├── demo_authentication.py         # Authentication system demo
+│   └── README.md              # Demo documentation
 ├── resources/
 │   ├── icons/                 # Application icons
 │   └── themes/                # Visual themes
 ├── main_desktop.py           # Application entry point
-├── demo_date_selector.py     # Demo for date selection features
-├── demo_advanced_filtering.py # Demo for advanced filtering features
 ├── requirements.txt          # Python dependencies
-└── bills_tracker.db         # SQLite database
+├── bills_tracker.db         # SQLite database
+└── README.md                # Main project documentation
 ```
 
 ## 🛠️ Requirements
@@ -102,18 +139,44 @@ Bills_tracker_v3/
    pip install -r requirements.txt
    ```
 
-3. **Run the application:**
+3. **Set up authentication (first time only):**
+   ```bash
+   python migrations/migrate_auth_tables.py
+   ```
+
+4. **Run the application:**
    ```bash
    python main_desktop.py
    ```
 
-4. **Try the demos:**
+5. **Try the demos:**
    ```bash
    python demo_date_selector.py      # Date selection features
    python demo_advanced_filtering.py # Advanced filtering features
+   python demo_authentication.py     # Authentication features
    ```
 
 ## 📖 How to Use
+
+### **First Time Setup**
+1. **Run the migration script** to set up authentication:
+   ```bash
+   python migrations/migrate_auth_tables.py
+   ```
+
+2. **Login with default admin account**:
+   - Username: `admin`
+   - Password: `admin123`
+
+3. **Change the admin password** by clicking "👤 Profile" in the sidebar
+
+4. **Create additional user accounts** through the signup dialog
+
+### **Authentication**
+- **Login**: Enter username and password to access the application
+- **Logout**: Click "🚪 Logout" in the sidebar to end your session
+- **Profile**: Click "👤 Profile" to view account info and change password
+- **Registration**: Click "Create Account" on the login screen to register
 
 ### **Adding Bills**
 1. Click "Add Bill" button
@@ -143,8 +206,10 @@ Bills_tracker_v3/
 ### **Marking Bills as Paid**
 1. Click the checkbox (☐) next to a bill
 2. The bill will be marked as paid (✓) and date updated
-3. Click "Apply Changes" to confirm
-4. A new bill for the next cycle will be created automatically
+3. **A dialog will appear to enter a payment confirmation number (optional)**
+4. Click "Apply Changes" to confirm
+5. A new bill for the next cycle will be created automatically
+6. The confirmation number will be shown in the new "Confirmation" column
 
 ### **Searching and Filtering**
 1. **Default View**: App opens showing only PENDING bills (most useful for daily use)
@@ -172,6 +237,7 @@ Bills_tracker_v3/
 - `billing_cycle` - Recurring cycle
 - `reminder_days` - Days before due for reminders
 - `paid` - Boolean paid status
+- `confirmation_number` - Payment confirmation number (optional)
 - `category_id` - Foreign key to categories
 - Plus additional fields for contact info, web pages, etc.
 
@@ -242,6 +308,7 @@ The new date selector provides multiple ways to choose dates:
 ### **v3.1** (Current)
 - ✅ **Advanced Filtering System** - Default pending view, status/period filters, bill counter
 - ✅ **Advanced Date Selection** - Visual calendar picker and direct input
+- ✅ **Payment Confirmation Number** - Add, edit, search, and display confirmation numbers for paid bills
 - ✅ Complete GUI rewrite with CustomTkinter
 - ✅ Category system with management interface
 - ✅ Smart checkbox system with pending changes

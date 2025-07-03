@@ -1,6 +1,62 @@
-# Bills Tracker v3 - Demo Scripts
+# Demo Scripts
 
-This directory contains demo scripts for testing various features of Bills Tracker v3.
+This folder contains demonstration scripts for Bills Tracker v3 features.
+
+## Purpose
+
+Demo scripts showcase specific features and help users understand how to use the application effectively.
+
+## Files
+
+- `demo_confirmation_number.py` - Demonstrates payment confirmation number feature
+- `demo_date_selector.py` - Shows advanced date selection capabilities
+- `demo_advanced_filtering.py` - Demonstrates filtering and search features
+
+## Usage
+
+To run a demo script:
+
+```bash
+cd demo
+python demo_confirmation_number.py
+python demo_date_selector.py
+python demo_advanced_filtering.py
+```
+
+## Demo Categories
+
+### Feature Demos
+- Show specific functionality in action
+- Provide step-by-step examples
+- Demonstrate best practices
+
+### Integration Demos
+- Show how features work together
+- Demonstrate complete workflows
+- Test feature combinations
+
+### Educational Demos
+- Explain complex concepts
+- Show real-world usage scenarios
+- Provide learning examples
+
+## Creating New Demos
+
+When adding new features, create corresponding demo scripts:
+
+1. Create a demo file with descriptive name (e.g., `demo_feature_name.py`)
+2. Include clear setup and explanation
+3. Show both basic and advanced usage
+4. Provide helpful output and feedback
+5. Update this README with new demo details
+
+## Demo Best Practices
+
+- Keep demos focused on one feature
+- Include clear explanations and comments
+- Use realistic sample data
+- Provide helpful output messages
+- Make demos runnable independently
 
 ## Available Demos
 

@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS bills (
     login_info TEXT,
     password TEXT,
     paid INTEGER DEFAULT 0,
+    confirmation_number TEXT,
     company_email TEXT,
     support_phone TEXT,
     billing_phone TEXT,
@@ -159,9 +160,9 @@ def insert_bill(bill_data):
     cursor.execute('''
         INSERT INTO bills (
             name, due_date, billing_cycle, reminder_days, web_page,
-            login_info, password, paid, company_email, support_phone, billing_phone,
+            login_info, password, paid, confirmation_number, company_email, support_phone, billing_phone,
             customer_service_hours, account_number, reference_id, support_chat_url, mobile_app, category_id, payment_method_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         bill_data.get('name', ''),
         bill_data.get('due_date', ''),
@@ -171,6 +172,7 @@ def insert_bill(bill_data):
         bill_data.get('login_info', ''),
         bill_data.get('password', ''),
         1 if bill_data.get('paid', False) else 0,
+        bill_data.get('confirmation_number', ''),
         bill_data.get('company_email', ''),
         bill_data.get('support_phone', ''),
         bill_data.get('billing_phone', ''),
@@ -199,6 +201,7 @@ def update_bill(bill_id, bill_data):
             login_info = ?,
             password = ?,
             paid = ?,
+            confirmation_number = ?,
             company_email = ?,
             support_phone = ?,
             billing_phone = ?,
@@ -219,6 +222,7 @@ def update_bill(bill_id, bill_data):
         bill_data.get('login_info', ''),
         bill_data.get('password', ''),
         1 if bill_data.get('paid', False) else 0,
+        bill_data.get('confirmation_number', ''),
         bill_data.get('company_email', ''),
         bill_data.get('support_phone', ''),
         bill_data.get('billing_phone', ''),

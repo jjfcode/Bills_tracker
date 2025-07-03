@@ -12,6 +12,8 @@ import csv
 from tkinter import filedialog
 from tkcalendar import DateEntry
 from tkinter import messagebox
+from .auth_ui import LoginDialog, SignupDialog, UserProfileDialog
+from core.auth import validate_session, logout_user, change_password, get_user_by_id, cleanup_expired_sessions
 
 BILLING_CYCLES = [
     "weekly", "bi-weekly", "monthly", "quarterly", "semi-annually", "annually", "one-time"
@@ -218,6 +220,12 @@ class AddBillDialog(ctk.CTkToplevel):
         self.paid_checkbox = ctk.CTkCheckBox(self, variable=self.paid_var, text="Yes")
         self.paid_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="w")
         row += 1
+        
+        # Confirmation Number
+        ctk.CTkLabel(self, text="Confirmation Number:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.confirmation_entry = ctk.CTkEntry(self, placeholder_text="Enter confirmation number...")
+        self.confirmation_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
         # Billing Cycle (dropdown)
         ctk.CTkLabel(self, text="Billing Cycle:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
         self.billing_cycle_var = StringVar(value=BILLING_CYCLES[2])
@@ -297,6 +305,7 @@ class AddBillDialog(ctk.CTkToplevel):
         name = self.name_entry.get().strip()
         due_date = self.date_selector.get_date().strip()
         paid = self.paid_var.get()
+        confirmation_number = self.confirmation_entry.get().strip()
         billing_cycle = self.billing_cycle_var.get()
         reminder_days = self.reminder_days_var.get()
         web_page = self.web_page_entry.get().strip()
@@ -344,6 +353,7 @@ class AddBillDialog(ctk.CTkToplevel):
             "name": name,
             "due_date": due_date,
             "paid": paid,
+            "confirmation_number": confirmation_number,
             "billing_cycle": billing_cycle,
             "reminder_days": reminder_days,
             "web_page": web_page,
@@ -391,6 +401,13 @@ class EditBillDialog(ctk.CTkToplevel):
         self.paid_var = ctk.BooleanVar(value=self.bill_data.get("paid", False))
         self.paid_checkbox = ctk.CTkCheckBox(self, variable=self.paid_var, text="Yes")
         self.paid_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+        row += 1
+        
+        # Confirmation Number
+        ctk.CTkLabel(self, text="Confirmation Number:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.confirmation_entry = ctk.CTkEntry(self, placeholder_text="Enter confirmation number...")
+        self.confirmation_entry.insert(0, self.bill_data.get("confirmation_number", ""))
+        self.confirmation_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
         row += 1
         # Billing Cycle (dropdown)
         ctk.CTkLabel(self, text="Billing Cycle:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
@@ -481,6 +498,7 @@ class EditBillDialog(ctk.CTkToplevel):
         name = self.name_entry.get().strip()
         due_date = self.date_selector.get_date().strip()
         paid = self.paid_var.get()
+        confirmation_number = self.confirmation_entry.get().strip()
         billing_cycle = self.billing_cycle_var.get()
         reminder_days = self.reminder_days_var.get()
         web_page = self.web_page_entry.get().strip()
@@ -529,6 +547,7 @@ class EditBillDialog(ctk.CTkToplevel):
         bill_data["name"] = name
         bill_data["due_date"] = due_date
         bill_data["paid"] = paid
+        bill_data["confirmation_number"] = confirmation_number
         bill_data["billing_cycle"] = billing_cycle
         bill_data["reminder_days"] = reminder_days
         bill_data["web_page"] = web_page
@@ -696,7 +715,111 @@ class MainWindow(ctk.CTk):
         super().__init__()
         self.title("Bills Tracker v3")
         self.geometry("1200x800")
+
+        # Cerrar toda la app si se cierra la ventana principal
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+        
+        # Inicializar pending_changes para evitar errores
+        self.pending_changes = {}
+        
+        # Authentication state
+        self.current_user = None
+        self.session_token = None
+        
+        # Initialize authentication
+        self._initialize_auth()
+        
+        # Setup UI
         self._setup_ui()
+        
+        # Show login if not authenticated
+        if not self.current_user:
+            self.show_login()
+    
+    def _initialize_auth(self):
+        """Initialize authentication system"""
+        try:
+            # Clean up expired sessions
+            cleanup_expired_sessions()
+            
+            # Check for existing session (could be stored in a file)
+            # For now, we'll require login each time
+            pass
+            
+        except Exception as e:
+            print(f"Authentication initialization error: {e}")
+    
+    def show_login(self):
+        print("DEBUG: Entrando a show_login")
+        self.withdraw()  # Hide main window
+        login_dialog = LoginDialog(self, self.on_login_success)
+        login_dialog.wait_window()
+        print(f"DEBUG: show_login después de wait_window, current_user: {self.current_user}")
+        if not self.current_user:
+            print("DEBUG: Usuario no autenticado, cerrando app")
+            self.quit()
+        else:
+            print("DEBUG: Usuario autenticado, mostrando ventana principal")
+            self.deiconify()
+            try:
+                self.lift()
+                self.focus_force()
+            except Exception:
+                pass
+            self.title(f"Bills Tracker v3 - {self.current_user['username']}")
+
+    def on_login_success(self, auth_result):
+        print(f"DEBUG: on_login_success llamado con: {auth_result}")
+        self.current_user = {
+            'user_id': auth_result['user_id'],
+            'username': auth_result['username'],
+            'email': auth_result['email'],
+            'is_admin': auth_result['is_admin']
+        }
+        self.session_token = auth_result['session_token']
+        print(f"DEBUG: current_user asignado: {self.current_user}")
+        # Update window title
+        self.title(f"Bills Tracker v3 - {self.current_user['username']}")
+        # Update user info in sidebar
+        role_text = "Admin" if self.current_user['is_admin'] else "User"
+        self.user_info_label.configure(text=f"👤 {self.current_user['username']}\n{role_text}")
+        # Refresh data
+        self.refresh_bills_data()
+        print("DEBUG: on_login_success finalizado")
+    
+    def logout(self):
+        """Logout current user"""
+        if self.session_token:
+            logout_user(self.session_token)
+        
+        # Clear user data
+        self.current_user = None
+        self.session_token = None
+        
+        # Show login again
+        self.show_login()
+    
+    def show_user_profile(self):
+        """Show user profile dialog"""
+        if not self.current_user:
+            return
+        
+        # Get full user info
+        user_info = get_user_by_id(self.current_user['user_id'])
+        if not user_info:
+            messagebox.showerror("Error", "Could not load user information")
+            return
+        
+        # Show profile dialog
+        profile_dialog = UserProfileDialog(self, user_info, self.on_password_change)
+        profile_dialog.wait_window()
+    
+    def on_password_change(self, current_password: str, new_password: str):
+        """Handle password change request"""
+        if not self.current_user:
+            return {"success": False, "error": "No user logged in"}
+        
+        return change_password(self.current_user['user_id'], current_password, new_password)
         self.pending_changes = {}  # item_id -> bill_data for pending changes
 
     def _setup_ui(self):
@@ -707,13 +830,28 @@ class MainWindow(ctk.CTk):
         # Sidebar
         self.sidebar = ctk.CTkFrame(self, width=200)
         self.sidebar.grid(row=0, column=0, sticky="nswe")
-        self.sidebar.grid_rowconfigure(4, weight=1)
+        self.sidebar.grid_rowconfigure(6, weight=1)  # Increased for auth buttons
 
         # Sidebar buttons
         ctk.CTkLabel(self.sidebar, text="Bills Tracker", font=("Arial", 20, "bold")).grid(row=0, column=0, padx=20, pady=(20, 10))
         ctk.CTkButton(self.sidebar, text="Bills", command=self.show_bills_view).grid(row=1, column=0, padx=20, pady=10)
         ctk.CTkButton(self.sidebar, text="Categories", command=self.show_categories_view).grid(row=2, column=0, padx=20, pady=10)
         ctk.CTkButton(self.sidebar, text="Settings", command=self.show_settings_view).grid(row=3, column=0, padx=20, pady=10)
+        
+        # Authentication section
+        auth_frame = ctk.CTkFrame(self.sidebar)
+        auth_frame.grid(row=4, column=0, padx=20, pady=20, sticky="ew")
+        
+        # User info label
+        self.user_info_label = ctk.CTkLabel(auth_frame, text="Not logged in", font=("Arial", 12))
+        self.user_info_label.pack(pady=(10, 5))
+        
+        # Auth buttons
+        self.profile_btn = ctk.CTkButton(auth_frame, text="👤 Profile", command=self.show_user_profile, height=30)
+        self.profile_btn.pack(fill="x", padx=10, pady=2)
+        
+        self.logout_btn = ctk.CTkButton(auth_frame, text="🚪 Logout", command=self.logout, height=30, fg_color="red")
+        self.logout_btn.pack(fill="x", padx=10, pady=(2, 10))
 
         # Main content area
         self.content = ctk.CTkFrame(self)
@@ -782,7 +920,7 @@ class MainWindow(ctk.CTk):
         
         self.search_field_var = ctk.StringVar(value="Name")
         search_field_combo = ttk.Combobox(search_frame, textvariable=self.search_field_var, 
-                                         values=["Name", "Due Date", "Category", "Status", "Paid"], 
+                                         values=["Name", "Due Date", "Category", "Status", "Paid", "Confirmation"], 
                                          state="readonly", width=15)
         search_field_combo.grid(row=0, column=2, padx=5, pady=10)
         
@@ -794,7 +932,7 @@ class MainWindow(ctk.CTk):
         self.bills_table_frame.grid_rowconfigure(0, weight=1)
         self.bills_table_frame.grid_columnconfigure(0, weight=1)
 
-        columns = ("Paid", "Name", "Due Date", "Amount", "Category", "Status", "Payment Method")
+        columns = ("Paid", "Name", "Due Date", "Amount", "Category", "Status", "Payment Method", "Confirmation")
         self.bills_table = ttk.Treeview(self.bills_table_frame, columns=columns, show="headings", height=15)
         self._sort_column = None
         self._sort_reverse = False
@@ -803,7 +941,7 @@ class MainWindow(ctk.CTk):
         self.bills_table.heading("Paid", text="Paid", command=lambda c="Paid": self.sort_by_column(c))
         self.bills_table.column("Paid", width=60, anchor="center")
         
-        for col in ["Name", "Due Date", "Amount", "Category", "Status", "Payment Method"]:
+        for col in ["Name", "Due Date", "Amount", "Category", "Status", "Payment Method", "Confirmation"]:
             self.bills_table.heading(col, text=col, command=lambda c=col: self.sort_by_column(c))
             self.bills_table.column(col, width=120, anchor="center")
         
@@ -888,6 +1026,10 @@ class MainWindow(ctk.CTk):
                 elif search_field == "Paid":
                     paid_status = "paid" if bill.get("paid", False) else "unpaid"
                     if search_term in paid_status.lower():
+                        search_filtered.append(bill)
+                elif search_field == "Confirmation":
+                    confirmation = bill.get("confirmation_number", "")
+                    if search_term in confirmation.lower():
                         search_filtered.append(bill)
             filtered_bills = search_filtered
         
@@ -989,7 +1131,8 @@ class MainWindow(ctk.CTk):
                 bill.get("amount", ""),
                 category_name,
                 status,
-                payment_method_name
+                payment_method_name,
+                bill.get("confirmation_number", "")
             )
             item_id = self.bills_table.insert("", "end", values=row)
             self.bills_by_id[item_id] = bill
@@ -1015,7 +1158,8 @@ class MainWindow(ctk.CTk):
             "Due Date": "due_date",
             "Amount": "amount",
             "Category": "category_name",
-            "Status": "paid"
+            "Status": "paid",
+            "Confirmation": "confirmation_number"
         }
         key = col_map.get(col, col)
         reverse = False
@@ -1030,7 +1174,7 @@ class MainWindow(ctk.CTk):
             sorted_bills = sorted(self._filtered_bills, key=lambda b: (b.get(key) or ""), reverse=reverse)
         self.populate_bills_table(sorted_bills)
         # Update header text to show sort order
-        for c in ("Paid", "Name", "Due Date", "Amount", "Category", "Status", "Payment Method"):
+        for c in ("Paid", "Name", "Due Date", "Amount", "Category", "Status", "Payment Method", "Confirmation"):
             arrow = ""
             if c == col:
                 arrow = " ↓" if reverse else " ↑"
@@ -1275,27 +1419,57 @@ class MainWindow(ctk.CTk):
             current_paid = bill.get("paid", False)
             new_paid = not current_paid
             
-            # Create a copy of the bill for pending changes
-            pending_bill = bill.copy()
-            pending_bill["paid"] = new_paid
-            
-            # Store the pending change (keep original due date for current bill)
-            self.pending_changes[item_id] = pending_bill
-            
-            # Update the display
-            paid_status = "✓" if new_paid else "☐"
-            values = list(self.bills_table.item(item_id, "values"))
-            values[0] = paid_status  # Update paid column
-            values[5] = "Paid" if new_paid else "Pending"  # Update status column
-            # Keep the original due date in the display
-            self.bills_table.item(item_id, values=values)
-            
-            # Update the button text to show pending changes
-            pending_count = len(self.pending_changes)
-            if pending_count > 0:
-                self.apply_btn.configure(text=f"Apply Changes ({pending_count})", fg_color="orange")
+            # If marking as paid, show confirmation dialog
+            if new_paid:
+                def on_payment_confirmed(confirmation_number):
+                    if confirmation_number is not None:  # User didn't cancel
+                        # Create a copy of the bill for pending changes
+                        pending_bill = bill.copy()
+                        pending_bill["paid"] = True
+                        pending_bill["confirmation_number"] = confirmation_number
+                        
+                        # Store the pending change
+                        self.pending_changes[item_id] = pending_bill
+                        
+                        # Update the display
+                        paid_status = "✓"
+                        values = list(self.bills_table.item(item_id, "values"))
+                        values[0] = paid_status  # Update paid column
+                        values[5] = "Paid"  # Update status column
+                        self.bills_table.item(item_id, values=values)
+                        
+                        # Update the button text to show pending changes
+                        pending_count = len(self.pending_changes)
+                        if pending_count > 0:
+                            self.apply_btn.configure(text=f"Apply Changes ({pending_count})", fg_color="orange")
+                        else:
+                            self.apply_btn.configure(text="Apply Changes", fg_color="green")
+                
+                # Show payment confirmation dialog
+                PaymentConfirmationDialog(self, bill.get("name", ""), on_payment_confirmed)
             else:
-                self.apply_btn.configure(text="Apply Changes", fg_color="green")
+                # Marking as unpaid - no confirmation needed
+                # Create a copy of the bill for pending changes
+                pending_bill = bill.copy()
+                pending_bill["paid"] = False
+                pending_bill["confirmation_number"] = ""  # Clear confirmation number
+                
+                # Store the pending change
+                self.pending_changes[item_id] = pending_bill
+                
+                # Update the display
+                paid_status = "☐"
+                values = list(self.bills_table.item(item_id, "values"))
+                values[0] = paid_status  # Update paid column
+                values[5] = "Pending"  # Update status column
+                self.bills_table.item(item_id, values=values)
+                
+                # Update the button text to show pending changes
+                pending_count = len(self.pending_changes)
+                if pending_count > 0:
+                    self.apply_btn.configure(text=f"Apply Changes ({pending_count})", fg_color="orange")
+                else:
+                    self.apply_btn.configure(text="Apply Changes", fg_color="green")
     
     def _calculate_next_due_date(self, current_due_date, billing_cycle):
         """Calculate the next due date based on billing cycle"""
@@ -1602,6 +1776,73 @@ class MainWindow(ctk.CTk):
     def refresh_categories(self):
         """Refresh the categories table"""
         self.populate_categories_table()
+
+    def _on_close(self):
+        import sys
+        self.destroy()
+        self.update()
+        sys.exit(0)
+
+class PaymentConfirmationDialog(ctk.CTkToplevel):
+    def __init__(self, master, bill_name, on_confirm):
+        super().__init__(master)
+        self.on_confirm = on_confirm
+        self.confirmation_number = ""
+        
+        self.title("Payment Confirmation")
+        self.geometry("400x200")
+        self.resizable(False, False)
+        
+        # Center the dialog
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() // 2) - (400 // 2)
+        y = (self.winfo_screenheight() // 2) - (200 // 2)
+        self.geometry(f"400x200+{x}+{y}")
+        
+        self._setup_ui(bill_name)
+        
+        # Make dialog modal
+        self.transient(master)
+        self.grab_set()
+        self.focus_force()
+    
+    def _setup_ui(self, bill_name):
+        # Title
+        title_label = ctk.CTkLabel(self, text="Payment Confirmation", font=("Arial", 16, "bold"))
+        title_label.pack(pady=(20, 10))
+        
+        # Bill name
+        bill_label = ctk.CTkLabel(self, text=f"Bill: {bill_name}", font=("Arial", 12))
+        bill_label.pack(pady=(0, 20))
+        
+        # Confirmation number entry
+        ctk.CTkLabel(self, text="Confirmation Number (optional):", font=("Arial", 12)).pack(pady=(0, 5))
+        self.confirmation_entry = ctk.CTkEntry(self, width=300, placeholder_text="Enter confirmation number...")
+        self.confirmation_entry.pack(pady=(0, 20))
+        self.confirmation_entry.focus()
+        
+        # Buttons frame
+        btn_frame = ctk.CTkFrame(self)
+        btn_frame.pack(pady=(0, 20))
+        
+        confirm_btn = ctk.CTkButton(btn_frame, text="Confirm Payment", command=self._on_confirm, fg_color="green")
+        confirm_btn.pack(side="left", padx=10)
+        
+        cancel_btn = ctk.CTkButton(btn_frame, text="Cancel", command=self._on_cancel, fg_color="red")
+        cancel_btn.pack(side="left", padx=10)
+        
+        # Bind Enter key to confirm
+        self.bind("<Return>", lambda e: self._on_confirm())
+        self.bind("<Escape>", lambda e: self._on_cancel())
+    
+    def _on_confirm(self):
+        self.confirmation_number = self.confirmation_entry.get().strip()
+        self.on_confirm(self.confirmation_number)
+        self.destroy()
+    
+    def _on_cancel(self):
+        self.on_confirm(None)  # None indicates cancellation
+        self.destroy()
 
 if __name__ == "__main__":
     app = MainWindow()
