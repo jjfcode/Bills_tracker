@@ -61,6 +61,20 @@ def initialize_database():
     conn.commit()
     conn.close()
 
+def fetch_all_bills():
+    """Fetch all bills from the database and return as a list of dicts."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM bills ORDER BY due_date')
+    rows = cursor.fetchall()
+    bills = []
+    for row in rows:
+        bill = dict(row)
+        bill['paid'] = bool(bill.get('paid', 0))
+        bills.append(bill)
+    conn.close()
+    return bills
+
 if __name__ == "__main__":
     initialize_database()
     print(f"Database '{DB_FILE}' initialized with bills and templates tables.") 
