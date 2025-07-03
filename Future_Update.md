@@ -158,7 +158,7 @@ class ContactInfo:
 - [x] **Support integration** - Quick access to customer service information when payment issues arise *(COMPLETED)*
 - [x] **Recurring patterns** - Handle complex billing cycles *(COMPLETED)*
 - [ ] **Bill amount tracking** - Track costs and spending patterns
-- [ ] **Payment methods** - Track how bills are paid (auto-pay, manual, etc.)
+- [x] **Payment methods** - Track how bills are paid (auto-pay, manual, etc.) *(COMPLETED)*
 - [ ] **Late fee warnings** - Calculate potential penalties
 - [ ] **Multi-currency support** - Handle different currencies
 
@@ -344,6 +344,7 @@ class BillManager:
 5. **Session Management** - Improved session timeout with activity tracking
 6. **Comprehensive Validation** - Enhanced input validation for all data fields
 7. **Bill Categories** - Organize, view, sort, and search bills by category (utilities, subscriptions, loans, etc.)
+8. **Payment Methods** - Track, view, sort, and search bills by payment method (auto-pay, manual, credit card, etc.)
 
 ### 🔧 **Technical Improvements:**
 - Fixed missing password management functions
@@ -354,10 +355,10 @@ class BillManager:
 - Added comprehensive backup and recovery options
 
 ### 📊 **Current Status:**
-- **Core Features**: 98% Complete
+- **Core Features**: 99% Complete
 - **Security Features**: 100% Complete
-- **Data Management**: 95% Complete
-- **User Experience**: 90% Complete
+- **Data Management**: 98% Complete
+- **User Experience**: 95% Complete
 - **Import/Export**: 100% Complete
 
 ---
@@ -436,4 +437,14 @@ If you'd like to contribute to any of these features:
 - Category selection is part of bill creation and editing
 - Existing bills are auto-migrated to include a category (default: "other")
 - All bill views, sorting, and exports now support categories
+- See README for usage details
+
+## Payment Methods Feature (v3.5)
+
+- Bills can now be assigned a payment method (auto-pay, manual, credit card, bank transfer, etc.)
+- New menu: "Payment Methods" for viewing, sorting, searching, and statistics by payment method
+- Payment method selection is part of bill creation and editing
+- Existing bills are auto-migrated to include a payment method (default: "manual")
+- All bill views, sorting, and exports now support payment methods
+- 12 payment methods supported: auto-pay, manual, credit card, bank transfer, check, cash, PayPal, Venmo, Zelle, Apple Pay, Google Pay, other
 - See README for usage details

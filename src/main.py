@@ -250,6 +250,8 @@ def initialize_database():
             login_info TEXT,
             password TEXT,
             paid INTEGER DEFAULT 0,
+            category TEXT,
+            payment_method TEXT,
             company_email TEXT,
             support_phone TEXT,
             billing_phone TEXT,
@@ -282,6 +284,19 @@ def initialize_database():
             mobile_app TEXT
         )
     ''')
+    
+    # Add missing columns if they don't exist (for existing databases)
+    try:
+        cursor.execute('ALTER TABLE bills ADD COLUMN category TEXT')
+        info_msg("Added category column to bills table")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    try:
+        cursor.execute('ALTER TABLE bills ADD COLUMN payment_method TEXT')
+        info_msg("Added payment_method column to bills table")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     conn.commit()
     conn.close()
@@ -575,10 +590,10 @@ def save_bills():
             cursor.execute('''
                 INSERT INTO bills (
                     name, due_date, billing_cycle, reminder_days, web_page,
-                    login_info, password, paid, company_email, support_phone,
-                    billing_phone, customer_service_hours, account_number,
-                    reference_id, support_chat_url, mobile_app
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    login_info, password, paid, category, payment_method,
+                    company_email, support_phone, billing_phone, customer_service_hours,
+                    account_number, reference_id, support_chat_url, mobile_app
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 bill.get('name', ''),
                 bill.get('due_date', ''),
@@ -588,6 +603,8 @@ def save_bills():
                 bill.get('login_info', ''),
                 bill.get('password', ''),
                 1 if bill.get('paid', False) else 0,
+                bill.get('category', 'other'),
+                bill.get('payment_method', 'manual'),
                 bill.get('company_email', ''),
                 bill.get('support_phone', ''),
                 bill.get('billing_phone', ''),
@@ -1080,6 +1097,122 @@ def get_bill_category_color(category):
     }
     return color_map.get(category, Colors.RESET)
 
+# 6.3 Payment method constants and functions
+class PaymentMethod:
+    """Payment method constants and utilities."""
+    AUTO_PAY = "auto_pay"
+    MANUAL = "manual"
+    CREDIT_CARD = "credit_card"
+    BANK_TRANSFER = "bank_transfer"
+    CHECK = "check"
+    CASH = "cash"
+    PAYPAL = "paypal"
+    VENMO = "venmo"
+    ZELLE = "zelle"
+    APPLE_PAY = "apple_pay"
+    GOOGLE_PAY = "google_pay"
+    OTHER = "other"
+    
+    @staticmethod
+    def get_all_methods():
+        return [
+            PaymentMethod.AUTO_PAY,
+            PaymentMethod.MANUAL,
+            PaymentMethod.CREDIT_CARD,
+            PaymentMethod.BANK_TRANSFER,
+            PaymentMethod.CHECK,
+            PaymentMethod.CASH,
+            PaymentMethod.PAYPAL,
+            PaymentMethod.VENMO,
+            PaymentMethod.ZELLE,
+            PaymentMethod.APPLE_PAY,
+            PaymentMethod.GOOGLE_PAY,
+            PaymentMethod.OTHER
+        ]
+    
+    @staticmethod
+    def get_method_description(method):
+        descriptions = {
+            PaymentMethod.AUTO_PAY: "Automatic payment from bank account or credit card",
+            PaymentMethod.MANUAL: "Manual payment through website or app",
+            PaymentMethod.CREDIT_CARD: "Payment using credit or debit card",
+            PaymentMethod.BANK_TRANSFER: "Direct bank transfer or ACH payment",
+            PaymentMethod.CHECK: "Payment by physical check or money order",
+            PaymentMethod.CASH: "Cash payment (in-person or deposit)",
+            PaymentMethod.PAYPAL: "Payment through PayPal service",
+            PaymentMethod.VENMO: "Payment through Venmo app",
+            PaymentMethod.ZELLE: "Payment through Zelle service",
+            PaymentMethod.APPLE_PAY: "Payment using Apple Pay",
+            PaymentMethod.GOOGLE_PAY: "Payment using Google Pay",
+            PaymentMethod.OTHER: "Other payment methods not listed"
+        }
+        return descriptions.get(method, "Unknown payment method")
+    
+    @staticmethod
+    def get_method_icon(method):
+        """Get emoji icon for payment method display."""
+        icons = {
+            PaymentMethod.AUTO_PAY: "🤖",
+            PaymentMethod.MANUAL: "👆",
+            PaymentMethod.CREDIT_CARD: "💳",
+            PaymentMethod.BANK_TRANSFER: "🏦",
+            PaymentMethod.CHECK: "📄",
+            PaymentMethod.CASH: "💵",
+            PaymentMethod.PAYPAL: "🔵",
+            PaymentMethod.VENMO: "💙",
+            PaymentMethod.ZELLE: "💚",
+            PaymentMethod.APPLE_PAY: "🍎",
+            PaymentMethod.GOOGLE_PAY: "🔴",
+            PaymentMethod.OTHER: "💸"
+        }
+        return icons.get(method, "💰")
+
+def get_payment_method():
+    """Get payment method from user input."""
+    print("\n--- Select Payment Method ---")
+    methods = PaymentMethod.get_all_methods()
+    
+    for idx, method in enumerate(methods, 1):
+        icon = PaymentMethod.get_method_icon(method)
+        description = PaymentMethod.get_method_description(method)
+        print(f"{idx}. {icon} {method.replace('_', ' ').title()} - {description}")
+    
+    while True:
+        try:
+            choice = colored_input(f"\nChoose payment method (1-{len(methods)}) or 'cancel': ", Colors.PROMPT).strip()
+            
+            if choice.lower() == 'cancel':
+                return None
+            
+            choice_num = int(choice)
+            if 1 <= choice_num <= len(methods):
+                selected_method = methods[choice_num - 1]
+                icon = PaymentMethod.get_method_icon(selected_method)
+                success_msg(f"Selected: {icon} {selected_method.replace('_', ' ').title()}")
+                return selected_method
+            else:
+                error_msg(f"Please choose a number between 1 and {len(methods)}")
+        except ValueError:
+            error_msg("Please enter a valid number or 'cancel'")
+
+def get_payment_method_color(method):
+    """Get color for payment method display."""
+    color_map = {
+        PaymentMethod.AUTO_PAY: Colors.SUCCESS,
+        PaymentMethod.MANUAL: Colors.WARNING,
+        PaymentMethod.CREDIT_CARD: Colors.INFO,
+        PaymentMethod.BANK_TRANSFER: Colors.MENU,
+        PaymentMethod.CHECK: Colors.TITLE,
+        PaymentMethod.CASH: Colors.ERROR,
+        PaymentMethod.PAYPAL: Colors.INFO,
+        PaymentMethod.VENMO: Colors.MENU,
+        PaymentMethod.ZELLE: Colors.SUCCESS,
+        PaymentMethod.APPLE_PAY: Colors.TITLE,
+        PaymentMethod.GOOGLE_PAY: Colors.ERROR,
+        PaymentMethod.OTHER: Colors.WARNING
+    }
+    return color_map.get(method, Colors.RESET)
+
 # 7. Core bill management functions
 def add_bill():
     """Add a new bill with colored feedback and auto-complete assistance."""
@@ -1130,6 +1263,12 @@ def add_bill():
     # Get bill category
     category = get_bill_category()
     if category is None:
+        warning_msg("Bill addition cancelled.")
+        return
+    
+    # Get payment method
+    payment_method = get_payment_method()
+    if payment_method is None:
         warning_msg("Bill addition cancelled.")
         return
     
@@ -1209,6 +1348,7 @@ def add_bill():
         "paid": False,
         "billing_cycle": billing_cycle,
         "category": category,
+        "payment_method": payment_method,
         "reminder_days": reminder_days,
         # Contact information
         "company_email": company_email,
@@ -1227,6 +1367,10 @@ def add_bill():
         error_msg(f"Bill validation failed: {error_msg_text}")
         warning_msg("Bill addition cancelled due to validation errors.")
         return
+    
+    # Preserve category and payment_method fields that might be removed by validator
+    cleaned_data['category'] = category
+    cleaned_data['payment_method'] = payment_method
     
     # Add validated bill to list
     bills.append(cleaned_data)
@@ -1254,8 +1398,9 @@ def display_menu():
     print(f"{Colors.MENU}12.{Colors.RESET} 🔍 Data Integrity Check")
     print(f"{Colors.MENU}13.{Colors.RESET} 🗜️  Data Compression")
     print(f"{Colors.MENU}14.{Colors.RESET} 🏷️  Bill Categories")
-    print(f"{Colors.MENU}15.{Colors.RESET} 📖 Help")
-    print(f"{Colors.MENU}16.{Colors.RESET} 🚪 Exit")
+    print(f"{Colors.MENU}15.{Colors.RESET} 💳 Payment Methods")
+    print(f"{Colors.MENU}16.{Colors.RESET} 📖 Help")
+    print(f"{Colors.MENU}17.{Colors.RESET} 🚪 Exit")
     print(Colors.MENU + "="*40 + Colors.RESET)
 
 def view_bills():
@@ -1302,11 +1447,18 @@ def view_bills():
         print(f"    Cycle: {cycle_color}{cycle.title()}{Colors.RESET}")
         
         # Show category
-        category = bill.get('category', 'other')
+        category = bill.get('category') or 'other'  # Handle None values
         category_icon = BillCategory.get_category_icon(category)
         category_color = get_bill_category_color(category)
         category_display = category.replace('_', ' ').title()
         print(f"    Category: {category_color}{category_icon} {category_display}{Colors.RESET}")
+        
+        # Show payment method
+        payment_method = bill.get('payment_method') or 'manual'  # Handle None values
+        payment_icon = PaymentMethod.get_method_icon(payment_method)
+        payment_color = get_payment_method_color(payment_method)
+        payment_display = payment_method.replace('_', ' ').title()
+        print(f"    Payment: {payment_color}{payment_icon} {payment_display}{Colors.RESET}")
         
         # Show reminder period
         reminder_days = bill.get('reminder_days', 7)
@@ -2610,11 +2762,12 @@ def main():
     load_bills()
     migrate_bills_to_billing_cycles()
     migrate_bills_to_categories()
+    migrate_bills_to_payment_methods()
     load_templates()
 
     while True:
         display_menu()
-        choice = colored_input("Choose an option (1-15): ", Colors.PROMPT).strip()
+        choice = colored_input("Choose an option (1-17): ", Colors.PROMPT).strip()
         
         if choice == '1':
             clear_console()
@@ -2665,12 +2818,15 @@ def main():
             bill_categories_menu()
         elif choice == '15':
             clear_console()
-            show_help_menu()
+            payment_methods_menu()
         elif choice == '16':
+            clear_console()
+            show_help_menu()
+        elif choice == '17':
             success_msg("Thank you for using Bills Tracker! 👋")
             break
         else:
-            error_msg("Invalid option. Please choose 1-16.")
+            error_msg("Invalid option. Please choose 1-17.")
             colored_input("Press Enter to continue...", Colors.WARNING)
 
 def bill_categories_menu():
@@ -2951,6 +3107,294 @@ def show_category_summary():
         category_display = category.replace('_', ' ').title()
         description = BillCategory.get_category_description(category)
         print(f"{color}{icon} {category_display}{Colors.RESET}: {description}")
+    
+    colored_input("\nPress Enter to continue...", Colors.INFO)
+
+def payment_methods_menu():
+    """Display payment methods menu."""
+    while True:
+        clear_console()
+        title_msg("💳 Payment Methods")
+        print("=" * 50)
+        
+        print(f"{Colors.MENU}1.{Colors.RESET} 📊 View bills by payment method")
+        print(f"{Colors.MENU}2.{Colors.RESET} 🔄 Sort bills by payment method")
+        print(f"{Colors.MENU}3.{Colors.RESET} 📈 Payment method statistics")
+        print(f"{Colors.MENU}4.{Colors.RESET} 🔍 Search bills by payment method")
+        print(f"{Colors.MENU}5.{Colors.RESET} 📋 Payment method summary")
+        print(f"{Colors.MENU}6.{Colors.RESET} 🚪 Back to main menu")
+        
+        choice = colored_input("\nChoose option (1-6): ", Colors.PROMPT).strip()
+        
+        if choice == '1':
+            clear_console()
+            view_bills_by_payment_method()
+        elif choice == '2':
+            clear_console()
+            sort_bills_by_payment_method()
+        elif choice == '3':
+            clear_console()
+            show_payment_method_statistics()
+        elif choice == '4':
+            clear_console()
+            search_bills_by_payment_method()
+        elif choice == '5':
+            clear_console()
+            show_payment_method_summary()
+        elif choice == '6':
+            break
+        else:
+            error_msg("Invalid option. Please choose 1-6.")
+            colored_input("Press Enter to continue...", Colors.WARNING)
+
+def view_bills_by_payment_method():
+    """View bills grouped by payment method."""
+    title_msg("📊 Bills by Payment Method")
+    print("=" * 40)
+    
+    if not bills:
+        warning_msg("No bills found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Group bills by payment method
+    bills_by_method = {}
+    for bill in bills:
+        method = bill.get('payment_method', 'manual')
+        if method not in bills_by_method:
+            bills_by_method[method] = []
+        bills_by_method[method].append(bill)
+    
+    # Display bills by payment method
+    for method in sorted(bills_by_method.keys()):
+        method_bills = bills_by_method[method]
+        icon = PaymentMethod.get_method_icon(method)
+        color = get_payment_method_color(method)
+        method_display = method.replace('_', ' ').title()
+        
+        print(f"\n{color}{icon} {method_display} ({len(method_bills)} bills){Colors.RESET}")
+        print("-" * 40)
+        
+        for idx, bill in enumerate(method_bills, 1):
+            status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+            status_color = Colors.PAID if bill.get('paid', False) else Colors.UNPAID
+            print(f"{idx:2}. {Colors.TITLE}{bill['name']}{Colors.RESET} [{status_color}{status}{Colors.RESET}]")
+            print(f"    Due: {Colors.INFO}{bill['due_date']}{Colors.RESET}")
+    
+    colored_input("\nPress Enter to continue...", Colors.INFO)
+
+def sort_bills_by_payment_method():
+    """Sort bills by payment method."""
+    title_msg("🔄 Sort Bills by Payment Method")
+    print("=" * 40)
+    
+    if not bills:
+        warning_msg("No bills found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Sort bills by payment method
+    sorted_bills = sorted(bills, key=lambda x: x.get('payment_method', 'manual'))
+    
+    print(f"{Colors.INFO}Sorted {len(sorted_bills)} bills by payment method:{Colors.RESET}\n")
+    
+    current_method = None
+    for bill in sorted_bills:
+        method = bill.get('payment_method', 'manual')
+        
+        if method != current_method:
+            current_method = method
+            icon = PaymentMethod.get_method_icon(method)
+            color = get_payment_method_color(method)
+            method_display = method.replace('_', ' ').title()
+            print(f"\n{color}{icon} {method_display}{Colors.RESET}")
+            print("-" * 30)
+        
+        status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+        status_color = Colors.PAID if bill.get('paid', False) else Colors.UNPAID
+        print(f"  {Colors.TITLE}{bill['name']}{Colors.RESET} [{status_color}{status}{Colors.RESET}] - {Colors.INFO}{bill['due_date']}{Colors.RESET}")
+    
+    colored_input("\nPress Enter to continue...", Colors.INFO)
+
+def show_payment_method_statistics():
+    """Show statistics for each payment method."""
+    title_msg("📈 Payment Method Statistics")
+    print("=" * 40)
+    
+    if not bills:
+        warning_msg("No bills found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Calculate statistics by payment method
+    method_stats = {}
+    for bill in bills:
+        method = bill.get('payment_method', 'manual')
+        if method not in method_stats:
+            method_stats[method] = {
+                'total': 0,
+                'paid': 0,
+                'unpaid': 0,
+                'overdue': 0
+            }
+        
+        method_stats[method]['total'] += 1
+        if bill.get('paid', False):
+            method_stats[method]['paid'] += 1
+        else:
+            method_stats[method]['unpaid'] += 1
+            
+            # Check if overdue
+            try:
+                due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
+                if due_date < datetime.now():
+                    method_stats[method]['overdue'] += 1
+            except ValueError:
+                pass
+    
+    # Display statistics
+    print(f"{Colors.INFO}Payment Method Statistics:{Colors.RESET}\n")
+    
+    for method in sorted(method_stats.keys()):
+        stats = method_stats[method]
+        icon = PaymentMethod.get_method_icon(method)
+        color = get_payment_method_color(method)
+        method_display = method.replace('_', ' ').title()
+        
+        print(f"{color}{icon} {method_display}{Colors.RESET}")
+        print(f"  Total bills: {stats['total']}")
+        print(f"  Paid: {Colors.PAID}{stats['paid']}{Colors.RESET}")
+        print(f"  Unpaid: {Colors.UNPAID}{stats['unpaid']}{Colors.RESET}")
+        if stats['overdue'] > 0:
+            print(f"  Overdue: {Colors.ERROR}{stats['overdue']}{Colors.RESET}")
+        
+        # Calculate percentages
+        if stats['total'] > 0:
+            paid_pct = (stats['paid'] / stats['total']) * 100
+            print(f"  Paid percentage: {Colors.PAID}{paid_pct:.1f}%{Colors.RESET}")
+        print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def search_bills_by_payment_method():
+    """Search bills by payment method."""
+    title_msg("🔍 Search Bills by Payment Method")
+    print("=" * 40)
+    
+    if not bills:
+        warning_msg("No bills found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Show available payment methods
+    print(f"{Colors.INFO}Available payment methods:{Colors.RESET}")
+    methods = PaymentMethod.get_all_methods()
+    
+    for idx, method in enumerate(methods, 1):
+        icon = PaymentMethod.get_method_icon(method)
+        color = get_payment_method_color(method)
+        method_display = method.replace('_', ' ').title()
+        description = PaymentMethod.get_method_description(method)
+        print(f"{idx:2}. {color}{icon} {method_display}{Colors.RESET} - {description}")
+    
+    # Get method choice
+    while True:
+        try:
+            choice = colored_input(f"\nChoose payment method (1-{len(methods)}) or 'cancel': ", Colors.PROMPT).strip()
+            
+            if choice.lower() == 'cancel':
+                return
+            
+            choice_num = int(choice)
+            if 1 <= choice_num <= len(methods):
+                selected_method = methods[choice_num - 1]
+                break
+            else:
+                error_msg(f"Please choose a number between 1 and {len(methods)}")
+        except ValueError:
+            error_msg("Please enter a valid number or 'cancel'")
+    
+    # Filter bills by payment method
+    filtered_bills = [bill for bill in bills if bill.get('payment_method', 'manual') == selected_method]
+    
+    if not filtered_bills:
+        icon = PaymentMethod.get_method_icon(selected_method)
+        method_display = selected_method.replace('_', ' ').title()
+        warning_msg(f"No bills found with payment method: {icon} {method_display}")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Display filtered bills
+    icon = PaymentMethod.get_method_icon(selected_method)
+    color = get_payment_method_color(selected_method)
+    method_display = selected_method.replace('_', ' ').title()
+    
+    print(f"\n{color}{icon} {method_display} ({len(filtered_bills)} bills){Colors.RESET}")
+    print("-" * 50)
+    
+    for idx, bill in enumerate(filtered_bills, 1):
+        status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+        status_color = Colors.PAID if bill.get('paid', False) else Colors.UNPAID
+        
+        print(f"{idx:2}. {Colors.TITLE}{bill['name']}{Colors.RESET} [{status_color}{status}{Colors.RESET}]")
+        print(f"    Due: {Colors.INFO}{bill['due_date']}{Colors.RESET}")
+        
+        # Show billing cycle
+        cycle = bill.get('billing_cycle', 'monthly')
+        cycle_color = get_billing_cycle_color(cycle)
+        print(f"    Cycle: {cycle_color}{cycle.title()}{Colors.RESET}")
+        
+        # Show category
+        category = bill.get('category', 'other')
+        category_icon = BillCategory.get_category_icon(category)
+        category_color = get_bill_category_color(category)
+        category_display = category.replace('_', ' ').title()
+        print(f"    Category: {category_color}{category_icon} {category_display}{Colors.RESET}")
+        
+        # Show reminder days
+        reminder_days = bill.get('reminder_days', 7)
+        print(f"    Reminder: {reminder_days} days before due")
+        print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def show_payment_method_summary():
+    """Show a summary of all payment methods."""
+    title_msg("📋 Payment Method Summary")
+    print("=" * 40)
+    
+    if not bills:
+        warning_msg("No bills found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Count bills by payment method
+    method_counts = {}
+    for bill in bills:
+        method = bill.get('payment_method', 'manual')
+        method_counts[method] = method_counts.get(method, 0) + 1
+    
+    # Display summary
+    print(f"{Colors.INFO}Payment Method Summary ({len(bills)} total bills):{Colors.RESET}\n")
+    
+    # Sort by count (descending)
+    sorted_methods = sorted(method_counts.items(), key=lambda x: x[1], reverse=True)
+    
+    for method, count in sorted_methods:
+        icon = PaymentMethod.get_method_icon(method)
+        color = get_payment_method_color(method)
+        method_display = method.replace('_', ' ').title()
+        percentage = (count / len(bills)) * 100
+        
+        print(f"{color}{icon} {method_display}{Colors.RESET}: {count} bills ({percentage:.1f}%)")
+    
+    print(f"\n{Colors.INFO}Payment method descriptions:{Colors.RESET}")
+    for method in PaymentMethod.get_all_methods():
+        icon = PaymentMethod.get_method_icon(method)
+        color = get_payment_method_color(method)
+        method_display = method.replace('_', ' ').title()
+        description = PaymentMethod.get_method_description(method)
+        print(f"{color}{icon} {method_display}{Colors.RESET}: {description}")
     
     colored_input("\nPress Enter to continue...", Colors.INFO)
 
@@ -3680,10 +4124,12 @@ def sort_bills():
     print("6. ✅ Sort by payment status (paid first)")
     print("7. 🏷️ Sort by category (A-Z)")
     print("8. 🏷️ Sort by category (Z-A)")
-    print("9. 🔄 Reset to original order")
-    print("10. 🚪 Back to main menu")
+    print("9. 💳 Sort by payment method (A-Z)")
+    print("10. 💳 Sort by payment method (Z-A)")
+    print("11. 🔄 Reset to original order")
+    print("12. 🚪 Back to main menu")
     
-    choice = input("\nChoose sort option (1-10): ").strip()
+    choice = input("\nChoose sort option (1-12): ").strip()
     
     if choice == '1':
         sort_by_due_date_asc()
@@ -3702,11 +4148,15 @@ def sort_bills():
     elif choice == '8':
         sort_by_category_desc()
     elif choice == '9':
-        reset_bill_order()
+        sort_by_payment_method_asc()
     elif choice == '10':
+        sort_by_payment_method_desc()
+    elif choice == '11':
+        reset_bill_order()
+    elif choice == '12':
         return
     else:
-        error_msg("Invalid option. Please choose 1-10.")
+        error_msg("Invalid option. Please choose 1-12.")
         input("Press Enter to continue...")
         sort_bills()
 
@@ -3774,6 +4224,20 @@ def sort_by_category_desc():
     success_msg("Bills sorted by category (Z-A)")
     display_sorted_bills("Bills Sorted by Category (Z-A)")
 
+def sort_by_payment_method_asc():
+    """Sort bills by payment method (A-Z)."""
+    global bills
+    bills.sort(key=lambda bill: bill.get('payment_method', 'manual'))
+    success_msg("Bills sorted by payment method (A-Z)")
+    display_sorted_bills("Bills Sorted by Payment Method (A-Z)")
+
+def sort_by_payment_method_desc():
+    """Sort bills by payment method (Z-A)."""
+    global bills
+    bills.sort(key=lambda bill: bill.get('payment_method', 'manual'), reverse=True)
+    success_msg("Bills sorted by payment method (Z-A)")
+    display_sorted_bills("Bills Sorted by Payment Method (Z-A)")
+
 def reset_bill_order():
     """Reset bills to original order (reload from file)."""
     global bills
@@ -3820,6 +4284,13 @@ def display_sorted_bills(title):
         category_display = category.replace('_', ' ').title()
         print(f"    Category: {category_color}{category_icon} {category_display}{Colors.RESET}")
         
+        # Show payment method
+        payment_method = bill.get('payment_method', 'manual')
+        payment_icon = PaymentMethod.get_method_icon(payment_method)
+        payment_color = get_payment_method_color(payment_method)
+        payment_display = payment_method.replace('_', ' ').title()
+        print(f"    Payment: {payment_color}{payment_icon} {payment_display}{Colors.RESET}")
+        
         if bill.get('web_page'):
             print(f"    Website: {bill['web_page']}")
         print()
@@ -3858,15 +4329,43 @@ def migrate_bills_to_billing_cycles():
 
 def migrate_bills_to_categories():
     """Add category to existing bills that don't have it."""
-    migrated_count = 0
-    for bill in bills:
-        if 'category' not in bill:
-            bill['category'] = BillCategory.OTHER  # Default to other
-            migrated_count += 1
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Update bills that don't have a category
+    cursor.execute('''
+        UPDATE bills 
+        SET category = ? 
+        WHERE category IS NULL OR category = ''
+    ''', (BillCategory.OTHER,))
+    
+    migrated_count = cursor.rowcount
     
     if migrated_count > 0:
-        save_bills()
+        conn.commit()
         info_msg(f"Migrated {migrated_count} bills to include categories (defaulted to other)")
+    
+    conn.close()
+
+def migrate_bills_to_payment_methods():
+    """Add payment method to existing bills that don't have it."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Update bills that don't have a payment_method
+    cursor.execute('''
+        UPDATE bills 
+        SET payment_method = ? 
+        WHERE payment_method IS NULL OR payment_method = ''
+    ''', (PaymentMethod.MANUAL,))
+    
+    migrated_count = cursor.rowcount
+    
+    if migrated_count > 0:
+        conn.commit()
+        info_msg(f"Migrated {migrated_count} bills to include payment methods (defaulted to manual)")
+    
+    conn.close()
 
 def show_billing_cycle_summary():
     """Show a summary of bills by billing cycle."""

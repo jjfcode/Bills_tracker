@@ -16,6 +16,7 @@ A comprehensive command-line application for managing household bills with advan
 - **Session Timeout/Auto-Exit** - The app automatically exits after 15 minutes of inactivity for enhanced security (improved with input-based checking)
 - **🗜️ Data Compression** - Compress large datasets, backups, and exports to save space and optimize performance (GZIP, LZMA, ZLIB)
 - **Bill Categories** - Assign a category (utilities, subscriptions, loans, insurance, etc.) to each bill for better organization
+- **Payment Methods** - Track how bills are paid (auto-pay, manual, credit card, bank transfer, etc.) for payment pattern analysis
 
 ### Advanced Date Management
 - **🔄 Flexible Billing Cycles** - Support for weekly, bi-weekly, monthly, quarterly, semi-annual, annual, and one-time bills
@@ -253,6 +254,24 @@ See [docs/DATA_COMPRESSION_README.md](docs/DATA_COMPRESSION_README.md) for full 
 
 **Example Categories:**
 - Utilities, Subscriptions, Loans, Insurance, Credit Cards, Rent/Mortgage, Entertainment, Transportation, Healthcare, Education, Business, Other
+
+### Payment Methods
+
+- **Assign Payment Methods**: When adding or editing a bill, select a payment method (auto-pay, manual, credit card, bank transfer, check, cash, PayPal, Venmo, Zelle, Apple Pay, Google Pay, other)
+- **View by Payment Method**: Use the "Payment Methods" menu to view bills grouped by payment method
+- **Sort by Payment Method**: Sort bills A-Z or Z-A by payment method from the sort menu or Payment Methods menu
+- **Search by Payment Method**: Find all bills using a specific payment method
+- **Payment Method Statistics**: See totals, paid/unpaid/overdue counts, and percentages for each payment method
+- **Payment Method Summary**: Quick overview of all payment methods and their descriptions
+- **Auto-Migration**: Existing bills are automatically assigned a default payment method ("manual") if missing
+
+**Menu Integration:**
+- Main menu option: "Payment Methods" (view, sort, search, stats)
+- Payment method selection is part of bill creation and editing
+- All bill views and exports now display payment method information
+
+**Example Payment Methods:**
+- Auto-Pay, Manual, Credit Card, Bank Transfer, Check, Cash, PayPal, Venmo, Zelle, Apple Pay, Google Pay, Other
 
 ## 📂 File Structure
 
@@ -765,9 +784,13 @@ This project is open source and available under the [MIT License](LICENSE).
 - ✅ JSON data persistence
 - ✅ Due bill notifications
 - ✅ Console-based interface
+- ✅ Payment method tracking
 
 ### v3.4 (July 2025)
 - **Bill Categories**: Organize, view, sort, and search bills by category. New menu for category management and statistics. All bills now have a category field.
+
+### v3.5 (July 2025)
+- **Payment Methods**: Track, view, sort, and search bills by payment method. New menu for payment method management and statistics. All bills now have a payment method field. 12 payment methods supported including auto-pay, manual, credit card, bank transfer, digital wallets, and more.
 
 ## 🏆 Feature Comparison
 
