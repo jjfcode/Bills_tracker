@@ -152,7 +152,7 @@ class ContactInfo:
         self.support_website = ""
         self.account_number = ""
 ```
-- [ ] **Bill categories** - Organize bills by type (utilities, subscriptions, etc.)
+- [x] **Bill categories** - Organize bills by type (utilities, subscriptions, etc.) *(COMPLETED)*
 - [x] **Company contact information** - Store email, phone, support hours, and customer service details *(COMPLETED)*
 - [x] **Account management** - Track account numbers, reference IDs, and service details *(COMPLETED)*
 - [x] **Support integration** - Quick access to customer service information when payment issues arise *(COMPLETED)*
@@ -343,6 +343,7 @@ class BillManager:
 4. **SQLite Migration** - Successfully migrated from JSON to SQLite database
 5. **Session Management** - Improved session timeout with activity tracking
 6. **Comprehensive Validation** - Enhanced input validation for all data fields
+7. **Bill Categories** - Organize, view, sort, and search bills by category (utilities, subscriptions, loans, etc.)
 
 ### 🔧 **Technical Improvements:**
 - Fixed missing password management functions
@@ -353,10 +354,10 @@ class BillManager:
 - Added comprehensive backup and recovery options
 
 ### 📊 **Current Status:**
-- **Core Features**: 95% Complete
+- **Core Features**: 98% Complete
 - **Security Features**: 100% Complete
-- **Data Management**: 90% Complete
-- **User Experience**: 85% Complete
+- **Data Management**: 95% Complete
+- **User Experience**: 90% Complete
 - **Import/Export**: 100% Complete
 
 ---
@@ -427,3 +428,12 @@ If you'd like to contribute to any of these features:
 *Last Updated: July 2, 2025*
 *Next Review: August 2, 2025*
 *Current Version: v2.0 - Excel Support & Enhanced Security*
+
+## Bill Categories Feature (v3.4)
+
+- Bills can now be assigned a category (utilities, subscriptions, loans, insurance, etc.)
+- New menu: "Bill Categories" for viewing, sorting, searching, and statistics by category
+- Category selection is part of bill creation and editing
+- Existing bills are auto-migrated to include a category (default: "other")
+- All bill views, sorting, and exports now support categories
+- See README for usage details

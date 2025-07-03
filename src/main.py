@@ -964,6 +964,122 @@ def get_billing_cycle_color(cycle):
     }
     return color_map.get(cycle, Colors.RESET)
 
+# 6.2 Bill category constants and functions
+class BillCategory:
+    """Bill category constants and utilities."""
+    UTILITIES = "utilities"
+    SUBSCRIPTIONS = "subscriptions"
+    LOANS = "loans"
+    INSURANCE = "insurance"
+    CREDIT_CARDS = "credit_cards"
+    RENT_MORTGAGE = "rent_mortgage"
+    ENTERTAINMENT = "entertainment"
+    TRANSPORTATION = "transportation"
+    HEALTHCARE = "healthcare"
+    EDUCATION = "education"
+    BUSINESS = "business"
+    OTHER = "other"
+    
+    @staticmethod
+    def get_all_categories():
+        return [
+            BillCategory.UTILITIES,
+            BillCategory.SUBSCRIPTIONS,
+            BillCategory.LOANS,
+            BillCategory.INSURANCE,
+            BillCategory.CREDIT_CARDS,
+            BillCategory.RENT_MORTGAGE,
+            BillCategory.ENTERTAINMENT,
+            BillCategory.TRANSPORTATION,
+            BillCategory.HEALTHCARE,
+            BillCategory.EDUCATION,
+            BillCategory.BUSINESS,
+            BillCategory.OTHER
+        ]
+    
+    @staticmethod
+    def get_category_description(category):
+        descriptions = {
+            BillCategory.UTILITIES: "Electricity, water, gas, internet, phone",
+            BillCategory.SUBSCRIPTIONS: "Streaming services, software, memberships",
+            BillCategory.LOANS: "Personal loans, student loans, car loans",
+            BillCategory.INSURANCE: "Health, auto, home, life insurance",
+            BillCategory.CREDIT_CARDS: "Credit card payments",
+            BillCategory.RENT_MORTGAGE: "Rent, mortgage, property taxes",
+            BillCategory.ENTERTAINMENT: "Gym, hobbies, dining, events",
+            BillCategory.TRANSPORTATION: "Car payments, fuel, public transit",
+            BillCategory.HEALTHCARE: "Medical bills, prescriptions, dental",
+            BillCategory.EDUCATION: "Tuition, books, training courses",
+            BillCategory.BUSINESS: "Business expenses, professional services",
+            BillCategory.OTHER: "Miscellaneous bills and expenses"
+        }
+        return descriptions.get(category, "Unknown category")
+    
+    @staticmethod
+    def get_category_icon(category):
+        """Get emoji icon for category display."""
+        icons = {
+            BillCategory.UTILITIES: "⚡",
+            BillCategory.SUBSCRIPTIONS: "📺",
+            BillCategory.LOANS: "💰",
+            BillCategory.INSURANCE: "🛡️",
+            BillCategory.CREDIT_CARDS: "💳",
+            BillCategory.RENT_MORTGAGE: "🏠",
+            BillCategory.ENTERTAINMENT: "🎮",
+            BillCategory.TRANSPORTATION: "🚗",
+            BillCategory.HEALTHCARE: "🏥",
+            BillCategory.EDUCATION: "📚",
+            BillCategory.BUSINESS: "💼",
+            BillCategory.OTHER: "📋"
+        }
+        return icons.get(category, "📄")
+
+def get_bill_category():
+    """Get bill category from user input."""
+    print("\n--- Select Bill Category ---")
+    categories = BillCategory.get_all_categories()
+    
+    for idx, category in enumerate(categories, 1):
+        icon = BillCategory.get_category_icon(category)
+        description = BillCategory.get_category_description(category)
+        print(f"{idx}. {icon} {category.replace('_', ' ').title()} - {description}")
+    
+    while True:
+        try:
+            choice = colored_input(f"\nChoose bill category (1-{len(categories)}) or 'cancel': ", Colors.PROMPT).strip()
+            
+            if choice.lower() == 'cancel':
+                return None
+            
+            choice_num = int(choice)
+            if 1 <= choice_num <= len(categories):
+                selected_category = categories[choice_num - 1]
+                icon = BillCategory.get_category_icon(selected_category)
+                success_msg(f"Selected: {icon} {selected_category.replace('_', ' ').title()}")
+                return selected_category
+            else:
+                error_msg(f"Please choose a number between 1 and {len(categories)}")
+        except ValueError:
+            error_msg("Please enter a valid number or 'cancel'")
+
+def get_bill_category_color(category):
+    """Get color for bill category display."""
+    color_map = {
+        BillCategory.UTILITIES: Colors.INFO,
+        BillCategory.SUBSCRIPTIONS: Colors.MENU,
+        BillCategory.LOANS: Colors.ERROR,
+        BillCategory.INSURANCE: Colors.SUCCESS,
+        BillCategory.CREDIT_CARDS: Colors.WARNING,
+        BillCategory.RENT_MORTGAGE: Colors.TITLE,
+        BillCategory.ENTERTAINMENT: Colors.MENU,
+        BillCategory.TRANSPORTATION: Colors.INFO,
+        BillCategory.HEALTHCARE: Colors.ERROR,
+        BillCategory.EDUCATION: Colors.SUCCESS,
+        BillCategory.BUSINESS: Colors.TITLE,
+        BillCategory.OTHER: Colors.WARNING
+    }
+    return color_map.get(category, Colors.RESET)
+
 # 7. Core bill management functions
 def add_bill():
     """Add a new bill with colored feedback and auto-complete assistance."""
@@ -1008,6 +1124,12 @@ def add_bill():
     # Get billing cycle
     billing_cycle = get_billing_cycle()
     if billing_cycle is None:
+        warning_msg("Bill addition cancelled.")
+        return
+    
+    # Get bill category
+    category = get_bill_category()
+    if category is None:
         warning_msg("Bill addition cancelled.")
         return
     
@@ -1086,6 +1208,7 @@ def add_bill():
         "password": password,
         "paid": False,
         "billing_cycle": billing_cycle,
+        "category": category,
         "reminder_days": reminder_days,
         # Contact information
         "company_email": company_email,
@@ -1130,8 +1253,9 @@ def display_menu():
     print(f"{Colors.MENU}11.{Colors.RESET} 🔐 Password Management")
     print(f"{Colors.MENU}12.{Colors.RESET} 🔍 Data Integrity Check")
     print(f"{Colors.MENU}13.{Colors.RESET} 🗜️  Data Compression")
-    print(f"{Colors.MENU}14.{Colors.RESET} 📖 Help")
-    print(f"{Colors.MENU}15.{Colors.RESET} 🚪 Exit")
+    print(f"{Colors.MENU}14.{Colors.RESET} 🏷️  Bill Categories")
+    print(f"{Colors.MENU}15.{Colors.RESET} 📖 Help")
+    print(f"{Colors.MENU}16.{Colors.RESET} 🚪 Exit")
     print(Colors.MENU + "="*40 + Colors.RESET)
 
 def view_bills():
@@ -1176,6 +1300,13 @@ def view_bills():
         cycle = bill.get('billing_cycle', 'monthly')
         cycle_color = get_billing_cycle_color(cycle)
         print(f"    Cycle: {cycle_color}{cycle.title()}{Colors.RESET}")
+        
+        # Show category
+        category = bill.get('category', 'other')
+        category_icon = BillCategory.get_category_icon(category)
+        category_color = get_bill_category_color(category)
+        category_display = category.replace('_', ' ').title()
+        print(f"    Category: {category_color}{category_icon} {category_display}{Colors.RESET}")
         
         # Show reminder period
         reminder_days = bill.get('reminder_days', 7)
@@ -2477,6 +2608,8 @@ def main():
     
     # Load existing bills and templates
     load_bills()
+    migrate_bills_to_billing_cycles()
+    migrate_bills_to_categories()
     load_templates()
 
     while True:
@@ -2529,13 +2662,297 @@ def main():
             data_compression_menu()
         elif choice == '14':
             clear_console()
-            show_help_menu()
+            bill_categories_menu()
         elif choice == '15':
+            clear_console()
+            show_help_menu()
+        elif choice == '16':
             success_msg("Thank you for using Bills Tracker! 👋")
             break
         else:
-            error_msg("Invalid option. Please choose 1-15.")
+            error_msg("Invalid option. Please choose 1-16.")
             colored_input("Press Enter to continue...", Colors.WARNING)
+
+def bill_categories_menu():
+    """Display bill categories menu."""
+    while True:
+        clear_console()
+        title_msg("🏷️ Bill Categories")
+        print("=" * 50)
+        
+        print(f"{Colors.MENU}1.{Colors.RESET} 📊 View bills by category")
+        print(f"{Colors.MENU}2.{Colors.RESET} 🔄 Sort bills by category")
+        print(f"{Colors.MENU}3.{Colors.RESET} 📈 Category statistics")
+        print(f"{Colors.MENU}4.{Colors.RESET} 🔍 Search bills by category")
+        print(f"{Colors.MENU}5.{Colors.RESET} 📋 Category summary")
+        print(f"{Colors.MENU}6.{Colors.RESET} 🚪 Back to main menu")
+        
+        choice = colored_input("\nChoose option (1-6): ", Colors.PROMPT).strip()
+        
+        if choice == '1':
+            clear_console()
+            view_bills_by_category()
+        elif choice == '2':
+            clear_console()
+            sort_bills_by_category()
+        elif choice == '3':
+            clear_console()
+            show_category_statistics()
+        elif choice == '4':
+            clear_console()
+            search_bills_by_category()
+        elif choice == '5':
+            clear_console()
+            show_category_summary()
+        elif choice == '6':
+            break
+        else:
+            error_msg("Invalid option. Please choose 1-6.")
+            colored_input("Press Enter to continue...", Colors.WARNING)
+
+def view_bills_by_category():
+    """View bills grouped by category."""
+    title_msg("📊 Bills by Category")
+    print("=" * 40)
+    
+    if not bills:
+        warning_msg("No bills found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Group bills by category
+    bills_by_category = {}
+    for bill in bills:
+        category = bill.get('category', 'other')
+        if category not in bills_by_category:
+            bills_by_category[category] = []
+        bills_by_category[category].append(bill)
+    
+    # Display bills by category
+    for category in sorted(bills_by_category.keys()):
+        category_bills = bills_by_category[category]
+        icon = BillCategory.get_category_icon(category)
+        color = get_bill_category_color(category)
+        category_display = category.replace('_', ' ').title()
+        
+        print(f"\n{color}{icon} {category_display} ({len(category_bills)} bills){Colors.RESET}")
+        print("-" * 40)
+        
+        for idx, bill in enumerate(category_bills, 1):
+            status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+            status_color = Colors.PAID if bill.get('paid', False) else Colors.UNPAID
+            print(f"{idx:2}. {Colors.TITLE}{bill['name']}{Colors.RESET} [{status_color}{status}{Colors.RESET}]")
+            print(f"    Due: {Colors.INFO}{bill['due_date']}{Colors.RESET}")
+    
+    colored_input("\nPress Enter to continue...", Colors.INFO)
+
+def sort_bills_by_category():
+    """Sort bills by category."""
+    title_msg("🔄 Sort Bills by Category")
+    print("=" * 40)
+    
+    if not bills:
+        warning_msg("No bills found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Sort bills by category
+    sorted_bills = sorted(bills, key=lambda x: x.get('category', 'other'))
+    
+    print(f"{Colors.INFO}Sorted {len(sorted_bills)} bills by category:{Colors.RESET}\n")
+    
+    current_category = None
+    for bill in sorted_bills:
+        category = bill.get('category', 'other')
+        
+        if category != current_category:
+            current_category = category
+            icon = BillCategory.get_category_icon(category)
+            color = get_bill_category_color(category)
+            category_display = category.replace('_', ' ').title()
+            print(f"\n{color}{icon} {category_display}{Colors.RESET}")
+            print("-" * 30)
+        
+        status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+        status_color = Colors.PAID if bill.get('paid', False) else Colors.UNPAID
+        print(f"  {Colors.TITLE}{bill['name']}{Colors.RESET} [{status_color}{status}{Colors.RESET}] - {Colors.INFO}{bill['due_date']}{Colors.RESET}")
+    
+    colored_input("\nPress Enter to continue...", Colors.INFO)
+
+def show_category_statistics():
+    """Show statistics for each category."""
+    title_msg("📈 Category Statistics")
+    print("=" * 40)
+    
+    if not bills:
+        warning_msg("No bills found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Calculate statistics by category
+    category_stats = {}
+    for bill in bills:
+        category = bill.get('category', 'other')
+        if category not in category_stats:
+            category_stats[category] = {
+                'total': 0,
+                'paid': 0,
+                'unpaid': 0,
+                'overdue': 0
+            }
+        
+        category_stats[category]['total'] += 1
+        if bill.get('paid', False):
+            category_stats[category]['paid'] += 1
+        else:
+            category_stats[category]['unpaid'] += 1
+            
+            # Check if overdue
+            try:
+                due_date = datetime.strptime(bill['due_date'], DATE_FORMAT)
+                if due_date < datetime.now():
+                    category_stats[category]['overdue'] += 1
+            except ValueError:
+                pass
+    
+    # Display statistics
+    print(f"{Colors.INFO}Category Statistics:{Colors.RESET}\n")
+    
+    for category in sorted(category_stats.keys()):
+        stats = category_stats[category]
+        icon = BillCategory.get_category_icon(category)
+        color = get_bill_category_color(category)
+        category_display = category.replace('_', ' ').title()
+        
+        print(f"{color}{icon} {category_display}{Colors.RESET}")
+        print(f"  Total bills: {stats['total']}")
+        print(f"  Paid: {Colors.PAID}{stats['paid']}{Colors.RESET}")
+        print(f"  Unpaid: {Colors.UNPAID}{stats['unpaid']}{Colors.RESET}")
+        if stats['overdue'] > 0:
+            print(f"  Overdue: {Colors.ERROR}{stats['overdue']}{Colors.RESET}")
+        
+        # Calculate percentages
+        if stats['total'] > 0:
+            paid_pct = (stats['paid'] / stats['total']) * 100
+            print(f"  Paid percentage: {Colors.PAID}{paid_pct:.1f}%{Colors.RESET}")
+        print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def search_bills_by_category():
+    """Search bills by category."""
+    title_msg("🔍 Search Bills by Category")
+    print("=" * 40)
+    
+    if not bills:
+        warning_msg("No bills found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Show available categories
+    print(f"{Colors.INFO}Available categories:{Colors.RESET}")
+    categories = BillCategory.get_all_categories()
+    
+    for idx, category in enumerate(categories, 1):
+        icon = BillCategory.get_category_icon(category)
+        color = get_bill_category_color(category)
+        category_display = category.replace('_', ' ').title()
+        description = BillCategory.get_category_description(category)
+        print(f"{idx:2}. {color}{icon} {category_display}{Colors.RESET} - {description}")
+    
+    # Get category choice
+    while True:
+        try:
+            choice = colored_input(f"\nChoose category (1-{len(categories)}) or 'cancel': ", Colors.PROMPT).strip()
+            
+            if choice.lower() == 'cancel':
+                return
+            
+            choice_num = int(choice)
+            if 1 <= choice_num <= len(categories):
+                selected_category = categories[choice_num - 1]
+                break
+            else:
+                error_msg(f"Please choose a number between 1 and {len(categories)}")
+        except ValueError:
+            error_msg("Please enter a valid number or 'cancel'")
+    
+    # Filter bills by category
+    filtered_bills = [bill for bill in bills if bill.get('category', 'other') == selected_category]
+    
+    if not filtered_bills:
+        icon = BillCategory.get_category_icon(selected_category)
+        category_display = selected_category.replace('_', ' ').title()
+        warning_msg(f"No bills found in category: {icon} {category_display}")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Display filtered bills
+    icon = BillCategory.get_category_icon(selected_category)
+    color = get_bill_category_color(selected_category)
+    category_display = selected_category.replace('_', ' ').title()
+    
+    print(f"\n{color}{icon} {category_display} ({len(filtered_bills)} bills){Colors.RESET}")
+    print("-" * 50)
+    
+    for idx, bill in enumerate(filtered_bills, 1):
+        status = "✓ Paid" if bill.get('paid', False) else "○ Unpaid"
+        status_color = Colors.PAID if bill.get('paid', False) else Colors.UNPAID
+        
+        print(f"{idx:2}. {Colors.TITLE}{bill['name']}{Colors.RESET} [{status_color}{status}{Colors.RESET}]")
+        print(f"    Due: {Colors.INFO}{bill['due_date']}{Colors.RESET}")
+        
+        # Show billing cycle
+        cycle = bill.get('billing_cycle', 'monthly')
+        cycle_color = get_billing_cycle_color(cycle)
+        print(f"    Cycle: {cycle_color}{cycle.title()}{Colors.RESET}")
+        
+        # Show reminder days
+        reminder_days = bill.get('reminder_days', 7)
+        print(f"    Reminder: {reminder_days} days before due")
+        print()
+    
+    colored_input("Press Enter to continue...", Colors.INFO)
+
+def show_category_summary():
+    """Show a summary of all categories."""
+    title_msg("📋 Category Summary")
+    print("=" * 40)
+    
+    if not bills:
+        warning_msg("No bills found.")
+        colored_input("Press Enter to continue...", Colors.INFO)
+        return
+    
+    # Count bills by category
+    category_counts = {}
+    for bill in bills:
+        category = bill.get('category', 'other')
+        category_counts[category] = category_counts.get(category, 0) + 1
+    
+    # Display summary
+    print(f"{Colors.INFO}Category Summary ({len(bills)} total bills):{Colors.RESET}\n")
+    
+    # Sort by count (descending)
+    sorted_categories = sorted(category_counts.items(), key=lambda x: x[1], reverse=True)
+    
+    for category, count in sorted_categories:
+        icon = BillCategory.get_category_icon(category)
+        color = get_bill_category_color(category)
+        category_display = category.replace('_', ' ').title()
+        percentage = (count / len(bills)) * 100
+        
+        print(f"{color}{icon} {category_display}{Colors.RESET}: {count} bills ({percentage:.1f}%)")
+    
+    print(f"\n{Colors.INFO}Category descriptions:{Colors.RESET}")
+    for category in BillCategory.get_all_categories():
+        icon = BillCategory.get_category_icon(category)
+        color = get_bill_category_color(category)
+        category_display = category.replace('_', ' ').title()
+        description = BillCategory.get_category_description(category)
+        print(f"{color}{icon} {category_display}{Colors.RESET}: {description}")
+    
+    colored_input("\nPress Enter to continue...", Colors.INFO)
 
 def data_compression_menu():
     """Display data compression menu."""
@@ -3261,10 +3678,12 @@ def sort_bills():
     print("4. 🔤 Sort by name (Z-A)")
     print("5. ✅ Sort by payment status (unpaid first)")
     print("6. ✅ Sort by payment status (paid first)")
-    print("7. 🔄 Reset to original order")
-    print("8. 🚪 Back to main menu")
+    print("7. 🏷️ Sort by category (A-Z)")
+    print("8. 🏷️ Sort by category (Z-A)")
+    print("9. 🔄 Reset to original order")
+    print("10. 🚪 Back to main menu")
     
-    choice = input("\nChoose sort option (1-8): ").strip()
+    choice = input("\nChoose sort option (1-10): ").strip()
     
     if choice == '1':
         sort_by_due_date_asc()
@@ -3279,11 +3698,15 @@ def sort_bills():
     elif choice == '6':
         sort_by_status_paid_first()
     elif choice == '7':
-        reset_bill_order()
+        sort_by_category_asc()
     elif choice == '8':
+        sort_by_category_desc()
+    elif choice == '9':
+        reset_bill_order()
+    elif choice == '10':
         return
     else:
-        error_msg("Invalid option. Please choose 1-8.")
+        error_msg("Invalid option. Please choose 1-10.")
         input("Press Enter to continue...")
         sort_bills()
 
@@ -3337,6 +3760,20 @@ def sort_by_status_paid_first():
     success_msg("Bills sorted by status (paid first)")
     display_sorted_bills("Bills Sorted by Status (Paid First)")
 
+def sort_by_category_asc():
+    """Sort bills by category (A-Z)."""
+    global bills
+    bills.sort(key=lambda bill: bill.get('category', 'other'))
+    success_msg("Bills sorted by category (A-Z)")
+    display_sorted_bills("Bills Sorted by Category (A-Z)")
+
+def sort_by_category_desc():
+    """Sort bills by category (Z-A)."""
+    global bills
+    bills.sort(key=lambda bill: bill.get('category', 'other'), reverse=True)
+    success_msg("Bills sorted by category (Z-A)")
+    display_sorted_bills("Bills Sorted by Category (Z-A)")
+
 def reset_bill_order():
     """Reset bills to original order (reload from file)."""
     global bills
@@ -3375,6 +3812,14 @@ def display_sorted_bills(title):
         
         print(f"{idx:2}. {bill['name']} [{status}]")
         print(f"    Due: {bill['due_date']} {date_info}")
+        
+        # Show category
+        category = bill.get('category', 'other')
+        category_icon = BillCategory.get_category_icon(category)
+        category_color = get_bill_category_color(category)
+        category_display = category.replace('_', ' ').title()
+        print(f"    Category: {category_color}{category_icon} {category_display}{Colors.RESET}")
+        
         if bill.get('web_page'):
             print(f"    Website: {bill['web_page']}")
         print()
@@ -3410,6 +3855,18 @@ def migrate_bills_to_billing_cycles():
     if migrated_count > 0:
         save_bills()
         info_msg(f"Migrated {migrated_count} bills to include billing cycles (defaulted to monthly)")
+
+def migrate_bills_to_categories():
+    """Add category to existing bills that don't have it."""
+    migrated_count = 0
+    for bill in bills:
+        if 'category' not in bill:
+            bill['category'] = BillCategory.OTHER  # Default to other
+            migrated_count += 1
+    
+    if migrated_count > 0:
+        save_bills()
+        info_msg(f"Migrated {migrated_count} bills to include categories (defaulted to other)")
 
 def show_billing_cycle_summary():
     """Show a summary of bills by billing cycle."""

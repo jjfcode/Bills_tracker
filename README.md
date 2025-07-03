@@ -15,6 +15,7 @@ A comprehensive command-line application for managing household bills with advan
 - **Master Password Protection** - Application access is protected by a master password with secure hash storage
 - **Session Timeout/Auto-Exit** - The app automatically exits after 15 minutes of inactivity for enhanced security (improved with input-based checking)
 - **🗜️ Data Compression** - Compress large datasets, backups, and exports to save space and optimize performance (GZIP, LZMA, ZLIB)
+- **Bill Categories** - Assign a category (utilities, subscriptions, loans, insurance, etc.) to each bill for better organization
 
 ### Advanced Date Management
 - **🔄 Flexible Billing Cycles** - Support for weekly, bi-weekly, monthly, quarterly, semi-annual, annual, and one-time bills
@@ -234,6 +235,24 @@ See [docs/DATA_COMPRESSION_README.md](docs/DATA_COMPRESSION_README.md) for full 
 ### Demo & Test Scripts
 - **Demo**: `python demo/demo_compression.py` - Demonstrates all compression features
 - **Test**: `python test/test_compression.py` - Runs comprehensive tests for compression
+
+### Bill Categories
+
+- **Assign Categories**: When adding or editing a bill, select a category (utilities, subscriptions, loans, insurance, credit cards, rent/mortgage, entertainment, transportation, healthcare, education, business, other)
+- **View by Category**: Use the "Bill Categories" menu to view bills grouped by category
+- **Sort by Category**: Sort bills A-Z or Z-A by category from the sort menu or Bill Categories menu
+- **Search by Category**: Find all bills in a specific category
+- **Category Statistics**: See totals, paid/unpaid/overdue counts, and percentages for each category
+- **Category Summary**: Quick overview of all categories and their descriptions
+- **Auto-Migration**: Existing bills are automatically assigned a default category ("other") if missing
+
+**Menu Integration:**
+- Main menu option: "Bill Categories" (view, sort, search, stats)
+- Category selection is part of bill creation and editing
+- All bill views and exports now display category information
+
+**Example Categories:**
+- Utilities, Subscriptions, Loans, Insurance, Credit Cards, Rent/Mortgage, Entertainment, Transportation, Healthcare, Education, Business, Other
 
 ## 📂 File Structure
 
@@ -746,6 +765,9 @@ This project is open source and available under the [MIT License](LICENSE).
 - ✅ JSON data persistence
 - ✅ Due bill notifications
 - ✅ Console-based interface
+
+### v3.4 (July 2025)
+- **Bill Categories**: Organize, view, sort, and search bills by category. New menu for category management and statistics. All bills now have a category field.
 
 ## 🏆 Feature Comparison
 
