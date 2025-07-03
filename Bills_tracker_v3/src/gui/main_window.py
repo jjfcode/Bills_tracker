@@ -5,6 +5,13 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "core"))
 from db import fetch_all_bills, insert_bill, update_bill, delete_bill
 from datetime import datetime
+from tkinter import StringVar
+from tkinter import IntVar
+
+BILLING_CYCLES = [
+    "weekly", "bi-weekly", "monthly", "quarterly", "semi-annually", "annually", "one-time"
+]
+REMINDER_DAYS = [1, 3, 5, 7, 10, 14, 30]
 
 class AddBillDialog(ctk.CTkToplevel):
     def __init__(self, master, on_success):
@@ -36,15 +43,17 @@ class AddBillDialog(ctk.CTkToplevel):
         self.paid_checkbox = ctk.CTkCheckBox(self, variable=self.paid_var, text="Yes")
         self.paid_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="w")
         row += 1
-        # Billing Cycle
+        # Billing Cycle (dropdown)
         ctk.CTkLabel(self, text="Billing Cycle:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
-        self.billing_cycle_entry = ctk.CTkEntry(self)
-        self.billing_cycle_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.billing_cycle_var = StringVar(value=BILLING_CYCLES[2])
+        self.billing_cycle_combo = ttk.Combobox(self, textvariable=self.billing_cycle_var, values=BILLING_CYCLES, state="readonly")
+        self.billing_cycle_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
         row += 1
-        # Reminder Days
+        # Reminder Days (dropdown)
         ctk.CTkLabel(self, text="Reminder Days:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
-        self.reminder_days_entry = ctk.CTkEntry(self)
-        self.reminder_days_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.reminder_days_var = IntVar(value=7)
+        self.reminder_days_combo = ttk.Combobox(self, textvariable=self.reminder_days_var, values=REMINDER_DAYS, state="readonly")
+        self.reminder_days_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
         row += 1
         # Web Page
         ctk.CTkLabel(self, text="Web Page:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
@@ -78,8 +87,8 @@ class AddBillDialog(ctk.CTkToplevel):
         name = self.name_entry.get().strip()
         due_date = self.due_date_entry.get().strip()
         paid = self.paid_var.get()
-        billing_cycle = self.billing_cycle_entry.get().strip()
-        reminder_days = self.reminder_days_entry.get().strip()
+        billing_cycle = self.billing_cycle_var.get()
+        reminder_days = self.reminder_days_var.get()
         web_page = self.web_page_entry.get().strip()
         company_email = self.company_email_entry.get().strip()
         support_phone = self.support_phone_entry.get().strip()
@@ -93,17 +102,12 @@ class AddBillDialog(ctk.CTkToplevel):
         except ValueError:
             self.error_label.configure(text="Invalid date format. Use YYYY-MM-DD.")
             return
-        try:
-            reminder_days_int = int(reminder_days) if reminder_days else 7
-        except ValueError:
-            self.error_label.configure(text="Reminder Days must be a number.")
-            return
         bill_data = {
             "name": name,
             "due_date": due_date,
             "paid": paid,
             "billing_cycle": billing_cycle,
-            "reminder_days": reminder_days_int,
+            "reminder_days": reminder_days,
             "web_page": web_page,
             "company_email": company_email,
             "support_phone": support_phone,
@@ -146,17 +150,17 @@ class EditBillDialog(ctk.CTkToplevel):
         self.paid_checkbox = ctk.CTkCheckBox(self, variable=self.paid_var, text="Yes")
         self.paid_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="w")
         row += 1
-        # Billing Cycle
+        # Billing Cycle (dropdown)
         ctk.CTkLabel(self, text="Billing Cycle:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
-        self.billing_cycle_entry = ctk.CTkEntry(self)
-        self.billing_cycle_entry.insert(0, self.bill_data.get("billing_cycle", ""))
-        self.billing_cycle_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.billing_cycle_var = StringVar(value=self.bill_data.get("billing_cycle", BILLING_CYCLES[2]))
+        self.billing_cycle_combo = ttk.Combobox(self, textvariable=self.billing_cycle_var, values=BILLING_CYCLES, state="readonly")
+        self.billing_cycle_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
         row += 1
-        # Reminder Days
+        # Reminder Days (dropdown)
         ctk.CTkLabel(self, text="Reminder Days:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
-        self.reminder_days_entry = ctk.CTkEntry(self)
-        self.reminder_days_entry.insert(0, str(self.bill_data.get("reminder_days", 7)))
-        self.reminder_days_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.reminder_days_var = IntVar(value=self.bill_data.get("reminder_days", 7))
+        self.reminder_days_combo = ttk.Combobox(self, textvariable=self.reminder_days_var, values=REMINDER_DAYS, state="readonly")
+        self.reminder_days_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
         row += 1
         # Web Page
         ctk.CTkLabel(self, text="Web Page:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
@@ -194,8 +198,8 @@ class EditBillDialog(ctk.CTkToplevel):
         name = self.name_entry.get().strip()
         due_date = self.due_date_entry.get().strip()
         paid = self.paid_var.get()
-        billing_cycle = self.billing_cycle_entry.get().strip()
-        reminder_days = self.reminder_days_entry.get().strip()
+        billing_cycle = self.billing_cycle_var.get()
+        reminder_days = self.reminder_days_var.get()
         web_page = self.web_page_entry.get().strip()
         company_email = self.company_email_entry.get().strip()
         support_phone = self.support_phone_entry.get().strip()
@@ -208,17 +212,12 @@ class EditBillDialog(ctk.CTkToplevel):
         except ValueError:
             self.error_label.configure(text="Invalid date format. Use YYYY-MM-DD.")
             return
-        try:
-            reminder_days_int = int(reminder_days) if reminder_days else 7
-        except ValueError:
-            self.error_label.configure(text="Reminder Days must be a number.")
-            return
         bill_data = self.bill_data.copy()
         bill_data["name"] = name
         bill_data["due_date"] = due_date
         bill_data["paid"] = paid
         bill_data["billing_cycle"] = billing_cycle
-        bill_data["reminder_days"] = reminder_days_int
+        bill_data["reminder_days"] = reminder_days
         bill_data["web_page"] = web_page
         bill_data["company_email"] = company_email
         bill_data["support_phone"] = support_phone
