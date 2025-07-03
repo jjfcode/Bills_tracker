@@ -8,6 +8,8 @@ from datetime import datetime
 from tkinter import StringVar
 from tkinter import IntVar
 import re
+import csv
+from tkinter import filedialog
 
 BILLING_CYCLES = [
     "weekly", "bi-weekly", "monthly", "quarterly", "semi-annually", "annually", "one-time"
@@ -317,22 +319,113 @@ class MainWindow(ctk.CTk):
 
     def show_bills_view(self):
         self.clear_content()
-        add_btn = ctk.CTkButton(self.content, text="Add Bill", command=self.open_add_bill_dialog)
-        add_btn.grid(row=0, column=0, sticky="w", padx=10, pady=(0, 10))
+        
+        # Button frame for Add, Export, Import
+        btn_frame = ctk.CTkFrame(self.content)
+        btn_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(0, 10))
+        btn_frame.grid_columnconfigure(3, weight=1)
+        
+        add_btn = ctk.CTkButton(btn_frame, text="Add Bill", command=self.open_add_bill_dialog)
+        add_btn.grid(row=0, column=0, padx=(0, 10), pady=10)
+        
+        export_btn = ctk.CTkButton(btn_frame, text="Export CSV", command=self.export_bills)
+        export_btn.grid(row=0, column=1, padx=(0, 10), pady=10)
+        
+        import_btn = ctk.CTkButton(btn_frame, text="Import CSV", command=self.import_bills)
+        import_btn.grid(row=0, column=2, padx=(0, 10), pady=10)
+
+        # Search/Filter bar
+        search_frame = ctk.CTkFrame(self.content)
+        search_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 10))
+        search_frame.grid_columnconfigure(1, weight=1)
+        
+        ctk.CTkLabel(search_frame, text="Search:").grid(row=0, column=0, padx=(10, 5), pady=10)
+        self.search_var = ctk.StringVar()
+        self.search_entry = ctk.CTkEntry(search_frame, textvariable=self.search_var)
+        self.search_entry.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
+        self.search_var.trace("w", self.filter_bills)
+        
+        self.search_field_var = ctk.StringVar(value="Name")
+        search_field_combo = ttk.Combobox(search_frame, textvariable=self.search_field_var, 
+                                         values=["Name", "Due Date", "Category", "Status"], 
+                                         state="readonly", width=15)
+        search_field_combo.grid(row=0, column=2, padx=5, pady=10)
+        
+        clear_btn = ctk.CTkButton(search_frame, text="Clear", command=self.clear_filter, width=60)
+        clear_btn.grid(row=0, column=3, padx=5, pady=10)
 
         self.bills_table_frame = ctk.CTkFrame(self.content)
-        self.bills_table_frame.grid(row=1, column=0, sticky="nswe")
+        self.bills_table_frame.grid(row=2, column=0, sticky="nswe")
         self.bills_table_frame.grid_rowconfigure(0, weight=1)
         self.bills_table_frame.grid_columnconfigure(0, weight=1)
 
         columns = ("Name", "Due Date", "Amount", "Category", "Status")
         self.bills_table = ttk.Treeview(self.bills_table_frame, columns=columns, show="headings", height=15)
+        self._sort_column = None
+        self._sort_reverse = False
         for col in columns:
-            self.bills_table.heading(col, text=col)
+            self.bills_table.heading(col, text=col, command=lambda c=col: self.sort_by_column(c))
             self.bills_table.column(col, width=120, anchor="center")
 
         self.bills_by_id = {}  # id -> bill dict
-        bills = fetch_all_bills()
+        self._bills_data = fetch_all_bills()
+        self._filtered_bills = self._bills_data.copy()
+        self.populate_bills_table(self._filtered_bills)
+
+        scrollbar = ttk.Scrollbar(self.bills_table_frame, orient="vertical", command=self.bills_table.yview)
+        self.bills_table.configure(yscrollcommand=scrollbar.set)
+        self.bills_table.grid(row=0, column=0, sticky="nswe")
+        scrollbar.grid(row=0, column=1, sticky="ns")
+
+        # Edit and Delete buttons
+        action_btn_frame = ctk.CTkFrame(self.content)
+        action_btn_frame.grid(row=3, column=0, sticky="ew", pady=(10, 0))
+        edit_btn = ctk.CTkButton(action_btn_frame, text="Edit", command=self.edit_selected_bill)
+        edit_btn.pack(side="left", padx=10)
+        delete_btn = ctk.CTkButton(action_btn_frame, text="Delete", command=self.delete_selected_bill)
+        delete_btn.pack(side="left", padx=10)
+
+    def filter_bills(self, *args):
+        search_term = self.search_var.get().lower()
+        search_field = self.search_field_var.get()
+        
+        if not search_term:
+            self._filtered_bills = self._bills_data.copy()
+        else:
+            self._filtered_bills = []
+            for bill in self._bills_data:
+                if search_field == "Name":
+                    if search_term in bill.get("name", "").lower():
+                        self._filtered_bills.append(bill)
+                elif search_field == "Due Date":
+                    if search_term in bill.get("due_date", "").lower():
+                        self._filtered_bills.append(bill)
+                elif search_field == "Category":
+                    if search_term in bill.get("category", "").lower():
+                        self._filtered_bills.append(bill)
+                elif search_field == "Status":
+                    status = "Paid" if bill.get("paid", False) else "Pending"
+                    if search_term in status.lower():
+                        self._filtered_bills.append(bill)
+        
+        # Maintain current sort order
+        if self._sort_column:
+            self.sort_by_column(self._sort_column)
+        else:
+            self.populate_bills_table(self._filtered_bills)
+
+    def clear_filter(self):
+        self.search_var.set("")
+        self._filtered_bills = self._bills_data.copy()
+        if self._sort_column:
+            self.sort_by_column(self._sort_column)
+        else:
+            self.populate_bills_table(self._filtered_bills)
+
+    def populate_bills_table(self, bills):
+        for row in self.bills_table.get_children():
+            self.bills_table.delete(row)
+        self.bills_by_id = {}
         for bill in bills:
             row = (
                 bill.get("name", ""),
@@ -344,18 +437,32 @@ class MainWindow(ctk.CTk):
             item_id = self.bills_table.insert("", "end", values=row)
             self.bills_by_id[item_id] = bill
 
-        scrollbar = ttk.Scrollbar(self.bills_table_frame, orient="vertical", command=self.bills_table.yview)
-        self.bills_table.configure(yscrollcommand=scrollbar.set)
-        self.bills_table.grid(row=0, column=0, sticky="nswe")
-        scrollbar.grid(row=0, column=1, sticky="ns")
-
-        # Edit and Delete buttons
-        btn_frame = ctk.CTkFrame(self.content)
-        btn_frame.grid(row=2, column=0, sticky="ew", pady=(10, 0))
-        edit_btn = ctk.CTkButton(btn_frame, text="Edit", command=self.edit_selected_bill)
-        edit_btn.pack(side="left", padx=10)
-        delete_btn = ctk.CTkButton(btn_frame, text="Delete", command=self.delete_selected_bill)
-        delete_btn.pack(side="left", padx=10)
+    def sort_by_column(self, col):
+        col_map = {
+            "Name": "name",
+            "Due Date": "due_date",
+            "Amount": "amount",
+            "Category": "category",
+            "Status": "paid"
+        }
+        key = col_map.get(col, col)
+        reverse = False
+        if self._sort_column == col:
+            reverse = not self._sort_reverse
+        self._sort_column = col
+        self._sort_reverse = reverse
+        # For status, sort by paid boolean
+        if key == "paid":
+            sorted_bills = sorted(self._filtered_bills, key=lambda b: b.get("paid", False), reverse=reverse)
+        else:
+            sorted_bills = sorted(self._filtered_bills, key=lambda b: (b.get(key) or ""), reverse=reverse)
+        self.populate_bills_table(sorted_bills)
+        # Update header text to show sort order
+        for c in ("Name", "Due Date", "Amount", "Category", "Status"):
+            arrow = ""
+            if c == col:
+                arrow = " ↓" if reverse else " ↑"
+            self.bills_table.heading(c, text=c + arrow, command=lambda c=c: self.sort_by_column(c))
 
     def open_add_bill_dialog(self):
         AddBillDialog(self, self.show_bills_view)
@@ -398,6 +505,103 @@ class MainWindow(ctk.CTk):
             confirm.destroy()
         ctk.CTkButton(confirm, text="Delete", fg_color="red", command=do_delete).pack(side="left", padx=20, pady=10)
         ctk.CTkButton(confirm, text="Cancel", command=confirm.destroy).pack(side="right", padx=20, pady=10)
+
+    def export_bills(self):
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+            title="Export Bills to CSV"
+        )
+        if not file_path:
+            return
+        
+        try:
+            with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+                fieldnames = ['name', 'due_date', 'billing_cycle', 'reminder_days', 'web_page', 
+                             'company_email', 'support_phone', 'account_number', 'paid']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                
+                for bill in self._bills_data:
+                    writer.writerow({
+                        'name': bill.get('name', ''),
+                        'due_date': bill.get('due_date', ''),
+                        'billing_cycle': bill.get('billing_cycle', ''),
+                        'reminder_days': bill.get('reminder_days', ''),
+                        'web_page': bill.get('web_page', ''),
+                        'company_email': bill.get('company_email', ''),
+                        'support_phone': bill.get('support_phone', ''),
+                        'account_number': bill.get('account_number', ''),
+                        'paid': 'Yes' if bill.get('paid', False) else 'No'
+                    })
+            
+            show_popup(self, "Success", f"Exported {len(self._bills_data)} bills to {os.path.basename(file_path)}", color="green")
+        except Exception as e:
+            show_popup(self, "Error", f"Failed to export bills: {str(e)}", color="red")
+
+    def import_bills(self):
+        file_path = filedialog.askopenfilename(
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+            title="Import Bills from CSV"
+        )
+        if not file_path:
+            return
+        
+        try:
+            imported_count = 0
+            skipped_count = 0
+            
+            with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    # Basic validation
+                    if not row.get('name') or not row.get('due_date'):
+                        skipped_count += 1
+                        continue
+                    
+                    # Check for duplicate by name and due date
+                    is_duplicate = False
+                    for existing_bill in self._bills_data:
+                        if (existing_bill.get('name') == row['name'] and 
+                            existing_bill.get('due_date') == row['due_date']):
+                            is_duplicate = True
+                            break
+                    
+                    if is_duplicate:
+                        skipped_count += 1
+                        continue
+                    
+                    # Prepare bill data
+                    bill_data = {
+                        'name': row.get('name', ''),
+                        'due_date': row.get('due_date', ''),
+                        'billing_cycle': row.get('billing_cycle', 'monthly'),
+                        'reminder_days': int(row.get('reminder_days', 7)),
+                        'web_page': row.get('web_page', ''),
+                        'company_email': row.get('company_email', ''),
+                        'support_phone': row.get('support_phone', ''),
+                        'account_number': row.get('account_number', ''),
+                        'paid': row.get('paid', 'No').lower() == 'yes'
+                    }
+                    
+                    insert_bill(bill_data)
+                    imported_count += 1
+            
+            # Refresh the bills data and table
+            self._bills_data = fetch_all_bills()
+            self._filtered_bills = self._bills_data.copy()
+            if self._sort_column:
+                self.sort_by_column(self._sort_column)
+            else:
+                self.populate_bills_table(self._filtered_bills)
+            
+            message = f"Imported {imported_count} bills successfully!"
+            if skipped_count > 0:
+                message += f" Skipped {skipped_count} bills (duplicates or invalid data)."
+            show_popup(self, "Success", message, color="green")
+            
+        except Exception as e:
+            show_popup(self, "Error", f"Failed to import bills: {str(e)}", color="red")
 
 if __name__ == "__main__":
     app = MainWindow()
