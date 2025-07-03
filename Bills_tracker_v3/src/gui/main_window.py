@@ -748,11 +748,11 @@ class MainWindow(ctk.CTk):
         filter_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 10))
         filter_frame.grid_columnconfigure(1, weight=1)
         
-        # Status filter (Pending/Paid/All)
+        # Status filter (Pending/Auto-Pay/Paid/All)
         ctk.CTkLabel(filter_frame, text="Status:").grid(row=0, column=0, padx=(10, 5), pady=10)
         self.status_filter_var = ctk.StringVar(value="Pending")
         status_combo = ttk.Combobox(filter_frame, textvariable=self.status_filter_var,
-                                   values=["Pending", "Paid", "All"], state="readonly", width=12)
+                                   values=["Pending", "Auto-Pay", "Paid", "All"], state="readonly", width=12)
         status_combo.grid(row=0, column=1, padx=5, pady=10, sticky="w")
         status_combo.bind("<<ComboboxSelected>>", self.apply_filters)
         
@@ -760,7 +760,7 @@ class MainWindow(ctk.CTk):
         ctk.CTkLabel(filter_frame, text="Period:").grid(row=0, column=2, padx=(20, 5), pady=10)
         self.period_filter_var = ctk.StringVar(value="All")
         period_combo = ttk.Combobox(filter_frame, textvariable=self.period_filter_var,
-                                   values=["All", "This Month", "Last Month", "Previous Month", "This Year", "Last Year"], 
+                                   values=["All", "This Month", "Last Month", "Previous Month", "Next Month", "This Year", "Last Year"], 
                                    state="readonly", width=15)
         period_combo.grid(row=0, column=3, padx=5, pady=10)
         period_combo.bind("<<ComboboxSelected>>", self.apply_filters)
@@ -847,7 +847,9 @@ class MainWindow(ctk.CTk):
         # Apply status filter
         status_filter = self.status_filter_var.get()
         if status_filter == "Pending":
-            filtered_bills = [bill for bill in filtered_bills if not bill.get("paid", False)]
+            filtered_bills = [bill for bill in filtered_bills if not bill.get("paid", False) and not bill.get("payment_method_automatic", False)]
+        elif status_filter == "Auto-Pay":
+            filtered_bills = [bill for bill in filtered_bills if not bill.get("paid", False) and bill.get("payment_method_automatic", False)]
         elif status_filter == "Paid":
             filtered_bills = [bill for bill in filtered_bills if bill.get("paid", False)]
         # "All" means no status filtering
@@ -875,7 +877,12 @@ class MainWindow(ctk.CTk):
                     if search_term in category_name.lower():
                         search_filtered.append(bill)
                 elif search_field == "Status":
-                    status = "Paid" if bill.get("paid", False) else "Pending"
+                    if bill.get("paid", False):
+                        status = "Paid"
+                    elif bill.get("payment_method_automatic", False):
+                        status = "Auto-Pay"
+                    else:
+                        status = "Pending"
                     if search_term in status.lower():
                         search_filtered.append(bill)
                 elif search_field == "Paid":
@@ -919,6 +926,15 @@ class MainWindow(ctk.CTk):
                     if due_date.year == prev_month.year and due_date.month == prev_month.month:
                         filtered_bills.append(bill)
                         
+                elif period == "Next Month":
+                    # Next month
+                    if today.month == 12:
+                        next_month = today.replace(year=today.year + 1, month=1, day=1)
+                    else:
+                        next_month = today.replace(month=today.month + 1, day=1)
+                    if due_date.year == next_month.year and due_date.month == next_month.month:
+                        filtered_bills.append(bill)
+                        
                 elif period == "This Year":
                     if due_date.year == today.year:
                         filtered_bills.append(bill)
@@ -938,7 +954,7 @@ class MainWindow(ctk.CTk):
         self.search_var.set("")
         self.status_filter_var.set("Pending")
         self.period_filter_var.set("All")
-        self._filtered_bills = [bill for bill in self._bills_data if not bill.get("paid", False)]
+        self._filtered_bills = [bill for bill in self._bills_data if not bill.get("paid", False) and not bill.get("payment_method_automatic", False)]
         if self._sort_column:
             self.sort_by_column(self._sort_column)
         else:
@@ -957,13 +973,22 @@ class MainWindow(ctk.CTk):
             paid_status = "✓" if bill.get("paid", False) else "☐"
             category_name = bill.get("category_name", "Uncategorized")
             payment_method_name = bill.get("payment_method_name", "Not Set")
+            
+            # Determine status: Paid, Auto-Pay, or Pending
+            if bill.get("paid", False):
+                status = "Paid"
+            elif bill.get("payment_method_automatic", False):
+                status = "Auto-Pay"
+            else:
+                status = "Pending"
+            
             row = (
                 paid_status,
                 bill.get("name", ""),
                 bill.get("due_date", ""),
                 bill.get("amount", ""),
                 category_name,
-                "Paid" if bill.get("paid", False) else "Pending",
+                status,
                 payment_method_name
             )
             item_id = self.bills_table.insert("", "end", values=row)
