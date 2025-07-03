@@ -7,11 +7,26 @@ from db import fetch_all_bills, insert_bill, update_bill, delete_bill
 from datetime import datetime
 from tkinter import StringVar
 from tkinter import IntVar
+import re
 
 BILLING_CYCLES = [
     "weekly", "bi-weekly", "monthly", "quarterly", "semi-annually", "annually", "one-time"
 ]
 REMINDER_DAYS = [1, 3, 5, 7, 10, 14, 30]
+
+def show_popup(master, title, message, color="green"):
+    popup = ctk.CTkToplevel(master)
+    popup.title(title)
+    popup.geometry("350x120")
+    label = ctk.CTkLabel(popup, text=message, text_color=color, font=("Arial", 14))
+    label.pack(pady=20)
+    ctk.CTkButton(popup, text="OK", command=popup.destroy).pack(pady=10)
+    popup.lift()
+    popup.focus_force()
+    popup.grab_set()
+
+EMAIL_REGEX = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+PHONE_REGEX = r"^[\d\-\+\(\)\s]+$"
 
 class AddBillDialog(ctk.CTkToplevel):
     def __init__(self, master, on_success):
@@ -96,11 +111,25 @@ class AddBillDialog(ctk.CTkToplevel):
         # Basic validation
         if not name or not due_date:
             self.error_label.configure(text="Name and Due Date are required.")
+            show_popup(self, "Error", "Name and Due Date are required.", color="red")
             return
         try:
             datetime.strptime(due_date, "%Y-%m-%d")
         except ValueError:
             self.error_label.configure(text="Invalid date format. Use YYYY-MM-DD.")
+            show_popup(self, "Error", "Invalid date format. Use YYYY-MM-DD.", color="red")
+            return
+        if company_email and not re.match(EMAIL_REGEX, company_email):
+            self.error_label.configure(text="Invalid email address.")
+            show_popup(self, "Error", "Invalid email address.", color="red")
+            return
+        if support_phone and not re.match(PHONE_REGEX, support_phone):
+            self.error_label.configure(text="Invalid phone number.")
+            show_popup(self, "Error", "Invalid phone number.", color="red")
+            return
+        if web_page and not (web_page.startswith("http://") or web_page.startswith("https://")):
+            self.error_label.configure(text="Web page must start with http:// or https://")
+            show_popup(self, "Error", "Web page must start with http:// or https://", color="red")
             return
         bill_data = {
             "name": name,
@@ -114,6 +143,7 @@ class AddBillDialog(ctk.CTkToplevel):
             "account_number": account_number
         }
         insert_bill(bill_data)
+        show_popup(self, "Success", "Bill added successfully!", color="green")
         self.on_success()
         self.destroy()
 
@@ -206,11 +236,25 @@ class EditBillDialog(ctk.CTkToplevel):
         account_number = self.account_number_entry.get().strip()
         if not name or not due_date:
             self.error_label.configure(text="Name and Due Date are required.")
+            show_popup(self, "Error", "Name and Due Date are required.", color="red")
             return
         try:
             datetime.strptime(due_date, "%Y-%m-%d")
         except ValueError:
             self.error_label.configure(text="Invalid date format. Use YYYY-MM-DD.")
+            show_popup(self, "Error", "Invalid date format. Use YYYY-MM-DD.", color="red")
+            return
+        if company_email and not re.match(EMAIL_REGEX, company_email):
+            self.error_label.configure(text="Invalid email address.")
+            show_popup(self, "Error", "Invalid email address.", color="red")
+            return
+        if support_phone and not re.match(PHONE_REGEX, support_phone):
+            self.error_label.configure(text="Invalid phone number.")
+            show_popup(self, "Error", "Invalid phone number.", color="red")
+            return
+        if web_page and not (web_page.startswith("http://") or web_page.startswith("https://")):
+            self.error_label.configure(text="Web page must start with http:// or https://")
+            show_popup(self, "Error", "Web page must start with http:// or https://", color="red")
             return
         bill_data = self.bill_data.copy()
         bill_data["name"] = name
@@ -223,6 +267,7 @@ class EditBillDialog(ctk.CTkToplevel):
         bill_data["support_phone"] = support_phone
         bill_data["account_number"] = account_number
         update_bill(bill_data["id"], bill_data)
+        show_popup(self, "Success", "Bill updated successfully!", color="green")
         self.on_success()
         self.destroy()
 
@@ -348,6 +393,7 @@ class MainWindow(ctk.CTk):
         ctk.CTkLabel(confirm, text=f"Delete bill '{bill.get('name', '')}'?").pack(pady=20)
         def do_delete():
             delete_bill(bill["id"])
+            show_popup(self, "Success", "Bill deleted successfully!", color="green")
             self.show_bills_view()
             confirm.destroy()
         ctk.CTkButton(confirm, text="Delete", fg_color="red", command=do_delete).pack(side="left", padx=20, pady=10)
