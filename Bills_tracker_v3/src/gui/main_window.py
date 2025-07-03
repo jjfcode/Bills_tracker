@@ -20,13 +20,13 @@ class MainWindow(ctk.CTk):
         self.logo_label = ctk.CTkLabel(self.sidebar, text="Bills Tracker", font=("Arial", 20, "bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
-        self.bills_button = ctk.CTkButton(self.sidebar, text="Bills")
+        self.bills_button = ctk.CTkButton(self.sidebar, text="Bills", command=self.show_bills_view)
         self.bills_button.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
 
-        self.categories_button = ctk.CTkButton(self.sidebar, text="Categories")
+        self.categories_button = ctk.CTkButton(self.sidebar, text="Categories", command=self.show_categories_view)
         self.categories_button.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
 
-        self.settings_button = ctk.CTkButton(self.sidebar, text="Settings")
+        self.settings_button = ctk.CTkButton(self.sidebar, text="Settings", command=self.show_settings_view)
         self.settings_button.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
 
         # Main content area
@@ -35,20 +35,29 @@ class MainWindow(ctk.CTk):
         self.content.grid_rowconfigure(0, weight=1)
         self.content.grid_columnconfigure(0, weight=1)
 
-        # Bills table frame
-        self.table_frame = ctk.CTkFrame(self.content)
-        self.table_frame.grid(row=0, column=0, sticky="nswe")
-        self.table_frame.grid_rowconfigure(0, weight=1)
-        self.table_frame.grid_columnconfigure(0, weight=1)
+        # Initialize views
+        self.bills_table_frame = None
+        self.categories_frame = None
+        self.settings_frame = None
+        self.show_bills_view()
 
-        # Treeview for bills
+    def clear_content(self):
+        for widget in self.content.winfo_children():
+            widget.destroy()
+
+    def show_bills_view(self):
+        self.clear_content()
+        self.bills_table_frame = ctk.CTkFrame(self.content)
+        self.bills_table_frame.grid(row=0, column=0, sticky="nswe")
+        self.bills_table_frame.grid_rowconfigure(0, weight=1)
+        self.bills_table_frame.grid_columnconfigure(0, weight=1)
+
         columns = ("Name", "Due Date", "Amount", "Category", "Status")
-        self.bills_table = ttk.Treeview(self.table_frame, columns=columns, show="headings", height=15)
+        self.bills_table = ttk.Treeview(self.bills_table_frame, columns=columns, show="headings", height=15)
         for col in columns:
             self.bills_table.heading(col, text=col)
             self.bills_table.column(col, width=120, anchor="center")
 
-        # Sample data
         sample_bills = [
             ("Electricity", "2025-07-10", "$50.00", "Utilities", "Pending"),
             ("Internet", "2025-07-12", "$40.00", "Utilities", "Paid"),
@@ -59,11 +68,24 @@ class MainWindow(ctk.CTk):
         for bill in sample_bills:
             self.bills_table.insert("", "end", values=bill)
 
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(self.table_frame, orient="vertical", command=self.bills_table.yview)
+        scrollbar = ttk.Scrollbar(self.bills_table_frame, orient="vertical", command=self.bills_table.yview)
         self.bills_table.configure(yscrollcommand=scrollbar.set)
         self.bills_table.grid(row=0, column=0, sticky="nswe")
-        scrollbar.grid(row=0, column=1, sticky="ns");
+        scrollbar.grid(row=0, column=1, sticky="ns")
+
+    def show_categories_view(self):
+        self.clear_content()
+        self.categories_frame = ctk.CTkFrame(self.content)
+        self.categories_frame.grid(row=0, column=0, sticky="nswe")
+        label = ctk.CTkLabel(self.categories_frame, text="Categories View (Coming Soon)", font=("Arial", 18))
+        label.pack(padx=40, pady=40)
+
+    def show_settings_view(self):
+        self.clear_content()
+        self.settings_frame = ctk.CTkFrame(self.content)
+        self.settings_frame.grid(row=0, column=0, sticky="nswe")
+        label = ctk.CTkLabel(self.settings_frame, text="Settings View (Coming Soon)", font=("Arial", 18))
+        label.pack(padx=40, pady=40)
 
 if __name__ == "__main__":
     app = MainWindow()
