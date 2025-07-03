@@ -10,6 +10,8 @@ from tkinter import IntVar
 import re
 import csv
 from tkinter import filedialog
+from tkcalendar import DateEntry
+from tkinter import messagebox
 
 BILLING_CYCLES = [
     "weekly", "bi-weekly", "monthly", "quarterly", "semi-annually", "annually", "one-time"
@@ -52,11 +54,143 @@ def show_popup(master, title, message, color="green"):
 EMAIL_REGEX = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 PHONE_REGEX = r"^[\d\-\+\(\)\s]+$"
 
+class DateSelectorFrame(ctk.CTkFrame):
+    """Custom frame for date selection with calendar and quick options"""
+    
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.selected_date = StringVar()
+        self._setup_ui()
+    
+    def _setup_ui(self):
+        # Main date entry with calendar button
+        date_frame = ctk.CTkFrame(self)
+        date_frame.pack(fill="x", padx=5, pady=5)
+        
+        # Date entry
+        self.date_entry = ctk.CTkEntry(date_frame, textvariable=self.selected_date, placeholder_text="YYYY-MM-DD")
+        self.date_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        
+        # Calendar button
+        self.calendar_btn = ctk.CTkButton(date_frame, text="📅", width=40, command=self._show_calendar)
+        self.calendar_btn.pack(side="right")
+    
+    def _show_calendar(self):
+        """Show calendar dialog for date selection"""
+        try:
+            # Create calendar dialog
+            calendar_dialog = ctk.CTkToplevel(self)
+            calendar_dialog.title("Select Date")
+            calendar_dialog.geometry("300x250")
+            calendar_dialog.transient(self.winfo_toplevel())
+            calendar_dialog.grab_set()
+            
+            # Center the dialog
+            calendar_dialog.update_idletasks()
+            x = (calendar_dialog.winfo_screenwidth() // 2) - (300 // 2)
+            y = (calendar_dialog.winfo_screenheight() // 2) - (250 // 2)
+            calendar_dialog.geometry(f"300x250+{x}+{y}")
+            
+            # Create calendar widget
+            calendar = DateEntry(calendar_dialog, width=20, background='darkblue',
+                               foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
+            calendar.pack(pady=20)
+            
+            # Buttons
+            button_frame = ctk.CTkFrame(calendar_dialog)
+            button_frame.pack(pady=20)
+            
+            def on_select():
+                self.selected_date.set(calendar.get_date().strftime('%Y-%m-%d'))
+                calendar_dialog.destroy()
+            
+            def on_cancel():
+                calendar_dialog.destroy()
+            
+            ctk.CTkButton(button_frame, text="Select", command=on_select).pack(side="left", padx=5)
+            ctk.CTkButton(button_frame, text="Cancel", command=on_cancel).pack(side="left", padx=5)
+            
+        except Exception as e:
+            # Fallback to simple date picker if tkcalendar is not available
+            self._show_simple_date_picker()
+    
+    def _show_simple_date_picker(self):
+        """Fallback simple date picker"""
+        try:
+            # Create simple date picker dialog
+            picker_dialog = ctk.CTkToplevel(self)
+            picker_dialog.title("Select Date")
+            picker_dialog.geometry("250x200")
+            picker_dialog.transient(self.winfo_toplevel())
+            picker_dialog.grab_set()
+            
+            # Year selection
+            year_frame = ctk.CTkFrame(picker_dialog)
+            year_frame.pack(fill="x", padx=10, pady=5)
+            ctk.CTkLabel(year_frame, text="Year:").pack(side="left")
+            current_year = datetime.now().year
+            year_var = StringVar(value=str(current_year))
+            year_combo = ttk.Combobox(year_frame, textvariable=year_var, 
+                                    values=[str(y) for y in range(current_year, current_year + 5)])
+            year_combo.pack(side="right", padx=5)
+            
+            # Month selection
+            month_frame = ctk.CTkFrame(picker_dialog)
+            month_frame.pack(fill="x", padx=10, pady=5)
+            ctk.CTkLabel(month_frame, text="Month:").pack(side="left")
+            month_var = StringVar(value=str(datetime.now().month))
+            month_combo = ttk.Combobox(month_frame, textvariable=month_var,
+                                     values=[str(m) for m in range(1, 13)])
+            month_combo.pack(side="right", padx=5)
+            
+            # Day selection
+            day_frame = ctk.CTkFrame(picker_dialog)
+            day_frame.pack(fill="x", padx=10, pady=5)
+            ctk.CTkLabel(day_frame, text="Day:").pack(side="left")
+            day_var = StringVar(value=str(datetime.now().day))
+            day_combo = ttk.Combobox(day_frame, textvariable=day_var,
+                                   values=[str(d) for d in range(1, 32)])
+            day_combo.pack(side="right", padx=5)
+            
+            def on_select():
+                try:
+                    year = int(year_var.get())
+                    month = int(month_var.get())
+                    day = int(day_var.get())
+                    date = datetime(year, month, day)
+                    self.selected_date.set(date.strftime('%Y-%m-%d'))
+                    picker_dialog.destroy()
+                except ValueError:
+                    messagebox.showerror("Error", "Invalid date")
+            
+            def on_cancel():
+                picker_dialog.destroy()
+            
+            # Buttons
+            button_frame = ctk.CTkFrame(picker_dialog)
+            button_frame.pack(pady=20)
+            
+            ctk.CTkButton(button_frame, text="Select", command=on_select).pack(side="left", padx=5)
+            ctk.CTkButton(button_frame, text="Cancel", command=on_cancel).pack(side="left", padx=5)
+            
+        except Exception as e:
+            print(f"Error creating date picker: {e}")
+    
+
+    
+    def get_date(self):
+        """Get the selected date as string"""
+        return self.selected_date.get()
+    
+    def set_date(self, date_str):
+        """Set the date from string"""
+        self.selected_date.set(date_str)
+
 class AddBillDialog(ctk.CTkToplevel):
     def __init__(self, master, on_success):
         super().__init__(master)
         self.title("Add Bill")
-        self.geometry("500x500")
+        self.geometry("550x650")
         self.on_success = on_success
         self._setup_ui()
         self.lift()
@@ -71,11 +205,13 @@ class AddBillDialog(ctk.CTkToplevel):
         self.name_entry = ctk.CTkEntry(self)
         self.name_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
         row += 1
-        # Due Date
-        ctk.CTkLabel(self, text="Due Date (YYYY-MM-DD):").grid(row=row, column=0, padx=10, pady=5, sticky="e")
-        self.due_date_entry = ctk.CTkEntry(self)
-        self.due_date_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        
+        # Due Date with improved selector
+        ctk.CTkLabel(self, text="Due Date:").grid(row=row, column=0, padx=10, pady=5, sticky="ne")
+        self.date_selector = DateSelectorFrame(self)
+        self.date_selector.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
         row += 1
+        
         # Paid
         ctk.CTkLabel(self, text="Paid:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
         self.paid_var = ctk.BooleanVar()
@@ -142,7 +278,7 @@ class AddBillDialog(ctk.CTkToplevel):
 
     def _on_add(self):
         name = self.name_entry.get().strip()
-        due_date = self.due_date_entry.get().strip()
+        due_date = self.date_selector.get_date().strip()
         paid = self.paid_var.get()
         billing_cycle = self.billing_cycle_var.get()
         reminder_days = self.reminder_days_var.get()
@@ -202,7 +338,7 @@ class EditBillDialog(ctk.CTkToplevel):
     def __init__(self, master, bill_data, on_success):
         super().__init__(master)
         self.title("Edit Bill")
-        self.geometry("500x500")
+        self.geometry("550x650")
         self.bill_data = bill_data
         self.on_success = on_success
         self._setup_ui()
@@ -219,11 +355,12 @@ class EditBillDialog(ctk.CTkToplevel):
         self.name_entry.insert(0, self.bill_data.get("name", ""))
         self.name_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
         row += 1
-        # Due Date
-        ctk.CTkLabel(self, text="Due Date (YYYY-MM-DD):").grid(row=row, column=0, padx=10, pady=5, sticky="e")
-        self.due_date_entry = ctk.CTkEntry(self)
-        self.due_date_entry.insert(0, self.bill_data.get("due_date", ""))
-        self.due_date_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        
+        # Due Date with improved selector
+        ctk.CTkLabel(self, text="Due Date:").grid(row=row, column=0, padx=10, pady=5, sticky="ne")
+        self.date_selector = DateSelectorFrame(self)
+        self.date_selector.set_date(self.bill_data.get("due_date", ""))
+        self.date_selector.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
         row += 1
         # Paid
         ctk.CTkLabel(self, text="Paid:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
@@ -299,7 +436,7 @@ class EditBillDialog(ctk.CTkToplevel):
 
     def _on_save(self):
         name = self.name_entry.get().strip()
-        due_date = self.due_date_entry.get().strip()
+        due_date = self.date_selector.get_date().strip()
         paid = self.paid_var.get()
         billing_cycle = self.billing_cycle_var.get()
         reminder_days = self.reminder_days_var.get()

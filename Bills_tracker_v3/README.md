@@ -12,6 +12,12 @@ A modern, feature-rich desktop application for managing bills and recurring paym
 - **Input Validation** - Email, phone, web page, and date format validation
 - **Modal Dialogs** - Clean, modern interface for adding/editing bills
 
+### 📅 **Advanced Date Selection** 🆕
+- **Visual Calendar Picker** - Click 📅 button for intuitive date selection
+- **Fallback Date Picker** - Simple dropdown picker if calendar unavailable
+- **Direct Input** - Type dates manually in YYYY-MM-DD format
+- **Date Validation** - Automatic validation of date format and validity
+
 ### 🏷️ **Category System**
 - **10 Pre-defined Categories** with custom colors
 - **Custom Category Management** - Add, edit, delete categories
@@ -59,6 +65,7 @@ Bills_tracker_v3/
 │   ├── icons/                 # Application icons
 │   └── themes/                # Visual themes
 ├── main_desktop.py           # Application entry point
+├── demo_date_selector.py     # Demo for date selection features
 ├── requirements.txt          # Python dependencies
 └── bills_tracker.db         # SQLite database
 ```
@@ -67,6 +74,7 @@ Bills_tracker_v3/
 
 - **Python 3.9+**
 - **CustomTkinter** - Modern GUI framework
+- **tkcalendar** - Calendar widget for date selection
 - **SQLite3** - Database engine (included with Python)
 - **Additional dependencies** (see requirements.txt)
 
@@ -88,15 +96,30 @@ Bills_tracker_v3/
    python main_desktop.py
    ```
 
+4. **Try the date selector demo:**
+   ```bash
+   python demo_date_selector.py
+   ```
+
 ## 📖 How to Use
 
 ### **Adding Bills**
 1. Click "Add Bill" button
 2. Fill in the required fields (Name, Due Date)
-3. Select a category from the dropdown
-4. Choose billing cycle and reminder days
-5. Add optional information (web page, contact details)
-6. Click "Add" to save
+3. **Select Due Date** using the new date selector:
+   - Click 📅 for visual calendar
+   - Use quick buttons for common dates
+   - Type directly in the date field
+4. Select a category from the dropdown
+5. Choose billing cycle and reminder days
+6. Add optional information (web page, contact details)
+7. Click "Add" to save
+
+### **Date Selection Features**
+- **📅 Calendar Picker**: Click the calendar button for visual date selection
+- **Direct Input**: Type dates directly in YYYY-MM-DD format
+- **Fallback Picker**: Simple dropdown picker if calendar widget unavailable
+- **Validation**: Automatic validation of date format and validity
 
 ### **Managing Categories**
 1. Click "Categories" in the sidebar
@@ -150,6 +173,13 @@ Unlike traditional bill trackers, this system:
 - Creates new bills for future cycles while preserving payment history
 - Provides visual feedback with pending changes counter
 
+### **Advanced Date Selection**
+The new date selector provides multiple ways to choose dates:
+- **Visual Calendar**: Intuitive point-and-click date selection
+- **Direct Input**: Type dates manually with validation
+- **Fallback Support**: Works even if calendar widget unavailable
+- **Clean Interface**: Simple and focused design
+
 ### **Category Management**
 - **Pre-defined Categories**: 10 common categories with appropriate colors
 - **Custom Categories**: Create unlimited custom categories
@@ -168,6 +198,7 @@ Unlike traditional bill trackers, this system:
 - **MVC Pattern**: Separation of concerns between GUI, business logic, and data
 - **SQLite Database**: Lightweight, file-based database
 - **CustomTkinter**: Modern, themeable GUI framework
+- **tkcalendar**: Professional calendar widget
 - **Modular Design**: Easy to extend and maintain
 
 ### **Performance**
@@ -182,6 +213,7 @@ Unlike traditional bill trackers, this system:
 1. **Database Errors**: Ensure you have write permissions in the application directory
 2. **Import Errors**: Check CSV format matches expected structure
 3. **GUI Issues**: Verify CustomTkinter is properly installed
+4. **Calendar Issues**: Install tkcalendar with `pip install tkcalendar`
 
 ### **Error Messages**
 - All errors are displayed in user-friendly popups
@@ -189,7 +221,8 @@ Unlike traditional bill trackers, this system:
 
 ## 🔄 Version History
 
-### **v3.0** (Current)
+### **v3.1** (Current)
+- ✅ **Advanced Date Selection** - Visual calendar picker and quick date buttons
 - ✅ Complete GUI rewrite with CustomTkinter
 - ✅ Category system with management interface
 - ✅ Smart checkbox system with pending changes
@@ -198,7 +231,11 @@ Unlike traditional bill trackers, this system:
 - ✅ Automatic next cycle generation
 - ✅ Modern, responsive design
 
-### **v2.0** (Previous)
+### **v3.0** (Previous)
+- Basic date entry with manual typing
+- All other features from v3.1
+
+### **v2.0** (Legacy)
 - Console-based interface
 - Basic bill management
 - Simple file storage
@@ -217,4 +254,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Bills Tracker v3** - Modern bill management made simple! 💰📊 
+**Bills Tracker v3** - Modern bill management with intuitive date selection! 💰📊📅 
