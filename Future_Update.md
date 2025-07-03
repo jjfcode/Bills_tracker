@@ -224,18 +224,168 @@ from rich.progress import Progress
 - [ ] **Keyboard shortcuts** - Quick actions with hotkeys
 - [ ] **Auto-refresh** - Real-time updates in due bills view
 
-### 4.2 GUI Development
+### 4.2 Desktop Application Development (GUI)
+
+#### **Phase 4.2.1: Planning & Architecture (Week 1)**
 ```python
-# Example: Desktop GUI
-import tkinter as tk
-from tkinter import ttk
-import customtkinter as ctk
+# Project structure for desktop app
+Bills_Tracker_Desktop/
+├── src/
+│   ├── gui/
+│   │   ├── main_window.py      # Main application window
+│   │   ├── add_bill_dialog.py  # Add bill form
+│   │   ├── bills_table.py      # Bills display table
+│   │   ├── search_panel.py     # Search functionality
+│   │   └── settings_panel.py   # Application settings
+│   ├── core/                   # Existing core logic
+│   │   ├── main.py            # Current CLI logic
+│   │   ├── db.py              # Database operations
+│   │   └── validation.py      # Data validation
+│   └── utils/
+│       ├── themes.py          # Dark/Light theme management
+│       └── icons.py           # Application icons
+├── resources/
+│   ├── icons/                 # Application icons
+│   └── themes/                # Theme configurations
+└── requirements_desktop.txt   # Desktop dependencies
 ```
-- [ ] **Desktop application** - Replace command line with modern GUI
-- [ ] **System tray integration** - Run in background with tray icon
-- [ ] **Dark/Light themes** - User preference themes
-- [ ] **Drag & drop** - Import files by dragging
-- [ ] **Context menus** - Right-click actions
+
+**Tasks:**
+- [ ] **Choose GUI Framework** - CustomTkinter (recommended) vs PyQt6 vs Tkinter
+- [ ] **Design UI Mockups** - Create wireframes for main screens
+- [ ] **Plan Data Flow** - How GUI components interact with existing core logic
+- [ ] **Setup Development Environment** - Install GUI framework and tools
+
+#### **Phase 4.2.2: Core GUI Implementation (Week 2-3)**
+```python
+# Example: Main window structure with CustomTkinter
+import customtkinter as ctk
+from tkinter import ttk
+import sqlite3
+
+class BillsTrackerApp(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title("Bills Tracker Desktop")
+        self.geometry("1200x800")
+        
+        # Setup main layout
+        self.setup_sidebar()
+        self.setup_main_content()
+        self.setup_status_bar()
+        
+    def setup_sidebar(self):
+        # Navigation menu with icons
+        pass
+        
+    def setup_main_content(self):
+        # Bills table, search, filters
+        pass
+```
+
+**Tasks:**
+- [ ] **Main Window** - Create primary application window with modern design
+- [ ] **Bills Table** - Display bills in sortable, filterable table
+- [ ] **Add Bill Dialog** - Form for adding new bills with validation
+- [ ] **Navigation System** - Sidebar menu for different sections
+- [ ] **Theme System** - Dark/Light mode toggle
+
+#### **Phase 4.2.3: Advanced Features (Week 4)**
+```python
+# Example: Advanced GUI features
+class BillsTable(ctk.CTkFrame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.setup_table()
+        self.setup_filters()
+        self.setup_context_menu()
+        
+    def setup_context_menu(self):
+        # Right-click menu for bill actions
+        self.context_menu = tk.Menu(self, tearoff=0)
+        self.context_menu.add_command(label="Edit Bill", command=self.edit_bill)
+        self.context_menu.add_command(label="Mark as Paid", command=self.mark_paid)
+        self.context_menu.add_separator()
+        self.context_menu.add_command(label="Delete Bill", command=self.delete_bill)
+```
+
+**Tasks:**
+- [ ] **Context Menus** - Right-click actions for bills
+- [ ] **Drag & Drop** - Import CSV/Excel files by dragging
+- [ ] **System Tray** - Minimize to system tray with notifications
+- [ ] **Keyboard Shortcuts** - Hotkeys for common actions
+- [ ] **Auto-refresh** - Real-time updates for due bills
+
+#### **Phase 4.2.4: Integration & Testing (Week 5)**
+```python
+# Example: Integration with existing core logic
+class DesktopBillManager:
+    def __init__(self):
+        self.db_manager = DatabaseManager()  # Existing core logic
+        self.gui = BillsTrackerApp()
+        
+    def add_bill_from_gui(self, bill_data):
+        # Use existing validation and database logic
+        is_valid, error_msg, cleaned_data = DataValidator.validate_bill_data(bill_data)
+        if is_valid:
+            self.db_manager.save_bill(cleaned_data)
+            self.gui.refresh_bills_table()
+        return is_valid, error_msg
+```
+
+**Tasks:**
+- [ ] **Core Logic Integration** - Connect GUI with existing database and validation
+- [ ] **Data Synchronization** - Ensure GUI reflects database changes
+- [ ] **Error Handling** - User-friendly error messages and dialogs
+- [ ] **Performance Optimization** - Handle large datasets efficiently
+- [ ] **Cross-platform Testing** - Test on Windows, macOS, Linux
+
+#### **Phase 4.2.5: Polish & Distribution (Week 6)**
+```python
+# Example: Application packaging
+# setup.py for creating executable
+from cx_Freeze import setup, Executable
+
+setup(
+    name="Bills Tracker Desktop",
+    version="1.0.0",
+    description="Modern desktop application for bill management",
+    executables=[Executable("src/main_desktop.py", base="Win32GUI")],
+    options={
+        "build_exe": {
+            "packages": ["customtkinter", "sqlite3", "cryptography"],
+            "include_files": ["resources/"]
+        }
+    }
+)
+```
+
+**Tasks:**
+- [ ] **Application Icon** - Design and implement app icon
+- [ ] **Splash Screen** - Loading screen with progress
+- [ ] **Auto-updater** - Check for updates automatically
+- [ ] **Installation Package** - Create installer for easy distribution
+- [ ] **Documentation** - User manual and developer docs
+
+#### **Recommended Technology Stack:**
+- **GUI Framework**: CustomTkinter (modern, easy, beautiful)
+- **Database**: SQLite (existing, no changes needed)
+- **Packaging**: cx_Freeze or PyInstaller
+- **Icons**: Custom icons or FontAwesome
+- **Themes**: CustomTkinter built-in theme system
+
+#### **Estimated Timeline:**
+- **Total Time**: 6 weeks (part-time development)
+- **MVP Ready**: 3 weeks (basic functionality)
+- **Full Release**: 6 weeks (all features)
+
+#### **Benefits of Desktop Version:**
+- ✅ **Better User Experience** - Modern, intuitive interface
+- ✅ **Faster Operations** - No command line navigation
+- ✅ **Visual Feedback** - Progress bars, status updates
+- ✅ **Easy Data Entry** - Forms with validation
+- ✅ **Professional Look** - Suitable for business use
+- ✅ **Offline Operation** - No internet required
 
 ### 4.3 Web Interface
 ```python
