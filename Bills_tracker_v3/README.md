@@ -26,11 +26,21 @@ A modern, feature-rich desktop application for managing bills and recurring paym
 - **Category Statistics** - View bill count per category
 - **Color-coded Categories** - Visual organization with hex color support
 
-### 🔍 **Advanced Search & Filtering**
+### 🔍 **Advanced Search & Filtering** 🆕
+- **Default Pending View** - Shows only unpaid bills by default for daily use
+- **Status Filtering** - Filter by Pending, Paid, or All bills
+- **Period Filtering** - Filter by time periods:
+  - **This Month** - Current month bills
+  - **Last Month** - Previous month bills  
+  - **Previous Month** - Two months ago
+  - **This Year** - Current year bills
+  - **Last Year** - Previous year bills
+- **Combined Filtering** - Use status, period, and search filters together
 - **Real-time Search** - Instant filtering as you type
 - **Multi-field Search** - Search by Name, Due Date, Category, Status, or Paid status
 - **Smart Filtering** - Maintains sort order while filtering
-- **Clear Filters** - One-click filter reset
+- **Bill Counter** - Shows exactly how many bills are being displayed
+- **Clear Filters** - Reset to default view or clear specific filters
 
 ### 📊 **Data Management**
 - **Table Sorting** - Click any column header to sort (ascending/descending with arrow indicators)
@@ -66,6 +76,7 @@ Bills_tracker_v3/
 │   └── themes/                # Visual themes
 ├── main_desktop.py           # Application entry point
 ├── demo_date_selector.py     # Demo for date selection features
+├── demo_advanced_filtering.py # Demo for advanced filtering features
 ├── requirements.txt          # Python dependencies
 └── bills_tracker.db         # SQLite database
 ```
@@ -96,9 +107,10 @@ Bills_tracker_v3/
    python main_desktop.py
    ```
 
-4. **Try the date selector demo:**
+4. **Try the demos:**
    ```bash
-   python demo_date_selector.py
+   python demo_date_selector.py      # Date selection features
+   python demo_advanced_filtering.py # Advanced filtering features
    ```
 
 ## 📖 How to Use
@@ -135,10 +147,16 @@ Bills_tracker_v3/
 4. A new bill for the next cycle will be created automatically
 
 ### **Searching and Filtering**
-1. Use the search bar to filter bills
-2. Select search field from dropdown (Name, Due Date, Category, etc.)
-3. Click "Clear" to reset filters
-4. Click column headers to sort
+1. **Default View**: App opens showing only PENDING bills (most useful for daily use)
+2. **Status Filter**: Choose Pending, Paid, or All bills
+3. **Period Filter**: Filter by time periods (This Month, Last Month, etc.)
+4. **Search**: Use the search bar with different fields (Name, Due Date, Category, etc.)
+5. **Combined Filters**: Use status, period, and search filters together
+6. **Clear Options**: 
+   - "Clear Search" - Clears only the search field
+   - "Clear All" - Resets to default view (Pending bills only)
+7. **Bill Counter**: Shows exactly how many bills are being displayed
+8. Click column headers to sort
 
 ### **Exporting/Importing Data**
 1. Click "Export CSV" to download all bills
@@ -222,11 +240,11 @@ The new date selector provides multiple ways to choose dates:
 ## 🔄 Version History
 
 ### **v3.1** (Current)
-- ✅ **Advanced Date Selection** - Visual calendar picker and quick date buttons
+- ✅ **Advanced Filtering System** - Default pending view, status/period filters, bill counter
+- ✅ **Advanced Date Selection** - Visual calendar picker and direct input
 - ✅ Complete GUI rewrite with CustomTkinter
 - ✅ Category system with management interface
 - ✅ Smart checkbox system with pending changes
-- ✅ Advanced search and filtering
 - ✅ Export/Import functionality
 - ✅ Automatic next cycle generation
 - ✅ Modern, responsive design

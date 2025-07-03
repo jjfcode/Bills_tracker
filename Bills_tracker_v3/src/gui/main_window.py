@@ -692,16 +692,42 @@ class MainWindow(ctk.CTk):
         import_btn = ctk.CTkButton(btn_frame, text="Import CSV", command=self.import_bills)
         import_btn.grid(row=0, column=2, padx=(0, 10), pady=10)
 
-        # Search/Filter bar
+        # Filter options frame
+        filter_frame = ctk.CTkFrame(self.content)
+        filter_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 10))
+        filter_frame.grid_columnconfigure(1, weight=1)
+        
+        # Status filter (Pending/Paid/All)
+        ctk.CTkLabel(filter_frame, text="Status:").grid(row=0, column=0, padx=(10, 5), pady=10)
+        self.status_filter_var = ctk.StringVar(value="Pending")
+        status_combo = ttk.Combobox(filter_frame, textvariable=self.status_filter_var,
+                                   values=["Pending", "Paid", "All"], state="readonly", width=12)
+        status_combo.grid(row=0, column=1, padx=5, pady=10, sticky="w")
+        status_combo.bind("<<ComboboxSelected>>", self.apply_filters)
+        
+        # Period filter
+        ctk.CTkLabel(filter_frame, text="Period:").grid(row=0, column=2, padx=(20, 5), pady=10)
+        self.period_filter_var = ctk.StringVar(value="All")
+        period_combo = ttk.Combobox(filter_frame, textvariable=self.period_filter_var,
+                                   values=["All", "This Month", "Last Month", "Previous Month", "This Year", "Last Year"], 
+                                   state="readonly", width=15)
+        period_combo.grid(row=0, column=3, padx=5, pady=10)
+        period_combo.bind("<<ComboboxSelected>>", self.apply_filters)
+        
+        # Clear filters button
+        clear_btn = ctk.CTkButton(filter_frame, text="Clear All", command=self.clear_all_filters, width=80)
+        clear_btn.grid(row=0, column=4, padx=5, pady=10)
+
+        # Search bar
         search_frame = ctk.CTkFrame(self.content)
-        search_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 10))
+        search_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=(0, 10))
         search_frame.grid_columnconfigure(1, weight=1)
         
         ctk.CTkLabel(search_frame, text="Search:").grid(row=0, column=0, padx=(10, 5), pady=10)
         self.search_var = ctk.StringVar()
         self.search_entry = ctk.CTkEntry(search_frame, textvariable=self.search_var)
         self.search_entry.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
-        self.search_var.trace("w", self.filter_bills)
+        self.search_var.trace("w", self.apply_filters)
         
         self.search_field_var = ctk.StringVar(value="Name")
         search_field_combo = ttk.Combobox(search_frame, textvariable=self.search_field_var, 
@@ -709,8 +735,8 @@ class MainWindow(ctk.CTk):
                                          state="readonly", width=15)
         search_field_combo.grid(row=0, column=2, padx=5, pady=10)
         
-        clear_btn = ctk.CTkButton(search_frame, text="Clear", command=self.clear_filter, width=60)
-        clear_btn.grid(row=0, column=3, padx=5, pady=10)
+        clear_search_btn = ctk.CTkButton(search_frame, text="Clear Search", command=self.clear_search, width=100)
+        clear_search_btn.grid(row=0, column=3, padx=5, pady=10)
 
         self.bills_table_frame = ctk.CTkFrame(self.content)
         self.bills_table_frame.grid(row=2, column=0, sticky="nswe")
@@ -735,17 +761,24 @@ class MainWindow(ctk.CTk):
 
         self.bills_by_id = {}  # id -> bill dict
         self._bills_data = fetch_all_bills()
-        self._filtered_bills = self._bills_data.copy()
-        self.populate_bills_table(self._filtered_bills)
+        # Apply default filter (Pending bills only)
+        self._filtered_bills = [bill for bill in self._bills_data if not bill.get("paid", False)]
 
         scrollbar = ttk.Scrollbar(self.bills_table_frame, orient="vertical", command=self.bills_table.yview)
         self.bills_table.configure(yscrollcommand=scrollbar.set)
         self.bills_table.grid(row=0, column=0, sticky="nswe")
         scrollbar.grid(row=0, column=1, sticky="ns")
 
+        # Bills counter
+        self.bills_counter_label = ctk.CTkLabel(self.content, text="", font=("Arial", 12))
+        self.bills_counter_label.grid(row=3, column=0, sticky="w", padx=10, pady=(5, 0))
+        
+        # Now populate the table after the counter label is created
+        self.populate_bills_table(self._filtered_bills)
+        
         # Edit, Delete, Apply, and Refresh buttons
         action_btn_frame = ctk.CTkFrame(self.content)
-        action_btn_frame.grid(row=3, column=0, sticky="ew", pady=(10, 0))
+        action_btn_frame.grid(row=4, column=0, sticky="ew", pady=(10, 0))
         edit_btn = ctk.CTkButton(action_btn_frame, text="Edit", command=self.edit_selected_bill)
         edit_btn.pack(side="left", padx=10)
         delete_btn = ctk.CTkButton(action_btn_frame, text="Delete", command=self.delete_selected_bill)
@@ -755,47 +788,115 @@ class MainWindow(ctk.CTk):
         self.apply_btn = ctk.CTkButton(action_btn_frame, text="Apply Changes", command=self.apply_pending_changes, fg_color="green")
         self.apply_btn.pack(side="right", padx=10)
 
-    def filter_bills(self, *args):
+    def apply_filters(self, *args):
+        """Apply all filters: status, period, and search"""
+        # Start with all bills
+        filtered_bills = self._bills_data.copy()
+        
+        # Apply status filter
+        status_filter = self.status_filter_var.get()
+        if status_filter == "Pending":
+            filtered_bills = [bill for bill in filtered_bills if not bill.get("paid", False)]
+        elif status_filter == "Paid":
+            filtered_bills = [bill for bill in filtered_bills if bill.get("paid", False)]
+        # "All" means no status filtering
+        
+        # Apply period filter
+        period_filter = self.period_filter_var.get()
+        if period_filter != "All":
+            filtered_bills = self._filter_by_period(filtered_bills, period_filter)
+        
+        # Apply search filter
         search_term = self.search_var.get().lower()
         search_field = self.search_field_var.get()
         
-        if not search_term:
-            self._filtered_bills = self._bills_data.copy()
-        else:
-            self._filtered_bills = []
-            for bill in self._bills_data:
+        if search_term:
+            search_filtered = []
+            for bill in filtered_bills:
                 if search_field == "Name":
                     if search_term in bill.get("name", "").lower():
-                        self._filtered_bills.append(bill)
+                        search_filtered.append(bill)
                 elif search_field == "Due Date":
                     if search_term in bill.get("due_date", "").lower():
-                        self._filtered_bills.append(bill)
+                        search_filtered.append(bill)
                 elif search_field == "Category":
                     category_name = bill.get("category_name", "Uncategorized")
                     if search_term in category_name.lower():
-                        self._filtered_bills.append(bill)
+                        search_filtered.append(bill)
                 elif search_field == "Status":
                     status = "Paid" if bill.get("paid", False) else "Pending"
                     if search_term in status.lower():
-                        self._filtered_bills.append(bill)
+                        search_filtered.append(bill)
                 elif search_field == "Paid":
                     paid_status = "paid" if bill.get("paid", False) else "unpaid"
                     if search_term in paid_status.lower():
-                        self._filtered_bills.append(bill)
+                        search_filtered.append(bill)
+            filtered_bills = search_filtered
+        
+        self._filtered_bills = filtered_bills
         
         # Maintain current sort order
         if self._sort_column:
             self.sort_by_column(self._sort_column)
         else:
             self.populate_bills_table(self._filtered_bills)
-
-    def clear_filter(self):
+    
+    def _filter_by_period(self, bills, period):
+        """Filter bills by time period"""
+        from datetime import datetime, timedelta
+        
+        today = datetime.now()
+        filtered_bills = []
+        
+        for bill in bills:
+            try:
+                due_date = datetime.strptime(bill.get("due_date", ""), "%Y-%m-%d")
+                
+                if period == "This Month":
+                    if due_date.year == today.year and due_date.month == today.month:
+                        filtered_bills.append(bill)
+                        
+                elif period == "Last Month":
+                    last_month = today.replace(day=1) - timedelta(days=1)
+                    if due_date.year == last_month.year and due_date.month == last_month.month:
+                        filtered_bills.append(bill)
+                        
+                elif period == "Previous Month":
+                    # Two months ago
+                    prev_month = today.replace(day=1) - timedelta(days=1)
+                    prev_month = prev_month.replace(day=1) - timedelta(days=1)
+                    if due_date.year == prev_month.year and due_date.month == prev_month.month:
+                        filtered_bills.append(bill)
+                        
+                elif period == "This Year":
+                    if due_date.year == today.year:
+                        filtered_bills.append(bill)
+                        
+                elif period == "Last Year":
+                    if due_date.year == today.year - 1:
+                        filtered_bills.append(bill)
+                        
+            except ValueError:
+                # Skip bills with invalid dates
+                continue
+        
+        return filtered_bills
+    
+    def clear_all_filters(self):
+        """Clear all filters and reset to default (Pending bills)"""
         self.search_var.set("")
-        self._filtered_bills = self._bills_data.copy()
+        self.status_filter_var.set("Pending")
+        self.period_filter_var.set("All")
+        self._filtered_bills = [bill for bill in self._bills_data if not bill.get("paid", False)]
         if self._sort_column:
             self.sort_by_column(self._sort_column)
         else:
             self.populate_bills_table(self._filtered_bills)
+    
+    def clear_search(self):
+        """Clear only the search filter"""
+        self.search_var.set("")
+        self.apply_filters()
 
     def populate_bills_table(self, bills):
         for row in self.bills_table.get_children():
@@ -814,6 +915,20 @@ class MainWindow(ctk.CTk):
             )
             item_id = self.bills_table.insert("", "end", values=row)
             self.bills_by_id[item_id] = bill
+        
+        # Update bills counter
+        total_bills = len(self._bills_data)
+        filtered_bills = len(bills)
+        status_filter = self.status_filter_var.get()
+        period_filter = self.period_filter_var.get()
+        
+        counter_text = f"Showing {filtered_bills} of {total_bills} bills"
+        if status_filter != "All":
+            counter_text += f" | Status: {status_filter}"
+        if period_filter != "All":
+            counter_text += f" | Period: {period_filter}"
+        
+        self.bills_counter_label.configure(text=counter_text)
 
     def sort_by_column(self, col):
         col_map = {
