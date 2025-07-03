@@ -10,35 +10,80 @@ class AddBillDialog(ctk.CTkToplevel):
     def __init__(self, master, on_success):
         super().__init__(master)
         self.title("Add Bill")
-        self.geometry("400x300")
+        self.geometry("500x500")
         self.on_success = on_success
         self._setup_ui()
+        self.lift()
+        self.focus_force()
+        self.grab_set()
 
     def _setup_ui(self):
         self.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(self, text="Name:").grid(row=0, column=0, padx=10, pady=10, sticky="e")
+        row = 0
+        # Name
+        ctk.CTkLabel(self, text="Name:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
         self.name_entry = ctk.CTkEntry(self)
-        self.name_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
-
-        ctk.CTkLabel(self, text="Due Date (YYYY-MM-DD):").grid(row=1, column=0, padx=10, pady=10, sticky="e")
+        self.name_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Due Date
+        ctk.CTkLabel(self, text="Due Date (YYYY-MM-DD):").grid(row=row, column=0, padx=10, pady=5, sticky="e")
         self.due_date_entry = ctk.CTkEntry(self)
-        self.due_date_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-
-        ctk.CTkLabel(self, text="Paid:").grid(row=2, column=0, padx=10, pady=10, sticky="e")
+        self.due_date_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Paid
+        ctk.CTkLabel(self, text="Paid:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
         self.paid_var = ctk.BooleanVar()
         self.paid_checkbox = ctk.CTkCheckBox(self, variable=self.paid_var, text="Yes")
-        self.paid_checkbox.grid(row=2, column=1, padx=10, pady=10, sticky="w")
-
+        self.paid_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+        row += 1
+        # Billing Cycle
+        ctk.CTkLabel(self, text="Billing Cycle:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.billing_cycle_entry = ctk.CTkEntry(self)
+        self.billing_cycle_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Reminder Days
+        ctk.CTkLabel(self, text="Reminder Days:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.reminder_days_entry = ctk.CTkEntry(self)
+        self.reminder_days_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Web Page
+        ctk.CTkLabel(self, text="Web Page:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.web_page_entry = ctk.CTkEntry(self)
+        self.web_page_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Company Email
+        ctk.CTkLabel(self, text="Company Email:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.company_email_entry = ctk.CTkEntry(self)
+        self.company_email_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Support Phone
+        ctk.CTkLabel(self, text="Support Phone:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.support_phone_entry = ctk.CTkEntry(self)
+        self.support_phone_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Account Number
+        ctk.CTkLabel(self, text="Account Number:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.account_number_entry = ctk.CTkEntry(self)
+        self.account_number_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Error label
         self.error_label = ctk.CTkLabel(self, text="", text_color="red")
-        self.error_label.grid(row=3, column=0, columnspan=2)
-
+        self.error_label.grid(row=row, column=0, columnspan=2)
+        row += 1
+        # Add button
         self.add_button = ctk.CTkButton(self, text="Add", command=self._on_add)
-        self.add_button.grid(row=4, column=0, columnspan=2, pady=20)
+        self.add_button.grid(row=row, column=0, columnspan=2, pady=20)
 
     def _on_add(self):
         name = self.name_entry.get().strip()
         due_date = self.due_date_entry.get().strip()
         paid = self.paid_var.get()
+        billing_cycle = self.billing_cycle_entry.get().strip()
+        reminder_days = self.reminder_days_entry.get().strip()
+        web_page = self.web_page_entry.get().strip()
+        company_email = self.company_email_entry.get().strip()
+        support_phone = self.support_phone_entry.get().strip()
+        account_number = self.account_number_entry.get().strip()
         # Basic validation
         if not name or not due_date:
             self.error_label.configure(text="Name and Due Date are required.")
@@ -48,10 +93,21 @@ class AddBillDialog(ctk.CTkToplevel):
         except ValueError:
             self.error_label.configure(text="Invalid date format. Use YYYY-MM-DD.")
             return
+        try:
+            reminder_days_int = int(reminder_days) if reminder_days else 7
+        except ValueError:
+            self.error_label.configure(text="Reminder Days must be a number.")
+            return
         bill_data = {
             "name": name,
             "due_date": due_date,
-            "paid": paid
+            "paid": paid,
+            "billing_cycle": billing_cycle,
+            "reminder_days": reminder_days_int,
+            "web_page": web_page,
+            "company_email": company_email,
+            "support_phone": support_phone,
+            "account_number": account_number
         }
         insert_bill(bill_data)
         self.on_success()
@@ -61,38 +117,89 @@ class EditBillDialog(ctk.CTkToplevel):
     def __init__(self, master, bill_data, on_success):
         super().__init__(master)
         self.title("Edit Bill")
-        self.geometry("400x300")
+        self.geometry("500x500")
         self.bill_data = bill_data
         self.on_success = on_success
         self._setup_ui()
+        self.lift()
+        self.focus_force()
+        self.grab_set()
 
     def _setup_ui(self):
         self.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(self, text="Name:").grid(row=0, column=0, padx=10, pady=10, sticky="e")
+        row = 0
+        # Name
+        ctk.CTkLabel(self, text="Name:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
         self.name_entry = ctk.CTkEntry(self)
         self.name_entry.insert(0, self.bill_data.get("name", ""))
-        self.name_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
-
-        ctk.CTkLabel(self, text="Due Date (YYYY-MM-DD):").grid(row=1, column=0, padx=10, pady=10, sticky="e")
+        self.name_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Due Date
+        ctk.CTkLabel(self, text="Due Date (YYYY-MM-DD):").grid(row=row, column=0, padx=10, pady=5, sticky="e")
         self.due_date_entry = ctk.CTkEntry(self)
         self.due_date_entry.insert(0, self.bill_data.get("due_date", ""))
-        self.due_date_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-
-        ctk.CTkLabel(self, text="Paid:").grid(row=2, column=0, padx=10, pady=10, sticky="e")
+        self.due_date_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Paid
+        ctk.CTkLabel(self, text="Paid:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
         self.paid_var = ctk.BooleanVar(value=self.bill_data.get("paid", False))
         self.paid_checkbox = ctk.CTkCheckBox(self, variable=self.paid_var, text="Yes")
-        self.paid_checkbox.grid(row=2, column=1, padx=10, pady=10, sticky="w")
-
+        self.paid_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+        row += 1
+        # Billing Cycle
+        ctk.CTkLabel(self, text="Billing Cycle:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.billing_cycle_entry = ctk.CTkEntry(self)
+        self.billing_cycle_entry.insert(0, self.bill_data.get("billing_cycle", ""))
+        self.billing_cycle_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Reminder Days
+        ctk.CTkLabel(self, text="Reminder Days:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.reminder_days_entry = ctk.CTkEntry(self)
+        self.reminder_days_entry.insert(0, str(self.bill_data.get("reminder_days", 7)))
+        self.reminder_days_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Web Page
+        ctk.CTkLabel(self, text="Web Page:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.web_page_entry = ctk.CTkEntry(self)
+        self.web_page_entry.insert(0, self.bill_data.get("web_page", ""))
+        self.web_page_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Company Email
+        ctk.CTkLabel(self, text="Company Email:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.company_email_entry = ctk.CTkEntry(self)
+        self.company_email_entry.insert(0, self.bill_data.get("company_email", ""))
+        self.company_email_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Support Phone
+        ctk.CTkLabel(self, text="Support Phone:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.support_phone_entry = ctk.CTkEntry(self)
+        self.support_phone_entry.insert(0, self.bill_data.get("support_phone", ""))
+        self.support_phone_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Account Number
+        ctk.CTkLabel(self, text="Account Number:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.account_number_entry = ctk.CTkEntry(self)
+        self.account_number_entry.insert(0, self.bill_data.get("account_number", ""))
+        self.account_number_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        # Error label
         self.error_label = ctk.CTkLabel(self, text="", text_color="red")
-        self.error_label.grid(row=3, column=0, columnspan=2)
-
+        self.error_label.grid(row=row, column=0, columnspan=2)
+        row += 1
+        # Save button
         self.save_button = ctk.CTkButton(self, text="Save", command=self._on_save)
-        self.save_button.grid(row=4, column=0, columnspan=2, pady=20)
+        self.save_button.grid(row=row, column=0, columnspan=2, pady=20)
 
     def _on_save(self):
         name = self.name_entry.get().strip()
         due_date = self.due_date_entry.get().strip()
         paid = self.paid_var.get()
+        billing_cycle = self.billing_cycle_entry.get().strip()
+        reminder_days = self.reminder_days_entry.get().strip()
+        web_page = self.web_page_entry.get().strip()
+        company_email = self.company_email_entry.get().strip()
+        support_phone = self.support_phone_entry.get().strip()
+        account_number = self.account_number_entry.get().strip()
         if not name or not due_date:
             self.error_label.configure(text="Name and Due Date are required.")
             return
@@ -101,10 +208,21 @@ class EditBillDialog(ctk.CTkToplevel):
         except ValueError:
             self.error_label.configure(text="Invalid date format. Use YYYY-MM-DD.")
             return
+        try:
+            reminder_days_int = int(reminder_days) if reminder_days else 7
+        except ValueError:
+            self.error_label.configure(text="Reminder Days must be a number.")
+            return
         bill_data = self.bill_data.copy()
         bill_data["name"] = name
         bill_data["due_date"] = due_date
         bill_data["paid"] = paid
+        bill_data["billing_cycle"] = billing_cycle
+        bill_data["reminder_days"] = reminder_days_int
+        bill_data["web_page"] = web_page
+        bill_data["company_email"] = company_email
+        bill_data["support_phone"] = support_phone
+        bill_data["account_number"] = account_number
         update_bill(bill_data["id"], bill_data)
         self.on_success()
         self.destroy()
