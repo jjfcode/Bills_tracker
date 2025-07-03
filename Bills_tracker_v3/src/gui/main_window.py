@@ -3,7 +3,7 @@ from tkinter import ttk
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "core"))
-from db import fetch_all_bills, insert_bill, update_bill, delete_bill
+from db import fetch_all_bills, insert_bill, update_bill, delete_bill, fetch_all_categories
 from datetime import datetime, timedelta
 from tkinter import StringVar
 from tkinter import IntVar
@@ -114,6 +114,13 @@ class AddBillDialog(ctk.CTkToplevel):
         self.account_number_entry = ctk.CTkEntry(self)
         self.account_number_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
         row += 1
+        # Category (dropdown)
+        ctk.CTkLabel(self, text="Category:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.category_var = StringVar(value="Uncategorized")
+        self.category_combo = ttk.Combobox(self, textvariable=self.category_var, state="readonly")
+        self.category_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self._load_categories()
+        row += 1
         # Error label
         self.error_label = ctk.CTkLabel(self, text="", text_color="red")
         self.error_label.grid(row=row, column=0, columnspan=2)
@@ -121,6 +128,17 @@ class AddBillDialog(ctk.CTkToplevel):
         # Add button
         self.add_button = ctk.CTkButton(self, text="Add", command=self._on_add)
         self.add_button.grid(row=row, column=0, columnspan=2, pady=20)
+
+    def _load_categories(self):
+        """Load categories into the dropdown"""
+        try:
+            self.categories = fetch_all_categories()
+            category_names = ["Uncategorized"] + [cat['name'] for cat in self.categories]
+            self.category_combo['values'] = category_names
+        except Exception as e:
+            print(f"Error loading categories: {e}")
+            self.categories = []
+            self.category_combo['values'] = ["Uncategorized"]
 
     def _on_add(self):
         name = self.name_entry.get().strip()
@@ -155,6 +173,14 @@ class AddBillDialog(ctk.CTkToplevel):
             self.error_label.configure(text="Web page must start with http:// or https://")
             show_popup(self, "Error", "Web page must start with http:// or https://", color="red")
             return
+        # Get category ID
+        category_id = None
+        if self.category_var.get() != "Uncategorized":
+            for category in self.categories:
+                if category['name'] == self.category_var.get():
+                    category_id = category['id']
+                    break
+        
         bill_data = {
             "name": name,
             "due_date": due_date,
@@ -164,7 +190,8 @@ class AddBillDialog(ctk.CTkToplevel):
             "web_page": web_page,
             "company_email": company_email,
             "support_phone": support_phone,
-            "account_number": account_number
+            "account_number": account_number,
+            "category_id": category_id
         }
         insert_bill(bill_data)
         show_popup(self, "Success", "Bill added successfully!", color="green")
@@ -240,6 +267,13 @@ class EditBillDialog(ctk.CTkToplevel):
         self.account_number_entry.insert(0, self.bill_data.get("account_number", ""))
         self.account_number_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
         row += 1
+        # Category (dropdown)
+        ctk.CTkLabel(self, text="Category:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.category_var = StringVar(value="Uncategorized")
+        self.category_combo = ttk.Combobox(self, textvariable=self.category_var, state="readonly")
+        self.category_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self._load_categories()
+        row += 1
         # Error label
         self.error_label = ctk.CTkLabel(self, text="", text_color="red")
         self.error_label.grid(row=row, column=0, columnspan=2)
@@ -247,6 +281,21 @@ class EditBillDialog(ctk.CTkToplevel):
         # Save button
         self.save_button = ctk.CTkButton(self, text="Save", command=self._on_save)
         self.save_button.grid(row=row, column=0, columnspan=2, pady=20)
+
+    def _load_categories(self):
+        """Load categories into the dropdown"""
+        try:
+            self.categories = fetch_all_categories()
+            category_names = ["Uncategorized"] + [cat['name'] for cat in self.categories]
+            self.category_combo['values'] = category_names
+            
+            # Set current category
+            current_category = self.bill_data.get("category_name", "Uncategorized")
+            self.category_var.set(current_category)
+        except Exception as e:
+            print(f"Error loading categories: {e}")
+            self.categories = []
+            self.category_combo['values'] = ["Uncategorized"]
 
     def _on_save(self):
         name = self.name_entry.get().strip()
@@ -280,6 +329,15 @@ class EditBillDialog(ctk.CTkToplevel):
             self.error_label.configure(text="Web page must start with http:// or https://")
             show_popup(self, "Error", "Web page must start with http:// or https://", color="red")
             return
+        
+        # Get category ID
+        category_id = None
+        if self.category_var.get() != "Uncategorized":
+            for category in self.categories:
+                if category['name'] == self.category_var.get():
+                    category_id = category['id']
+                    break
+        
         bill_data = self.bill_data.copy()
         bill_data["name"] = name
         bill_data["due_date"] = due_date
@@ -290,10 +348,160 @@ class EditBillDialog(ctk.CTkToplevel):
         bill_data["company_email"] = company_email
         bill_data["support_phone"] = support_phone
         bill_data["account_number"] = account_number
+        bill_data["category_id"] = category_id
         update_bill(bill_data["id"], bill_data)
         show_popup(self, "Success", "Bill updated successfully!", color="green")
         self.on_success()
         self.destroy()
+
+class AddCategoryDialog(ctk.CTkToplevel):
+    def __init__(self, master, on_success):
+        super().__init__(master)
+        self.title("Add Category")
+        self.geometry("400x300")
+        self.on_success = on_success
+        self._setup_ui()
+        self.lift()
+        self.focus_force()
+        self.grab_set()
+
+    def _setup_ui(self):
+        self.grid_columnconfigure(1, weight=1)
+        row = 0
+        
+        # Name
+        ctk.CTkLabel(self, text="Name:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.name_entry = ctk.CTkEntry(self)
+        self.name_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        
+        # Color
+        ctk.CTkLabel(self, text="Color:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.color_var = ctk.StringVar(value="#1f538d")
+        self.color_entry = ctk.CTkEntry(self, textvariable=self.color_var)
+        self.color_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        
+        # Description
+        ctk.CTkLabel(self, text="Description:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.description_text = ctk.CTkTextbox(self, height=100)
+        self.description_text.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        
+        # Error label
+        self.error_label = ctk.CTkLabel(self, text="", text_color="red")
+        self.error_label.grid(row=row, column=0, columnspan=2)
+        row += 1
+        
+        # Add button
+        self.add_button = ctk.CTkButton(self, text="Add", command=self._on_add)
+        self.add_button.grid(row=row, column=0, columnspan=2, pady=20)
+
+    def _on_add(self):
+        name = self.name_entry.get().strip()
+        color = self.color_var.get().strip()
+        description = self.description_text.get("1.0", "end-1c").strip()
+        
+        if not name:
+            self.error_label.configure(text="Name is required.")
+            show_popup(self, "Error", "Name is required.", color="red")
+            return
+        
+        # Validate color format
+        if not color.startswith("#") or len(color) != 7:
+            self.error_label.configure(text="Color must be in #RRGGBB format.")
+            show_popup(self, "Error", "Color must be in #RRGGBB format.", color="red")
+            return
+        
+        try:
+            from db import insert_category
+            category_data = {
+                "name": name,
+                "color": color,
+                "description": description
+            }
+            insert_category(category_data)
+            show_popup(self, "Success", "Category added successfully!", color="green")
+            self.on_success()
+            self.destroy()
+        except Exception as e:
+            show_popup(self, "Error", f"Failed to add category: {str(e)}", color="red")
+
+class EditCategoryDialog(ctk.CTkToplevel):
+    def __init__(self, master, category_data, on_success):
+        super().__init__(master)
+        self.title("Edit Category")
+        self.geometry("400x300")
+        self.category_data = category_data
+        self.on_success = on_success
+        self._setup_ui()
+        self.lift()
+        self.focus_force()
+        self.grab_set()
+
+    def _setup_ui(self):
+        self.grid_columnconfigure(1, weight=1)
+        row = 0
+        
+        # Name
+        ctk.CTkLabel(self, text="Name:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.name_entry = ctk.CTkEntry(self)
+        self.name_entry.insert(0, self.category_data.get("name", ""))
+        self.name_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        
+        # Color
+        ctk.CTkLabel(self, text="Color:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.color_var = ctk.StringVar(value=self.category_data.get("color", "#1f538d"))
+        self.color_entry = ctk.CTkEntry(self, textvariable=self.color_var)
+        self.color_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        
+        # Description
+        ctk.CTkLabel(self, text="Description:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        self.description_text = ctk.CTkTextbox(self, height=100)
+        self.description_text.insert("1.0", self.category_data.get("description", ""))
+        self.description_text.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        row += 1
+        
+        # Error label
+        self.error_label = ctk.CTkLabel(self, text="", text_color="red")
+        self.error_label.grid(row=row, column=0, columnspan=2)
+        row += 1
+        
+        # Save button
+        self.save_button = ctk.CTkButton(self, text="Save", command=self._on_save)
+        self.save_button.grid(row=row, column=0, columnspan=2, pady=20)
+
+    def _on_save(self):
+        name = self.name_entry.get().strip()
+        color = self.color_var.get().strip()
+        description = self.description_text.get("1.0", "end-1c").strip()
+        
+        if not name:
+            self.error_label.configure(text="Name is required.")
+            show_popup(self, "Error", "Name is required.", color="red")
+            return
+        
+        # Validate color format
+        if not color.startswith("#") or len(color) != 7:
+            self.error_label.configure(text="Color must be in #RRGGBB format.")
+            show_popup(self, "Error", "Color must be in #RRGGBB format.", color="red")
+            return
+        
+        try:
+            from db import update_category
+            category_data = {
+                "name": name,
+                "color": color,
+                "description": description
+            }
+            update_category(self.category_data["id"], category_data)
+            show_popup(self, "Success", "Category updated successfully!", color="green")
+            self.on_success()
+            self.destroy()
+        except Exception as e:
+            show_popup(self, "Error", f"Failed to update category: {str(e)}", color="red")
 
 class MainWindow(ctk.CTk):
     def __init__(self):
@@ -426,7 +634,8 @@ class MainWindow(ctk.CTk):
                     if search_term in bill.get("due_date", "").lower():
                         self._filtered_bills.append(bill)
                 elif search_field == "Category":
-                    if search_term in bill.get("category", "").lower():
+                    category_name = bill.get("category_name", "Uncategorized")
+                    if search_term in category_name.lower():
                         self._filtered_bills.append(bill)
                 elif search_field == "Status":
                     status = "Paid" if bill.get("paid", False) else "Pending"
@@ -457,12 +666,13 @@ class MainWindow(ctk.CTk):
         self.bills_by_id = {}
         for bill in bills:
             paid_status = "✓" if bill.get("paid", False) else "☐"
+            category_name = bill.get("category_name", "Uncategorized")
             row = (
                 paid_status,
                 bill.get("name", ""),
                 bill.get("due_date", ""),
                 bill.get("amount", ""),
-                bill.get("category", ""),
+                category_name,
                 "Paid" if bill.get("paid", False) else "Pending"
             )
             item_id = self.bills_table.insert("", "end", values=row)
@@ -474,7 +684,7 @@ class MainWindow(ctk.CTk):
             "Name": "name",
             "Due Date": "due_date",
             "Amount": "amount",
-            "Category": "category",
+            "Category": "category_name",
             "Status": "paid"
         }
         key = col_map.get(col, col)
@@ -501,10 +711,54 @@ class MainWindow(ctk.CTk):
 
     def show_categories_view(self):
         self.clear_content()
-        self.categories_frame = ctk.CTkFrame(self.content)
-        self.categories_frame.grid(row=0, column=0, sticky="nswe")
-        label = ctk.CTkLabel(self.categories_frame, text="Categories View (Coming Soon)", font=("Arial", 18))
-        label.pack(padx=40, pady=40)
+        
+        # Title
+        title_label = ctk.CTkLabel(self.content, text="Categories Management", font=("Arial", 24, "bold"))
+        title_label.grid(row=0, column=0, pady=(20, 30))
+        
+        # Button frame
+        btn_frame = ctk.CTkFrame(self.content)
+        btn_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 20))
+        
+        add_category_btn = ctk.CTkButton(btn_frame, text="Add Category", command=self.open_add_category_dialog)
+        add_category_btn.pack(side="left", padx=10, pady=10)
+        
+        # Categories table frame
+        table_frame = ctk.CTkFrame(self.content)
+        table_frame.grid(row=2, column=0, sticky="nswe", padx=10, pady=(0, 20))
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_columnconfigure(0, weight=1)
+        
+        # Categories table
+        columns = ("Name", "Color", "Description", "Bills Count")
+        self.categories_table = ttk.Treeview(table_frame, columns=columns, show="headings", height=15)
+        
+        # Configure columns
+        for col in columns:
+            self.categories_table.heading(col, text=col)
+            self.categories_table.column(col, width=150, anchor="center")
+        
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.categories_table.yview)
+        self.categories_table.configure(yscrollcommand=scrollbar.set)
+        self.categories_table.grid(row=0, column=0, sticky="nswe")
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        
+        # Action buttons
+        action_frame = ctk.CTkFrame(self.content)
+        action_frame.grid(row=3, column=0, sticky="ew", pady=(0, 20))
+        
+        edit_category_btn = ctk.CTkButton(action_frame, text="Edit", command=self.edit_selected_category)
+        edit_category_btn.pack(side="left", padx=10, pady=10)
+        
+        delete_category_btn = ctk.CTkButton(action_frame, text="Delete", command=self.delete_selected_category)
+        delete_category_btn.pack(side="left", padx=10, pady=10)
+        
+        refresh_btn = ctk.CTkButton(action_frame, text="Refresh", command=self.refresh_categories)
+        refresh_btn.pack(side="right", padx=10, pady=10)
+        
+        # Populate categories
+        self.populate_categories_table()
 
     def show_settings_view(self):
         self.clear_content()
@@ -898,6 +1152,124 @@ class MainWindow(ctk.CTk):
             show_popup(self, "Success", "Data refreshed successfully!", color="green")
         except Exception as e:
             show_popup(self, "Error", f"Failed to refresh data: {str(e)}", color="red")
+
+    # Category management methods
+    def populate_categories_table(self):
+        """Populate the categories table with data"""
+        for row in self.categories_table.get_children():
+            self.categories_table.delete(row)
+        
+        try:
+            categories = fetch_all_categories()
+            for category in categories:
+                # Count bills in this category
+                bill_count = sum(1 for bill in self._bills_data if bill.get('category_id') == category['id'])
+                
+                row = (
+                    category['name'],
+                    category['color'],
+                    category.get('description', ''),
+                    str(bill_count)
+                )
+                self.categories_table.insert("", "end", values=row)
+        except Exception as e:
+            print(f"Error populating categories table: {e}")
+
+    def open_add_category_dialog(self):
+        """Open dialog to add a new category"""
+        AddCategoryDialog(self, self.refresh_categories)
+
+    def edit_selected_category(self):
+        """Edit the selected category"""
+        selected = self.categories_table.selection()
+        if not selected:
+            show_popup(self, "Info", "Please select a category to edit.", color="blue")
+            return
+        
+        # Get category data
+        category_name = self.categories_table.item(selected[0], "values")[0]
+        categories = fetch_all_categories()
+        category_data = None
+        for cat in categories:
+            if cat['name'] == category_name:
+                category_data = cat
+                break
+        
+        if category_data:
+            EditCategoryDialog(self, category_data, self.refresh_categories)
+        else:
+            show_popup(self, "Error", "Category not found.", color="red")
+
+    def delete_selected_category(self):
+        """Delete the selected category"""
+        selected = self.categories_table.selection()
+        if not selected:
+            show_popup(self, "Info", "Please select a category to delete.", color="blue")
+            return
+        
+        category_name = self.categories_table.item(selected[0], "values")[0]
+        
+        # Check if category is in use
+        bill_count = int(self.categories_table.item(selected[0], "values")[3])
+        if bill_count > 0:
+            show_popup(self, "Error", f"Cannot delete category '{category_name}' because it has {bill_count} bills assigned to it.", color="red")
+            return
+        
+        # Confirmation dialog
+        try:
+            confirm = ctk.CTkToplevel(self)
+            confirm.title("Confirm Delete")
+            confirm.geometry("400x150")
+            
+            def safe_destroy():
+                try:
+                    if confirm.winfo_exists():
+                        confirm.destroy()
+                except:
+                    pass
+            
+            ctk.CTkLabel(confirm, text=f"Delete category '{category_name}'?", font=("Arial", 12)).pack(pady=20)
+            
+            def do_delete():
+                try:
+                    from db import delete_category
+                    categories = fetch_all_categories()
+                    category_id = None
+                    for cat in categories:
+                        if cat['name'] == category_name:
+                            category_id = cat['id']
+                            break
+                    
+                    if category_id:
+                        delete_category(category_id)
+                        show_popup(self, "Success", "Category deleted successfully!", color="green")
+                        self.refresh_categories()
+                    else:
+                        show_popup(self, "Error", "Category not found.", color="red")
+                except Exception as e:
+                    show_popup(self, "Error", f"Failed to delete category: {str(e)}", color="red")
+                safe_destroy()
+            
+            ctk.CTkButton(confirm, text="Delete", fg_color="red", command=do_delete).pack(side="left", padx=20, pady=10)
+            ctk.CTkButton(confirm, text="Cancel", command=safe_destroy).pack(side="right", padx=20, pady=10)
+            
+            def set_focus():
+                try:
+                    if confirm.winfo_exists():
+                        confirm.lift()
+                        confirm.focus_force()
+                        confirm.grab_set()
+                except:
+                    pass
+            
+            confirm.after(100, set_focus)
+            
+        except Exception as e:
+            print(f"Delete confirm dialog error: {e}")
+
+    def refresh_categories(self):
+        """Refresh the categories table"""
+        self.populate_categories_table()
 
 if __name__ == "__main__":
     app = MainWindow()

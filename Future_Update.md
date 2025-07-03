@@ -1,31 +1,52 @@
 # Future Updates - Bills Tracker
 
-This document outlines planned and potential future updates for the Bills Tracker application.
+This document outlines planned and potential future updates for the Bills Tracker application, including both command-line (v2) and desktop GUI (v3) versions.
 
-## Current Version Features (v2.0 - July 2025)
+## 🚀 **Current Versions Status**
 
-- ✅ Add, view, edit, and delete bills
-- ✅ Due date tracking and notifications
-- ✅ Automatic backup system
-- ✅ Input validation and duplicate prevention
-- ✅ Pay bills with automatic due date updates
-- ✅ Clean console interface with colored output
-- ✅ Search functionality with pagination
-- ✅ Sort bills by various criteria
-- ✅ Colored output and progress indicators
-- ✅ Flexible billing cycles (weekly, monthly, quarterly, etc.)
-- ✅ Custom reminder periods per bill
-- ✅ **Bill templates** - Save and reuse bill configurations for quick adding
-- ✅ **Contact information** - Store company email, phone numbers, and support details for customer service
-- ✅ **Bulk import/export** - Import/export bills from CSV and Excel files with validation
-- ✅ **Password encryption** - Encrypt stored passwords using Fernet cryptography
-- ✅ **Master password protection** - Require password to access the application
-- ✅ **Session timeout** - Auto-exit after inactivity with input-based checking
-- ✅ **Password management** - Change master password, reset password, recovery options
-- ✅ **Data integrity checks** - Verify data consistency on startup with automatic repairs
-- ✅ **SQLite database** - Migrated from JSON to SQLite for better performance
-- ✅ **Comprehensive validation** - Enhanced input validation for all fields
-- ✅ **Excel support** - Full Excel (.xlsx) import/export functionality
+### **Version 3.0 (Desktop GUI)** - *Latest Release* ✅
+**Location**: `Bills_tracker_v3/`
+
+#### ✅ **Completed Features**
+- **Modern GUI Interface** - Built with CustomTkinter for a modern, responsive design
+- **Category System** - Visual organization with 10 pre-defined categories and custom category management
+- **Smart Checkbox System** - Mark bills as paid with automatic next cycle generation
+- **Advanced Search & Filtering** - Real-time search with multi-field filtering and sorting
+- **Export/Import Functionality** - CSV export/import with validation and duplicate checking
+- **Apply Changes System** - Review and confirm multiple changes before saving
+- **Responsive Design** - Adapts to different window sizes with proper layout management
+- **User Feedback** - Success/error popups with proper error handling
+- **Database Integration** - SQLite database with category support and foreign key constraints
+- **Bill Management** - Add, edit, delete bills with comprehensive validation
+- **Recurring Bill Cycles** - Automatic next due date calculation for all billing cycles
+- **Visual Organization** - Color-coded categories and status indicators
+
+#### 🔄 **In Progress**
+- **Enhanced Category Management** - Category statistics and bill count tracking
+- **Improved Search** - Advanced filtering options and saved searches
+- **Data Visualization** - Charts and graphs for spending patterns
+
+#### 📋 **Planned for v3.1**
+- **Reminder System** - Desktop notifications and email reminders
+- **Reports & Analytics** - Spending reports and bill history analysis
+- **Backup & Sync** - Cloud backup and multi-device synchronization
+- **Theme System** - Dark/light mode and custom themes
+- **Keyboard Shortcuts** - Full keyboard navigation support
+
+### **Version 2.0 (Command-Line)** - *Legacy* ✅
+**Location**: `src/`
+
+#### ✅ **Completed Features**
+- **Console Interface** - Text-based interface with colored output and pagination
+- **Advanced Security** - Master password protection, encryption, and session timeout
+- **Data Compression** - Built-in compression for large datasets (GZIP, LZMA, ZLIB)
+- **Bill Templates** - Save and reuse bill configurations for quick adding
+- **Contact Management** - Comprehensive contact information storage
+- **CSV/Excel Import/Export** - Bulk import/export with validation
+- **Search & Sorting** - Advanced search with multiple criteria and flexible sorting
+- **Data Integrity** - Automatic data validation and repair on startup
+- **SQLite Database** - Fast and reliable data storage
+- **Password Management** - Change master password, recovery options, security questions
 
 ---
 
@@ -135,7 +156,7 @@ class DetailedHelpSystem:
 
 ## **Phase 3: Advanced Features**
 
-### 3.1 Smart Bill Management
+### 3.1 Smart Bill Management ✅ COMPLETED (v3)
 ```python
 # Example: Bill categories and contact info
 class BillCategory:
@@ -152,7 +173,7 @@ class ContactInfo:
         self.support_website = ""
         self.account_number = ""
 ```
-- [x] **Bill categories** - Organize bills by type (utilities, subscriptions, etc.) *(COMPLETED)*
+- [x] **Bill categories** - Organize bills by type (utilities, subscriptions, etc.) *(COMPLETED in v3)*
 - [x] **Company contact information** - Store email, phone, support hours, and customer service details *(COMPLETED)*
 - [x] **Account management** - Track account numbers, reference IDs, and service details *(COMPLETED)*
 - [x] **Support integration** - Quick access to customer service information when payment issues arise *(COMPLETED)*
@@ -162,7 +183,7 @@ class ContactInfo:
 - [ ] **Late fee warnings** - Calculate potential penalties
 - [ ] **Multi-currency support** - Handle different currencies
 
-### 3.2 Password Management System ✅ COMPLETED
+### 3.2 Password Management System ✅ COMPLETED (v2)
 ```python
 # Example: Password management features - ALL IMPLEMENTED
 class PasswordManager:
@@ -198,7 +219,6 @@ from email.mime.text import MIMEText
 - [ ] **Desktop notifications** - Pop-up reminders using `plyer`
 - [ ] **SMS integration** - Text message alerts via Twilio
 - [ ] **Custom notification schedules** - Set multiple reminders per bill
-- [ ] **Notification history** - Track sent notifications
 
 ### 3.4 Reporting & Analytics
 - [ ] **Monthly reports** - Generate spending summaries

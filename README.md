@@ -1,6 +1,27 @@
 # Bills Tracker 🏠💳
 
-A comprehensive command-line application for managing household bills with advanced features like flexible billing cycles, custom reminder periods, bill templates, contact information management, CSV import/export, search, sorting, pagination, colored output, automatic backups, and **data compression**.
+A comprehensive bill management system with both **command-line (v2)** and **desktop GUI (v3)** versions. Features include flexible billing cycles, custom reminder periods, bill templates, contact information management, CSV import/export, search, sorting, pagination, colored output, automatic backups, data compression, and a modern category system.
+
+## 🚀 **Two Versions Available**
+
+### 📱 **Desktop GUI Version (v3)** - *Recommended*
+- **Modern GUI** built with CustomTkinter
+- **Category System** with visual organization
+- **Smart Checkbox System** for bill payment tracking
+- **Advanced Search & Filtering**
+- **Export/Import functionality**
+- **Automatic next cycle generation**
+
+**[→ Go to Desktop Version (v3)](Bills_tracker_v3/README.md)**
+
+### 💻 **Command-Line Version (v2)** - *Legacy*
+- **Console-based interface**
+- **Advanced features** like data compression and encryption
+- **Bill templates** and contact management
+- **CSV import/export** with validation
+- **Comprehensive search** and sorting
+
+**[→ Go to Command-Line Version (v2)](src/README.md)**
 
 ## ✨ Features
 

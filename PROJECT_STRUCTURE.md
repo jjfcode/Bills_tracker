@@ -1,12 +1,45 @@
 # Bills Tracker - Project Structure
 
-This document explains the organization and structure of the Bills Tracker application.
+This document explains the organization and structure of the Bills Tracker application, which now includes both command-line (v2) and desktop GUI (v3) versions.
+
+## 🚀 **Two Versions Available**
+
+### 📱 **Desktop GUI Version (v3)** - *Recommended*
+Located in `Bills_tracker_v3/` directory
+- Modern GUI built with CustomTkinter
+- Category system with visual organization
+- Smart checkbox system for bill payment tracking
+- Advanced search & filtering capabilities
+- Export/Import functionality
+- Automatic next cycle generation
+
+### 💻 **Command-Line Version (v2)** - *Legacy*
+Located in `src/` directory
+- Console-based interface
+- Advanced features like data compression and encryption
+- Bill templates and contact management
+- CSV import/export with validation
+- Comprehensive search and sorting
 
 ## Directory Structure
 
 ```
 Bills_tracker/
-├── src/                          # Main source code
+├── Bills_tracker_v3/              # 🆕 Desktop GUI Version (v3)
+│   ├── src/
+│   │   ├── gui/
+│   │   │   └── main_window.py     # Main GUI window and dialogs
+│   │   ├── core/
+│   │   │   └── db.py             # Database operations and schema
+│   │   └── utils/                 # Utilities and helpers
+│   ├── resources/
+│   │   ├── icons/                 # Application icons
+│   │   └── themes/                # Visual themes
+│   ├── main_desktop.py           # Application entry point
+│   ├── requirements.txt          # Python dependencies
+│   ├── README.md                 # v3 documentation
+│   └── bills_tracker.db         # SQLite database for v3
+├── src/                          # Command-Line Version (v2)
 │   ├── main.py                   # Main application (renamed from bills-tracker.py)
 │   ├── data_compression.py       # Data compression functionality
 │   ├── validation.py             # Input validation utilities
@@ -46,12 +79,13 @@ Bills_tracker/
 │   ├── test_menu_options.py
 │   └── test_password_management_quick.py
 ├── backups/                      # Backup files (auto-generated)
-├── run.py                        # Application launcher
-├── requirements.txt              # Python dependencies
+├── run.py                        # Application launcher (v2)
+├── requirements.txt              # Python dependencies (v2)
 ├── README.md                     # Main project documentation
+├── PROJECT_STRUCTURE.md          # This file
 ├── Future_Update.md              # Feature roadmap
 ├── .gitignore                    # Git ignore rules
-├── bills_tracker.db              # SQLite database (auto-generated)
+├── bills_tracker.db              # SQLite database (v2, auto-generated)
 ├── bills.json                    # Legacy JSON file (for migration)
 ├── .encryption_key               # Encryption key (auto-generated)
 ├── .salt                         # Salt for key derivation (auto-generated)
@@ -61,7 +95,15 @@ Bills_tracker/
 
 ## File Organization
 
-### Source Code (`src/`)
+### Desktop GUI Version (v3) - `Bills_tracker_v3/`
+- **main_desktop.py**: Application entry point for GUI version
+- **src/gui/main_window.py**: Main application window and all dialogs
+- **src/core/db.py**: Database operations with category support
+- **src/utils/**: Utility functions for GUI
+- **resources/**: Icons and themes for the GUI
+- **requirements.txt**: Dependencies for GUI version
+
+### Command-Line Version (v2) - `src/`
 - **main.py**: Main application with all core functionality
 - **data_compression.py**: Data compression utilities for large datasets
 - **validation.py**: Input validation and data sanitization
@@ -93,28 +135,58 @@ Comprehensive test suite:
 
 ### Auto-Generated Files
 These files are created automatically and should not be manually edited:
-- `bills_tracker.db`: SQLite database
+- `bills_tracker.db`: SQLite database (both versions have their own)
 - `bills.json`: Legacy JSON data (for migration)
-- `.encryption_key`: Encryption key for password protection
-- `.salt`: Salt for key derivation
-- `.master_password`: Master password hash
+- `.encryption_key`: Encryption key for password protection (v2 only)
+- `.salt`: Salt for key derivation (v2 only)
+- `.master_password`: Master password hash (v2 only)
 - `backups/`: Directory containing backup files
 
-## Running the Application
+## Running the Applications
 
-### Option 1: Using the launcher script
+### Desktop GUI Version (v3) - *Recommended*
 ```bash
-python run.py
+cd Bills_tracker_v3
+python main_desktop.py
 ```
 
-### Option 2: Running directly from src
+### Command-Line Version (v2) - *Legacy*
 ```bash
+# Option 1: Using the launcher script
+python run.py
+
+# Option 2: Running directly from src
 cd src
 python main.py
 ```
 
+## Key Differences Between Versions
+
+### Version 3 (Desktop GUI)
+- **Modern GUI**: Built with CustomTkinter for a modern look
+- **Category System**: Visual organization with color-coded categories
+- **Smart Checkbox**: Mark bills as paid with automatic next cycle generation
+- **Advanced UI**: Search, filtering, sorting with visual feedback
+- **Simplified Setup**: No encryption or master password required
+- **Database**: SQLite with category support
+
+### Version 2 (Command-Line)
+- **Console Interface**: Text-based interface with colored output
+- **Advanced Security**: Master password protection and encryption
+- **Data Compression**: Built-in compression for large datasets
+- **Bill Templates**: Save and reuse bill configurations
+- **Comprehensive Features**: All advanced features from original version
+- **Database**: SQLite with encryption support
+
 ## Development Workflow
 
+### For Version 3 (GUI)
+1. **Main Development**: Edit files in `Bills_tracker_v3/src/`
+2. **GUI Components**: Work in `Bills_tracker_v3/src/gui/`
+3. **Database**: Modify `Bills_tracker_v3/src/core/db.py`
+4. **Testing**: Test GUI functionality manually
+
+### For Version 2 (Command-Line)
 1. **Main Development**: Edit files in `src/`
 2. **Testing**: Run tests from `test/` directory
 3. **Documentation**: Update files in `docs/` as needed
@@ -134,21 +206,46 @@ The `.gitignore` file is configured to exclude:
 
 ## Migration Notes
 
-- The main application was moved from `bills-tracker.py` to `src/main.py`
-- All utility modules are now in the `src/` directory
-- A launcher script (`run.py`) was added for easy execution
-- Import statements were updated to use relative imports
+- **Version 3**: New desktop GUI version with modern interface
+- **Version 2**: Legacy command-line version with all original features
+- Both versions use SQLite databases but with different schemas
+- Version 3 focuses on ease of use, Version 2 on advanced features
+- Users can choose which version best fits their needs
 
 ## Security Considerations
 
+### Version 2 (Command-Line)
 - Encryption keys and passwords are stored in hidden files (starting with `.`)
 - These files are excluded from version control
 - Database files contain sensitive data and are also excluded
 - Backup files may contain sensitive data and are excluded
 
+### Version 3 (Desktop GUI)
+- No encryption by default (simplified for ease of use)
+- Database files are excluded from version control
+- Users should manually backup the database file
+
 ## Backup Strategy
 
-- Automatic backups are stored in `backups/` directory
+- Automatic backups are stored in `backups/` directory (v2)
 - Backup files are excluded from version control
 - Users should manually backup the entire project directory for safekeeping
-- Database and encryption files should be backed up separately 
+- Database files should be backed up separately
+- Version 3 users should backup `Bills_tracker_v3/bills_tracker.db`
+
+## Choosing Between Versions
+
+### Choose Version 3 (Desktop GUI) if you:
+- Prefer a modern, visual interface
+- Want easy category organization
+- Need quick bill management
+- Don't require advanced security features
+- Want automatic next cycle generation
+
+### Choose Version 2 (Command-Line) if you:
+- Prefer keyboard-based navigation
+- Need advanced security features
+- Want data compression capabilities
+- Use bill templates extensively
+- Need comprehensive contact management
+- Work with large datasets 
