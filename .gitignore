@@ -1,4 +1,6 @@
+# Data files (auto-generated)
 bills.json
+bills_tracker.db
 backups/
 *.json
 
@@ -6,3 +8,52 @@ backups/
 .encryption_key
 .salt
 .master_password
+.master_password.backup.*
+
+# Python cache and build files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+
+# PyInstaller files
+*.spec
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Test files (optional - uncomment if you don't want test outputs tracked)
+# test_*.py
+# demo_*.py
+
+# Compression test files (auto-generated during testing)
+test_*.json
+test_*.gz
+test_*.xz
+test_*.zlib
+demo_*.json
+demo_*.gz
+demo_*.xz
+demo_*.zlib

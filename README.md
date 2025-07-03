@@ -1,6 +1,6 @@
 # Bills Tracker 🏠💳
 
-A comprehensive command-line application for managing household bills with advanced features like flexible billing cycles, custom reminder periods, bill templates, contact information management, CSV import/export, search, sorting, pagination, colored output, and automatic backups.
+A comprehensive command-line application for managing household bills with advanced features like flexible billing cycles, custom reminder periods, bill templates, contact information management, CSV import/export, search, sorting, pagination, colored output, automatic backups, and **data compression**.
 
 ## ✨ Features
 
@@ -14,6 +14,7 @@ A comprehensive command-line application for managing household bills with advan
 - **Password Encryption** - All stored passwords are encrypted using the Fernet algorithm for enhanced security
 - **Master Password Protection** - Application access is protected by a master password with secure hash storage
 - **Session Timeout/Auto-Exit** - The app automatically exits after 15 minutes of inactivity for enhanced security (improved with input-based checking)
+- **🗜️ Data Compression** - Compress large datasets, backups, and exports to save space and optimize performance (GZIP, LZMA, ZLIB)
 
 ### Advanced Date Management
 - **🔄 Flexible Billing Cycles** - Support for weekly, bi-weekly, monthly, quarterly, semi-annual, annual, and one-time bills
@@ -218,6 +219,22 @@ A comprehensive command-line application for managing household bills with advan
 - Automatic retry prompts for invalid input
 - Visual feedback with color-coded responses
 
+### Data Compression System
+- **🗜️ Data Compression Menu** - Option 13 in the main menu for all compression features
+- **Database Compression** - Compress the SQLite database file with backup and analysis
+- **Backup Compression** - Compress all files in the backup directory
+- **Individual File Compression** - Compress any file or batch of files
+- **Compression Analysis** - Find the best compression method for your data
+- **Decompression** - Restore compressed files to their original format
+- **Progress Tracking** - Visual progress indicators for large operations
+- **Safe Operations** - Backups and integrity checks for all compression actions
+
+See [docs/DATA_COMPRESSION_README.md](docs/DATA_COMPRESSION_README.md) for full details and usage examples.
+
+### Demo & Test Scripts
+- **Demo**: `python demo/demo_compression.py` - Demonstrates all compression features
+- **Test**: `python test/test_compression.py` - Runs comprehensive tests for compression
+
 ## 📂 File Structure
 
 ```
@@ -244,6 +261,7 @@ Bills_tracker/
 │   ├── README.md                      # Demo scripts documentation
 │   ├── demo_flexible_billing.py       # Billing cycles demonstration script
 │   ├── demo_custom_reminders.py      # Custom reminders demonstration script
+│   ├── demo_compression.py            # Data compression demonstration script
 │   └── demo_enhanced_validation.py   # Enhanced validation features demonstration
 ├── test/                              # Test scripts
 │   ├── README.md                      # Test scripts documentation
@@ -253,7 +271,8 @@ Bills_tracker/
 │   ├── test_validation.py            # Validation functions testing script
 │   ├── test_autocomplete.py          # Auto-complete functionality testing
 │   ├── test_encryption.py            # Password encryption testing
-│   └── test_password_management.py   # Password management functionality testing
+│   ├── test_password_management.py   # Password management functionality testing
+│   └── test_compression.py           # Data compression test script
 ├── README.md                          # This comprehensive documentation
 ├── Future_Update.md                   # Planned enhancements and roadmap
 └── .gitignore                        # Git ignore file
@@ -581,14 +600,17 @@ This project is open source and available under the [MIT License](LICENSE).
    - [docs/BILLING_CYCLES_IMPLEMENTATION.md](docs/BILLING_CYCLES_IMPLEMENTATION.md)
    - [docs/CUSTOM_REMINDERS_IMPLEMENTATION.md](docs/CUSTOM_REMINDERS_IMPLEMENTATION.md)
    - [docs/ENCRYPTION_README.md](docs/ENCRYPTION_README.md)
+   - [docs/DATA_COMPRESSION_README.md](docs/DATA_COMPRESSION_README.md)
 
 **Troubleshooting:**
 1. Check the troubleshooting section above for common issues
 2. Try the demonstration scripts to verify functionality:
    - `python demo/demo_flexible_billing.py` - Billing cycles demo
    - `python demo/demo_custom_reminders.py` - Custom reminders demo
+   - `python demo/demo_compression.py` - Data compression demo
 3. Test with edge cases using: `python test/test_edge_cases.py`
 4. Test encryption functionality: `python test/test_encryption.py`
+5. **Test compression functionality:** `python test/test_compression.py`
 
 **Community Support:**
 1. Review existing issues on GitHub before creating new ones
@@ -685,19 +707,13 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 🎯 Version History
 
-### Version 3.2 (Current - June 29, 2025)
-- ✅ **Master Password Protection** - Application access now requires a master password with secure authentication
-- ✅ **Password Encryption** - All stored passwords are now encrypted using Fernet
-- ✅ **Session Timeout/Auto-Exit** - Application automatically exits after 15 minutes of inactivity for enhanced security
-- ✅ **Bill Templates** - Save and reuse bill configurations for quick bill creation
-- ✅ **Contact Information Management** - Comprehensive customer service details storage
-- ✅ **CSV Import/Export** - Bulk import/export with validation and sample templates
-- ✅ **Comprehensive Help System** - Built-in help with detailed documentation
-- ✅ **Auto-complete Features** - Smart suggestions for bill names and websites
-- ✅ **Enhanced Search** - Search by contact information and improved auto-complete
-- ✅ **Data Portability** - Import/export capabilities for data migration
+### Version 3.3 (Current - July 2025)
+- ✅ **Data Compression** - Compress database, backups, and files (GZIP, LZMA, ZLIB)
+- ✅ **Compression Analysis** - Find best method for your data
+- ✅ **Compression Menu** - Integrated as option 13 in the main menu
+- ✅ **Demo & Test Scripts** - Comprehensive demonstration and testing for compression
 
-### Version 3.1 (June 29, 2025)
+### Version 3.2 (June 29, 2025)
 - ✅ **Enhanced Input Validation** - URL auto-correction, email validation, date range checks, reminder period limits
 - ✅ **Smart Error Handling** - User-friendly error messages with helpful suggestions and retry options
 - ✅ **Data Quality Improvements** - Automatic input correction and validation for better data integrity
@@ -733,31 +749,32 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 🏆 Feature Comparison
 
-| Feature | v1.0 | v2.0 | v3.0 | v3.2 |
-|---------|------|------|------|------|
-| Basic Bill Management | ✅ | ✅ | ✅ | ✅ |
-| Search Functionality | ❌ | ✅ | ✅ | ✅ |
-| Sorting Options | ❌ | ✅ | ✅ | ✅ |
-| Colored Output | ❌ | ✅ | ✅ | ✅ |
-| Billing Cycles | ❌ | ❌ | ✅ | ✅ |
-| Custom Reminders | ❌ | ❌ | ✅ | ✅ |
-| Pagination | ❌ | ❌ | ✅ | ✅ |
-| Progress Indicators | ❌ | ❌ | ✅ | ✅ |
-| Calendar View | ❌ | ❌ | ✅ | ✅ |
-| Multi-level Sorting | ❌ | ❌ | ✅ | ✅ |
-| Smart Date Handling | ❌ | ❌ | ✅ | ✅ |
-| Enhanced Validation | ❌ | ❌ | ❌ | ✅ |
-| Bill Templates | ❌ | ❌ | ❌ | ✅ |
-| Contact Information | ❌ | ❌ | ❌ | ✅ |
-| CSV Import/Export | ❌ | ❌ | ❌ | ✅ |
-| Help System | ❌ | ❌ | ❌ | ✅ |
-| Auto-complete | ❌ | ❌ | ❌ | ✅ |
+| Feature | v1.0 | v2.0 | v3.0 | v3.2 | v3.3 |
+|---------|------|------|------|------|------|
+| Basic Bill Management | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Search Functionality | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Sorting Options | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Colored Output | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Billing Cycles | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Custom Reminders | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Pagination | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Progress Indicators | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Calendar View | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Multi-level Sorting | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Smart Date Handling | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Enhanced Validation | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Bill Templates | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Contact Information | ❌ | ❌ | ❌ | ✅ | ✅ |
+| CSV Import/Export | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Help System | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Auto-complete | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **Data Compression** | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ---
 
 **Made with ❤️ for better bill management**
 
-*Last updated: June 29, 2025 - Version 3.2*
+*Last updated: June 29, 2025 - Version 3.3*
 *Next major release planned: September 2025*
 
 ---
@@ -770,8 +787,9 @@ This project is open source and available under the [MIT License](LICENSE).
 3. Add your first bill with option 1 (includes contact information)
 4. Explore bill templates with option 9 for quick bill creation
 5. Try CSV import/export with option 10 for bulk operations
-6. Access help system with option 11 for detailed guidance
-7. Check due bills with option 5 to see the enhanced menu system
+6. **Try data compression with option 13 for storage savings**
+7. Access help system with option 14 for detailed guidance
+8. Check due bills with option 5 to see the enhanced menu system
 
 **Existing Users Upgrading:**
 1. Your data will be automatically migrated to include new features
@@ -784,7 +802,9 @@ This project is open source and available under the [MIT License](LICENSE).
 
 **Power Users:**
 - Try the demo scripts: `python demo/demo_flexible_billing.py`
+- **Try the compression demo:** `python demo/demo_compression.py`
 - Test edge cases: `python test/test_edge_cases.py`
+- **Test compression:** `python test/test_compression.py`
 - Create templates for recurring bills
 - Use CSV import for bulk data migration
 - Explore the comprehensive help system
@@ -792,7 +812,7 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-*🏠 Bills Tracker v3.2 - The Complete Personal Finance Bill Management Solution 💳*
+*🏠 Bills Tracker v3.3 - The Complete Personal Finance Bill Management Solution 💳*
 
 ## 🔒 Security Features Overview
 
