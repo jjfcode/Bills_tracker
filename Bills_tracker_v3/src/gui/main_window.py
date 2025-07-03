@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from tkinter import ttk
 
 class MainWindow(ctk.CTk):
     def __init__(self):
@@ -34,8 +35,35 @@ class MainWindow(ctk.CTk):
         self.content.grid_rowconfigure(0, weight=1)
         self.content.grid_columnconfigure(0, weight=1)
 
-        self.content_label = ctk.CTkLabel(self.content, text="Main Content Area", font=("Arial", 18))
-        self.content_label.grid(row=0, column=0, padx=20, pady=20)
+        # Bills table frame
+        self.table_frame = ctk.CTkFrame(self.content)
+        self.table_frame.grid(row=0, column=0, sticky="nswe")
+        self.table_frame.grid_rowconfigure(0, weight=1)
+        self.table_frame.grid_columnconfigure(0, weight=1)
+
+        # Treeview for bills
+        columns = ("Name", "Due Date", "Amount", "Category", "Status")
+        self.bills_table = ttk.Treeview(self.table_frame, columns=columns, show="headings", height=15)
+        for col in columns:
+            self.bills_table.heading(col, text=col)
+            self.bills_table.column(col, width=120, anchor="center")
+
+        # Sample data
+        sample_bills = [
+            ("Electricity", "2025-07-10", "$50.00", "Utilities", "Pending"),
+            ("Internet", "2025-07-12", "$40.00", "Utilities", "Paid"),
+            ("Netflix", "2025-07-15", "$15.99", "Subscriptions", "Pending"),
+            ("Water", "2025-07-20", "$30.00", "Utilities", "Pending"),
+            ("Car Loan", "2025-07-25", "$250.00", "Loans", "Paid"),
+        ]
+        for bill in sample_bills:
+            self.bills_table.insert("", "end", values=bill)
+
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(self.table_frame, orient="vertical", command=self.bills_table.yview)
+        self.bills_table.configure(yscrollcommand=scrollbar.set)
+        self.bills_table.grid(row=0, column=0, sticky="nswe")
+        scrollbar.grid(row=0, column=1, sticky="ns");
 
 if __name__ == "__main__":
     app = MainWindow()
