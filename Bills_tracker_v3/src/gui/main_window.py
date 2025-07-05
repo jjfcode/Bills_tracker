@@ -760,6 +760,7 @@ class MainWindow(ctk.CTk):
         
         # Inicializar pending_changes para evitar errores
         self.pending_changes = {}
+        self._selected_bills = set()  # Track selected bill IDs for bulk operations
         
         # Setup UI
         self._setup_ui()
@@ -897,12 +898,16 @@ class MainWindow(ctk.CTk):
         self.bills_table_frame.grid_rowconfigure(0, weight=1)
         self.bills_table_frame.grid_columnconfigure(0, weight=1)
 
-        columns = ("Paid", "Name", "Due Date", "Amount", "Category", "Status", "Payment Method", "Confirmation")
+        columns = ("Select", "Paid", "Name", "Due Date", "Amount", "Category", "Status", "Payment Method", "Confirmation")
         self.bills_table = ttk.Treeview(self.bills_table_frame, columns=columns, show="headings", height=15)
         self._sort_column = None
         self._sort_reverse = False
+        self._selected_bills = set()  # Track selected bill IDs
         
         # Configure columns
+        self.bills_table.heading("Select", text="☐", command=self.toggle_select_all)
+        self.bills_table.column("Select", width=50, anchor="center")
+        
         self.bills_table.heading("Paid", text="Paid", command=lambda c="Paid": self.sort_by_column(c))
         self.bills_table.column("Paid", width=60, anchor="center")
         
@@ -945,6 +950,12 @@ class MainWindow(ctk.CTk):
             command=self.delete_selected_bill, fg_color=ERROR_COLOR, text_color="white"
         )
         delete_btn.pack(side="left", padx=SPACING_SM)
+        
+        self.bulk_delete_btn = icon_manager.get_button_with_icon(
+            action_btn_frame, text="Delete Selected", icon_name=ICON_DELETE, 
+            command=self.bulk_delete_selected_bills, fg_color=ERROR_COLOR, text_color="white", state="disabled"
+        )
+        self.bulk_delete_btn.pack(side="left", padx=SPACING_SM)
         
         refresh_btn = icon_manager.get_button_with_icon(
             action_btn_frame, text=" Refresh", icon_name=ICON_REFRESH, 
@@ -1016,6 +1027,9 @@ class MainWindow(ctk.CTk):
         
         self._filtered_bills = filtered_bills
         
+        # Clear selection when filters change
+        self._selected_bills.clear()
+        
         # Maintain current sort order
         if self._sort_column:
             self.sort_by_column(self._sort_column)
@@ -1078,6 +1092,10 @@ class MainWindow(ctk.CTk):
         self.status_filter_var.set("Pending")
         self.period_filter_var.set("All")
         self._filtered_bills = [bill for bill in self._bills_data if not bill.get("paid", False) and not bill.get("payment_method_automatic", False)]
+        
+        # Clear selection when filters change
+        self._selected_bills.clear()
+        
         if self._sort_column:
             self.sort_by_column(self._sort_column)
         else:
@@ -1105,7 +1123,11 @@ class MainWindow(ctk.CTk):
             else:
                 status = "Pending"
             
+            # Check if this bill is selected
+            select_status = "☑" if bill["id"] in self._selected_bills else "☐"
+            
             row = (
+                select_status,
                 paid_status,
                 bill.get("name", ""),
                 bill.get("due_date", ""),
@@ -1155,11 +1177,14 @@ class MainWindow(ctk.CTk):
             sorted_bills = sorted(self._filtered_bills, key=lambda b: (b.get(key) or ""), reverse=reverse)
         self.populate_bills_table(sorted_bills)
         # Update header text to show sort order
-        for c in ("Paid", "Name", "Due Date", "Amount", "Category", "Status", "Payment Method", "Confirmation"):
+        for c in ("Select", "Paid", "Name", "Due Date", "Amount", "Category", "Status", "Payment Method", "Confirmation"):
             arrow = ""
             if c == col:
                 arrow = " ↓" if reverse else " ↑"
-            self.bills_table.heading(c, text=c + arrow, command=lambda c=c: self.sort_by_column(c))
+            if c == "Select":
+                self.bills_table.heading(c, text="☐", command=self.toggle_select_all)
+            else:
+                self.bills_table.heading(c, text=c + arrow, command=lambda c=c: self.sort_by_column(c))
 
     def open_add_bill_dialog(self):
         AddBillDialog(self, self.show_bills_view)
@@ -1300,6 +1325,88 @@ class MainWindow(ctk.CTk):
             except Exception as e:
                 show_popup(self, "Error", f"Failed to delete bill: {str(e)}", color="red")
 
+    def bulk_delete_selected_bills(self):
+        """Delete multiple selected bills"""
+        if not self._selected_bills:
+            show_popup(self, "Info", "No bills selected for deletion.", color="blue")
+            return
+        
+        selected_count = len(self._selected_bills)
+        
+        try:
+            # Confirmation dialog
+            confirm = ctk.CTkToplevel(self)
+            confirm.title("Confirm Bulk Delete")
+            confirm.geometry("400x150")
+            
+            def safe_destroy():
+                try:
+                    if confirm.winfo_exists():
+                        confirm.destroy()
+                except:
+                    pass
+            
+            ctk.CTkLabel(confirm, text=f"Delete {selected_count} selected bill(s)?").pack(pady=SPACING_SM)
+            ctk.CTkLabel(confirm, text="This action cannot be undone.", text_color="red").pack(pady=SPACING_SM)
+            
+            def do_bulk_delete():
+                try:
+                    deleted_count = 0
+                    failed_count = 0
+                    
+                    # Delete each selected bill
+                    for bill_id in self._selected_bills:
+                        try:
+                            delete_bill(bill_id)
+                            deleted_count += 1
+                        except Exception as e:
+                            failed_count += 1
+                            print(f"Failed to delete bill {bill_id}: {e}")
+                    
+                    # Clear selection
+                    self._selected_bills.clear()
+                    
+                    # Refresh the view
+                    self.show_bills_view()
+                    
+                    # Show result
+                    if failed_count == 0:
+                        show_popup(self, "Success", f"Successfully deleted {deleted_count} bill(s)!", color="green")
+                    else:
+                        show_popup(self, "Partial Success", 
+                                 f"Deleted {deleted_count} bill(s), failed to delete {failed_count} bill(s).", 
+                                 color="orange")
+                    
+                except Exception as e:
+                    show_popup(self, "Error", f"Failed to delete bills: {str(e)}", color="red")
+                safe_destroy()
+            
+            def cancel_bulk_delete():
+                safe_destroy()
+            
+            # Buttons
+            button_frame = ctk.CTkFrame(confirm)
+            button_frame.pack(pady=SPACING_MD)
+            
+            ctk.CTkButton(button_frame, text="Delete All", fg_color="red", command=do_bulk_delete).pack(side="left", padx=SPACING_SM)
+            ctk.CTkButton(button_frame, text="Cancel", command=cancel_bulk_delete).pack(side="right", padx=SPACING_SM)
+            
+            # Use after() to delay the focus operations
+            def set_focus():
+                try:
+                    if confirm.winfo_exists():
+                        confirm.lift()
+                        confirm.focus_force()
+                        confirm.grab_set()
+                except:
+                    pass
+            
+            confirm.after(100, set_focus)
+            
+        except Exception as e:
+            print(f"Bulk delete confirm dialog error: {e}")
+            show_popup(self, "Error", f"Failed to show confirmation dialog: {str(e)}", color="red")
+
     def export_bills(self):
         file_path = filedialog.asksaveasfilename(
             defaultextension=".csv",
@@ -1400,14 +1507,88 @@ class MainWindow(ctk.CTk):
             show_popup(self, "Error", f"Failed to import bills: {str(e)}", color="red")
 
     def on_table_click(self, event):
-        """Handle clicks on the table, specifically for checkbox column"""
+        """Handle clicks on the table, specifically for checkbox columns"""
         region = self.bills_table.identify("region", event.x, event.y)
         if region == "cell":
             column = self.bills_table.identify_column(event.x)
-            if column == "#1":  # Paid column (first column)
-                item = self.bills_table.identify_row(event.y)
-                if item:
-                    self.toggle_paid_status(item)
+            item = self.bills_table.identify_row(event.y)
+            
+            if not item:
+                return
+                
+            if column == "#1":  # Select column
+                self.toggle_bill_selection(item)
+            elif column == "#2":  # Paid column (now second column)
+                self.toggle_paid_status(item)
+    
+    def toggle_bill_selection(self, item_id):
+        """Toggle the selection status of a bill"""
+        if item_id in self.bills_by_id:
+            bill = self.bills_by_id[item_id]
+            bill_id = bill["id"]
+            
+            if bill_id in self._selected_bills:
+                self._selected_bills.remove(bill_id)
+                select_status = "☐"
+            else:
+                self._selected_bills.add(bill_id)
+                select_status = "☑"
+            
+            # Update the display
+            values = list(self.bills_table.item(item_id, "values"))
+            values[0] = select_status  # Update select column
+            self.bills_table.item(item_id, values=values)
+            
+            # Update bulk delete button state
+            self.update_bulk_actions()
+    
+    def toggle_select_all(self):
+        """Toggle select all/none for all visible bills"""
+        all_items = self.bills_table.get_children()
+        if not all_items:
+            return
+        
+        # Check if all are selected
+        all_selected = True
+        for item_id in all_items:
+            bill = self.bills_by_id[item_id]
+            if bill["id"] not in self._selected_bills:
+                all_selected = False
+                break
+        
+        # Toggle selection
+        if all_selected:
+            # Deselect all
+            self._selected_bills.clear()
+            select_status = "☐"
+            header_text = "☐"
+        else:
+            # Select all
+            for item_id in all_items:
+                bill = self.bills_by_id[item_id]
+                self._selected_bills.add(bill["id"])
+            select_status = "☑"
+            header_text = "☑"
+        
+        # Update all rows
+        for item_id in all_items:
+            values = list(self.bills_table.item(item_id, "values"))
+            values[0] = select_status
+            self.bills_table.item(item_id, values=values)
+        
+        # Update header
+        self.bills_table.heading("Select", text=header_text, command=self.toggle_select_all)
+        
+        # Update bulk delete button state
+        self.update_bulk_actions()
+    
+    def update_bulk_actions(self):
+        """Update the state of bulk action buttons based on selection"""
+        selected_count = len(self._selected_bills)
+        if selected_count > 0:
+            self.bulk_delete_btn.configure(text=f"Delete Selected ({selected_count})", state="normal")
+        else:
+            self.bulk_delete_btn.configure(text="Delete Selected", state="disabled")
     
     def toggle_paid_status(self, item_id):
         """Toggle the paid status of a bill in the table and store as pending change"""
@@ -1431,8 +1612,8 @@ class MainWindow(ctk.CTk):
                         # Update the display
                         paid_status = "✓"
                         values = list(self.bills_table.item(item_id, "values"))
-                        values[0] = paid_status  # Update paid column
-                        values[5] = "Paid"  # Update status column
+                        values[1] = paid_status  # Update paid column (now second column)
+                        values[6] = "Paid"  # Update status column
                         self.bills_table.item(item_id, values=values)
                         
                         # Update the button text to show pending changes
@@ -1457,8 +1638,8 @@ class MainWindow(ctk.CTk):
                 # Update the display
                 paid_status = "☐"
                 values = list(self.bills_table.item(item_id, "values"))
-                values[0] = paid_status  # Update paid column
-                values[5] = "Pending"  # Update status column
+                values[1] = paid_status  # Update paid column (now second column)
+                values[6] = "Pending"  # Update status column
                 self.bills_table.item(item_id, values=values)
                 
                 # Update the button text to show pending changes

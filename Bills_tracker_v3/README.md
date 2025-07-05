@@ -7,6 +7,7 @@ A modern, feature-rich desktop application for managing bills and recurring paym
 ### 📋 **Core Bill Management**
 - **Add, Edit, Delete Bills** with comprehensive form validation
 - **Smart Checkbox System** - Mark bills as paid with automatic next cycle generation
+- **Multi-Select & Bulk Delete** - Select multiple bills and delete them all at once
 - **Apply Changes** - Review and confirm multiple changes before saving
 - **Recurring Bill Cycles** - Automatic next due date calculation (weekly, bi-weekly, monthly, quarterly, semi-annually, annually)
 - **Comprehensive Input Validation** - Complete validation system for all fields:
@@ -224,6 +225,14 @@ Bills_tracker_v3/
 5. A new bill for the next cycle will be created automatically
 6. The confirmation number will be shown in the new "Confirmation" column
 
+### **Multi-Select & Bulk Delete**
+1. **Select Individual Bills**: Click the checkbox (☐) in the "Select" column to select/deselect individual bills
+2. **Select All Bills**: Click the checkbox (☐) in the "Select" column header to select/deselect all visible bills
+3. **Bulk Delete**: After selecting bills, click "Delete Selected (X)" button to delete all selected bills
+4. **Confirmation**: A confirmation dialog will show the number of bills to be deleted
+5. **Visual Feedback**: Selected bills show ☑, unselected show ☐, and the delete button shows the count
+6. **Auto-Clear**: Selection is automatically cleared when filters are changed
+
 ### **Searching and Filtering**
 1. **Default View**: App opens showing only PENDING bills (most useful for daily use)
 2. **Status Filter**: Choose Pending, Paid, or All bills
@@ -319,6 +328,7 @@ The new date selector provides multiple ways to choose dates:
 ## 🔄 Version History
 
 ### **v3.1** (Current)
+- ✅ **Multi-Select & Bulk Delete** - Select multiple bills and delete them all at once with confirmation
 - ✅ **Comprehensive Validation System** - Complete input validation for all fields with user-friendly error messages
 - ✅ **Advanced Filtering System** - Default pending view, status/period filters, bill counter
 - ✅ **Advanced Date Selection** - Visual calendar picker and direct input
