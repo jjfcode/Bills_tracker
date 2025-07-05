@@ -762,6 +762,11 @@ class MainWindow(ctk.CTk):
         self.pending_changes = {}
         self._selected_bills = set()  # Track selected bill IDs for bulk operations
         
+        # Pagination variables
+        self._current_page = 1
+        self._items_per_page = 20  # Default items per page
+        self._total_pages = 1
+        
         # Setup UI
         self._setup_ui()
         
@@ -968,6 +973,39 @@ class MainWindow(ctk.CTk):
             command=self.apply_pending_changes, fg_color=SUCCESS_COLOR, text_color="white"
         )
         self.apply_btn.pack(side="right", padx=SPACING_SM)
+        
+        # Pagination controls
+        pagination_frame = ctk.CTkFrame(self.content, fg_color=BACKGROUND_COLOR)
+        pagination_frame.grid(row=5, column=0, sticky="ew", pady=(SPACING_SM, 0))
+        
+        # Items per page selector
+        ctk.CTkLabel(pagination_frame, text="Items per page:").pack(side="left", padx=SPACING_SM)
+        self.items_per_page_var = ctk.StringVar(value=str(self._items_per_page))
+        items_combo = ttk.Combobox(pagination_frame, textvariable=self.items_per_page_var,
+                                  values=["10", "20", "50", "100"], state="readonly", width=8)
+        items_combo.pack(side="left", padx=SPACING_SM)
+        items_combo.bind("<<ComboboxSelected>>", self.on_items_per_page_change)
+        
+        # Pagination info
+        self.pagination_info_label = ctk.CTkLabel(pagination_frame, text="", font=("Arial", 12))
+        self.pagination_info_label.pack(side="left", padx=SPACING_MD)
+        
+        # Navigation buttons
+        self.first_page_btn = ctk.CTkButton(pagination_frame, text="⏮️ First", width=80, 
+                                           command=self.go_to_first_page, fg_color=PRIMARY_COLOR, text_color="white")
+        self.first_page_btn.pack(side="right", padx=SPACING_SM)
+        
+        self.prev_page_btn = ctk.CTkButton(pagination_frame, text="◀️ Prev", width=80, 
+                                          command=self.go_to_prev_page, fg_color=PRIMARY_COLOR, text_color="white")
+        self.prev_page_btn.pack(side="right", padx=SPACING_SM)
+        
+        self.next_page_btn = ctk.CTkButton(pagination_frame, text="Next ▶️", width=80, 
+                                          command=self.go_to_next_page, fg_color=PRIMARY_COLOR, text_color="white")
+        self.next_page_btn.pack(side="right", padx=SPACING_SM)
+        
+        self.last_page_btn = ctk.CTkButton(pagination_frame, text="Last ⏭️", width=80, 
+                                          command=self.go_to_last_page, fg_color=PRIMARY_COLOR, text_color="white")
+        self.last_page_btn.pack(side="right", padx=SPACING_SM)
 
     def apply_filters(self, *args):
         """Apply all filters: status, period, and search"""
@@ -1027,8 +1065,9 @@ class MainWindow(ctk.CTk):
         
         self._filtered_bills = filtered_bills
         
-        # Clear selection when filters change
+        # Clear selection and reset pagination when filters change
         self._selected_bills.clear()
+        self._current_page = 1  # Reset to first page
         
         # Maintain current sort order
         if self._sort_column:
@@ -1093,8 +1132,9 @@ class MainWindow(ctk.CTk):
         self.period_filter_var.set("All")
         self._filtered_bills = [bill for bill in self._bills_data if not bill.get("paid", False) and not bill.get("payment_method_automatic", False)]
         
-        # Clear selection when filters change
+        # Clear selection and reset pagination when filters change
         self._selected_bills.clear()
+        self._current_page = 1  # Reset to first page
         
         if self._sort_column:
             self.sort_by_column(self._sort_column)
@@ -1107,10 +1147,22 @@ class MainWindow(ctk.CTk):
         self.apply_filters()
 
     def populate_bills_table(self, bills):
+        # Calculate pagination
+        self._total_pages = max(1, (len(bills) + self._items_per_page - 1) // self._items_per_page)
+        self._current_page = min(self._current_page, self._total_pages)
+        
+        # Get current page data
+        start_index = (self._current_page - 1) * self._items_per_page
+        end_index = start_index + self._items_per_page
+        current_page_bills = bills[start_index:end_index]
+        
+        # Clear table
         for row in self.bills_table.get_children():
             self.bills_table.delete(row)
         self.bills_by_id = {}
-        for bill in bills:
+        
+        # Populate current page
+        for bill in current_page_bills:
             paid_status = "✓" if bill.get("paid", False) else "☐"
             category_name = bill.get("category_name", "Uncategorized")
             payment_method_name = bill.get("payment_method_name", "Not Set")
@@ -1153,6 +1205,9 @@ class MainWindow(ctk.CTk):
             counter_text += f" | Period: {period_filter}"
         
         self.bills_counter_label.configure(text=counter_text)
+        
+        # Update pagination info and controls
+        self.update_pagination_controls()
 
     def sort_by_column(self, col):
         col_map = {
@@ -1175,7 +1230,10 @@ class MainWindow(ctk.CTk):
             sorted_bills = sorted(self._filtered_bills, key=lambda b: b.get("paid", False), reverse=reverse)
         else:
             sorted_bills = sorted(self._filtered_bills, key=lambda b: (b.get(key) or ""), reverse=reverse)
-        self.populate_bills_table(sorted_bills)
+        
+        # Update filtered bills and maintain current page
+        self._filtered_bills = sorted_bills
+        self.populate_bills_table(self._filtered_bills)
         # Update header text to show sort order
         for c in ("Select", "Paid", "Name", "Due Date", "Amount", "Category", "Status", "Payment Method", "Confirmation"):
             arrow = ""
@@ -1558,12 +1616,14 @@ class MainWindow(ctk.CTk):
         
         # Toggle selection
         if all_selected:
-            # Deselect all
-            self._selected_bills.clear()
+            # Deselect all visible bills
+            for item_id in all_items:
+                bill = self.bills_by_id[item_id]
+                self._selected_bills.discard(bill["id"])
             select_status = "☐"
             header_text = "☐"
         else:
-            # Select all
+            # Select all visible bills
             for item_id in all_items:
                 bill = self.bills_by_id[item_id]
                 self._selected_bills.add(bill["id"])
@@ -1589,6 +1649,68 @@ class MainWindow(ctk.CTk):
             self.bulk_delete_btn.configure(text=f"Delete Selected ({selected_count})", state="normal")
         else:
             self.bulk_delete_btn.configure(text="Delete Selected", state="disabled")
+    
+    def update_pagination_controls(self):
+        """Update pagination controls and info"""
+        try:
+            # Update pagination info
+            if hasattr(self, 'pagination_info_label') and self.pagination_info_label.winfo_exists():
+                total_filtered = len(self._filtered_bills)
+                start_item = (self._current_page - 1) * self._items_per_page + 1
+                end_item = min(self._current_page * self._items_per_page, total_filtered)
+                
+                if total_filtered == 0:
+                    pagination_text = "No bills to display"
+                else:
+                    pagination_text = f"Page {self._current_page} of {self._total_pages} | Showing {start_item}-{end_item} of {total_filtered} bills"
+                
+                self.pagination_info_label.configure(text=pagination_text)
+            
+            # Update navigation button states
+            if hasattr(self, 'first_page_btn') and self.first_page_btn.winfo_exists():
+                self.first_page_btn.configure(state="normal" if self._current_page > 1 else "disabled")
+                self.prev_page_btn.configure(state="normal" if self._current_page > 1 else "disabled")
+                self.next_page_btn.configure(state="normal" if self._current_page < self._total_pages else "disabled")
+                self.last_page_btn.configure(state="normal" if self._current_page < self._total_pages else "disabled")
+        except Exception as e:
+            # Silently ignore errors during initialization
+            pass
+    
+    def go_to_first_page(self):
+        """Go to the first page"""
+        if self._current_page != 1:
+            self._current_page = 1
+            self.populate_bills_table(self._filtered_bills)
+    
+    def go_to_prev_page(self):
+        """Go to the previous page"""
+        if self._current_page > 1:
+            self._current_page -= 1
+            self.populate_bills_table(self._filtered_bills)
+    
+    def go_to_next_page(self):
+        """Go to the next page"""
+        if self._current_page < self._total_pages:
+            self._current_page += 1
+            self.populate_bills_table(self._filtered_bills)
+    
+    def go_to_last_page(self):
+        """Go to the last page"""
+        if self._current_page != self._total_pages:
+            self._current_page = self._total_pages
+            self.populate_bills_table(self._filtered_bills)
+    
+    def on_items_per_page_change(self, event=None):
+        """Handle items per page change"""
+        try:
+            new_items_per_page = int(self.items_per_page_var.get())
+            if new_items_per_page != self._items_per_page:
+                self._items_per_page = new_items_per_page
+                self._current_page = 1  # Reset to first page
+                self.populate_bills_table(self._filtered_bills)
+        except ValueError:
+            # If conversion fails, revert to current value
+            self.items_per_page_var.set(str(self._items_per_page))
     
     def toggle_paid_status(self, item_id):
         """Toggle the paid status of a bill in the table and store as pending change"""

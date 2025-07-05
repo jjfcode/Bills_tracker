@@ -92,6 +92,14 @@ A modern, feature-rich desktop application for managing bills and recurring paym
 - **Error Handling** - Field-specific error messages with clear guidance
 - **Data Integrity** - Prevents invalid data entry and maintains database consistency
 
+### **Pagination for Large Numbers of Bills**
+1. **Page Navigation**: Use the navigation buttons (⏮️ First, ◀️ Prev, Next ▶️, Last ⏭️) below the table to move between pages of bills.
+2. **Items Per Page**: Select how many bills to display per page (10, 20, 50, 100) using the dropdown menu.
+3. **Pagination Info**: The info label shows the current page, total pages, and which bills are being displayed (e.g., "Page 2 of 5 | Showing 21-40 of 87 bills").
+4. **Automatic Reset**: Changing filters or search will reset to the first page automatically.
+5. **Select All on Page**: The select-all checkbox only affects bills visible on the current page.
+6. **Performance**: Pagination ensures smooth performance even with hundreds or thousands of bills.
+
 ## 📁 Project Structure
 
 ```
