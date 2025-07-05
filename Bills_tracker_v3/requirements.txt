@@ -1,3 +1,0 @@
-customtkinter>=5.2.0
-cryptography
-tkcalendar>=1.6.1 
