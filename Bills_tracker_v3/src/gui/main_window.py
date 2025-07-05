@@ -12,11 +12,27 @@ import csv
 from tkinter import filedialog
 from tkcalendar import DateEntry
 from tkinter import messagebox
+from .icon_utils import icon_manager, ICON_ADD, ICON_EDIT, ICON_DELETE, ICON_SAVE, ICON_CANCEL, ICON_SEARCH, ICON_CALENDAR, ICON_EXPORT, ICON_IMPORT, ICON_REFRESH, ICON_SETTINGS, ICON_CATEGORIES, ICON_BILLS, ICON_APPLY, ICON_CLEAR
 
 BILLING_CYCLES = [
     "weekly", "bi-weekly", "monthly", "quarterly", "semi-annually", "annually", "one-time"
 ]
 REMINDER_DAYS = [1, 3, 5, 7, 10, 14, 30]
+
+# === UI THEME CONSTANTS ===
+PRIMARY_COLOR = "#1f538d"
+SECONDARY_COLOR = "#4ecdc4"
+ACCENT_COLOR = "#ff6b6b"
+BACKGROUND_COLOR = "#f7f9fa"
+TEXT_COLOR = "#222831"
+SUCCESS_COLOR = "#4bb543"
+ERROR_COLOR = "#e74c3c"
+DISABLED_COLOR = "#b0b0b0"
+
+SPACING_XS = 4
+SPACING_SM = 8
+SPACING_MD = 16
+SPACING_LG = 24
 
 def show_popup(master, title, message, color="green"):
     try:
@@ -65,14 +81,14 @@ class DateSelectorFrame(ctk.CTkFrame):
     def _setup_ui(self):
         # Main date entry with calendar button
         date_frame = ctk.CTkFrame(self)
-        date_frame.pack(fill="x", padx=5, pady=5)
+        date_frame.pack(fill="x", padx=SPACING_SM, pady=SPACING_SM)
         
         # Date entry
-        self.date_entry = ctk.CTkEntry(date_frame, textvariable=self.selected_date, placeholder_text="YYYY-MM-DD")
-        self.date_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        self.date_entry = ctk.CTkEntry(date_frame, textvariable=self.selected_date, placeholder_text="YYYY-MM-DD", fg_color=BACKGROUND_COLOR, text_color=TEXT_COLOR)
+        self.date_entry.pack(side="left", fill="x", expand=True, padx=(0, SPACING_SM))
         
         # Calendar button
-        self.calendar_btn = ctk.CTkButton(date_frame, text="📅", width=40, command=self._show_calendar)
+        self.calendar_btn = ctk.CTkButton(date_frame, text="📅", width=40, command=self._show_calendar, fg_color=PRIMARY_COLOR, text_color="white")
         self.calendar_btn.pack(side="right")
     
     def _show_calendar(self):
@@ -94,11 +110,11 @@ class DateSelectorFrame(ctk.CTkFrame):
             # Create calendar widget
             calendar = DateEntry(calendar_dialog, width=20, background='darkblue',
                                foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
-            calendar.pack(pady=20)
+            calendar.pack(pady=SPACING_MD)
             
             # Buttons
             button_frame = ctk.CTkFrame(calendar_dialog)
-            button_frame.pack(pady=20)
+            button_frame.pack(pady=SPACING_MD)
             
             def on_select():
                 self.selected_date.set(calendar.get_date().strftime('%Y-%m-%d'))
@@ -107,8 +123,8 @@ class DateSelectorFrame(ctk.CTkFrame):
             def on_cancel():
                 calendar_dialog.destroy()
             
-            ctk.CTkButton(button_frame, text="Select", command=on_select).pack(side="left", padx=5)
-            ctk.CTkButton(button_frame, text="Cancel", command=on_cancel).pack(side="left", padx=5)
+            ctk.CTkButton(button_frame, text="Select", command=on_select).pack(side="left", padx=SPACING_SM)
+            ctk.CTkButton(button_frame, text="Cancel", command=on_cancel).pack(side="left", padx=SPACING_SM)
             
         except Exception as e:
             # Fallback to simple date picker if tkcalendar is not available
@@ -126,31 +142,31 @@ class DateSelectorFrame(ctk.CTkFrame):
             
             # Year selection
             year_frame = ctk.CTkFrame(picker_dialog)
-            year_frame.pack(fill="x", padx=10, pady=5)
+            year_frame.pack(fill="x", padx=SPACING_SM, pady=SPACING_SM)
             ctk.CTkLabel(year_frame, text="Year:").pack(side="left")
             current_year = datetime.now().year
             year_var = StringVar(value=str(current_year))
             year_combo = ttk.Combobox(year_frame, textvariable=year_var, 
                                     values=[str(y) for y in range(current_year, current_year + 5)])
-            year_combo.pack(side="right", padx=5)
+            year_combo.pack(side="right", padx=SPACING_SM)
             
             # Month selection
             month_frame = ctk.CTkFrame(picker_dialog)
-            month_frame.pack(fill="x", padx=10, pady=5)
+            month_frame.pack(fill="x", padx=SPACING_SM, pady=SPACING_SM)
             ctk.CTkLabel(month_frame, text="Month:").pack(side="left")
             month_var = StringVar(value=str(datetime.now().month))
             month_combo = ttk.Combobox(month_frame, textvariable=month_var,
                                      values=[str(m) for m in range(1, 13)])
-            month_combo.pack(side="right", padx=5)
+            month_combo.pack(side="right", padx=SPACING_SM)
             
             # Day selection
             day_frame = ctk.CTkFrame(picker_dialog)
-            day_frame.pack(fill="x", padx=10, pady=5)
+            day_frame.pack(fill="x", padx=SPACING_SM, pady=SPACING_SM)
             ctk.CTkLabel(day_frame, text="Day:").pack(side="left")
             day_var = StringVar(value=str(datetime.now().day))
             day_combo = ttk.Combobox(day_frame, textvariable=day_var,
                                    values=[str(d) for d in range(1, 32)])
-            day_combo.pack(side="right", padx=5)
+            day_combo.pack(side="right", padx=SPACING_SM)
             
             def on_select():
                 try:
@@ -168,10 +184,10 @@ class DateSelectorFrame(ctk.CTkFrame):
             
             # Buttons
             button_frame = ctk.CTkFrame(picker_dialog)
-            button_frame.pack(pady=20)
+            button_frame.pack(pady=SPACING_MD)
             
-            ctk.CTkButton(button_frame, text="Select", command=on_select).pack(side="left", padx=5)
-            ctk.CTkButton(button_frame, text="Cancel", command=on_cancel).pack(side="left", padx=5)
+            ctk.CTkButton(button_frame, text="Select", command=on_select).pack(side="left", padx=SPACING_SM)
+            ctk.CTkButton(button_frame, text="Cancel", command=on_cancel).pack(side="left", padx=SPACING_SM)
             
         except Exception as e:
             print(f"Error creating date picker: {e}")
@@ -201,82 +217,85 @@ class AddBillDialog(ctk.CTkToplevel):
         self.grid_columnconfigure(1, weight=1)
         row = 0
         # Name
-        ctk.CTkLabel(self, text="Name:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Name:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.name_entry = ctk.CTkEntry(self)
-        self.name_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.name_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         
         # Due Date with improved selector
-        ctk.CTkLabel(self, text="Due Date:").grid(row=row, column=0, padx=10, pady=5, sticky="ne")
+        ctk.CTkLabel(self, text="Due Date:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="ne")
         self.date_selector = DateSelectorFrame(self)
-        self.date_selector.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.date_selector.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         
         # Paid
-        ctk.CTkLabel(self, text="Paid:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Paid:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.paid_var = ctk.BooleanVar()
         self.paid_checkbox = ctk.CTkCheckBox(self, variable=self.paid_var, text="Yes")
-        self.paid_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+        self.paid_checkbox.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="w")
         row += 1
         
         # Confirmation Number
-        ctk.CTkLabel(self, text="Confirmation Number:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
-        self.confirmation_entry = ctk.CTkEntry(self, placeholder_text="Enter confirmation number...")
-        self.confirmation_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        ctk.CTkLabel(self, text="Confirmation Number:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
+        self.confirmation_entry = ctk.CTkEntry(self, placeholder_text="Enter confirmation number...", fg_color=BACKGROUND_COLOR, text_color=TEXT_COLOR)
+        self.confirmation_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Billing Cycle (dropdown)
-        ctk.CTkLabel(self, text="Billing Cycle:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Billing Cycle:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.billing_cycle_var = StringVar(value=BILLING_CYCLES[2])
         self.billing_cycle_combo = ttk.Combobox(self, textvariable=self.billing_cycle_var, values=BILLING_CYCLES, state="readonly")
-        self.billing_cycle_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.billing_cycle_combo.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Reminder Days (dropdown)
-        ctk.CTkLabel(self, text="Reminder Days:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Reminder Days:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.reminder_days_var = IntVar(value=7)
         self.reminder_days_combo = ttk.Combobox(self, textvariable=self.reminder_days_var, values=REMINDER_DAYS, state="readonly")
-        self.reminder_days_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.reminder_days_combo.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Payment Method (dropdown)
-        ctk.CTkLabel(self, text="Payment Method:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Payment Method:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.payment_method_var = StringVar(value="Not Set")
         self.payment_method_combo = ttk.Combobox(self, textvariable=self.payment_method_var, state="readonly")
-        self.payment_method_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.payment_method_combo.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         self._load_payment_methods()
         row += 1
         # Web Page
-        ctk.CTkLabel(self, text="Web Page:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Web Page:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.web_page_entry = ctk.CTkEntry(self)
-        self.web_page_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.web_page_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Company Email
-        ctk.CTkLabel(self, text="Company Email:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Company Email:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.company_email_entry = ctk.CTkEntry(self)
-        self.company_email_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.company_email_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Support Phone
-        ctk.CTkLabel(self, text="Support Phone:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Support Phone:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.support_phone_entry = ctk.CTkEntry(self)
-        self.support_phone_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.support_phone_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Account Number
-        ctk.CTkLabel(self, text="Account Number:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Account Number:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.account_number_entry = ctk.CTkEntry(self)
-        self.account_number_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.account_number_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Category (dropdown)
-        ctk.CTkLabel(self, text="Category:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Category:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.category_var = StringVar(value="Uncategorized")
         self.category_combo = ttk.Combobox(self, textvariable=self.category_var, state="readonly")
-        self.category_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.category_combo.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         self._load_categories()
         row += 1
         # Error label
         self.error_label = ctk.CTkLabel(self, text="", text_color="red")
         self.error_label.grid(row=row, column=0, columnspan=2)
         row += 1
-        # Add button
-        self.add_button = ctk.CTkButton(self, text="Add", command=self._on_add)
-        self.add_button.grid(row=row, column=0, columnspan=2, pady=20)
+        # Add button with icon
+        self.add_button = icon_manager.get_button_with_icon(
+            self, text=" Add Bill", icon_name=ICON_ADD, 
+            command=self._on_add, fg_color=ACCENT_COLOR, text_color="white"
+        )
+        self.add_button.grid(row=row, column=0, columnspan=2, pady=SPACING_MD)
 
     def _load_categories(self):
         """Load categories into the dropdown"""
@@ -382,88 +401,91 @@ class EditBillDialog(ctk.CTkToplevel):
         self.grid_columnconfigure(1, weight=1)
         row = 0
         # Name
-        ctk.CTkLabel(self, text="Name:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Name:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.name_entry = ctk.CTkEntry(self)
         self.name_entry.insert(0, self.bill_data.get("name", ""))
-        self.name_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.name_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         
         # Due Date with improved selector
-        ctk.CTkLabel(self, text="Due Date:").grid(row=row, column=0, padx=10, pady=5, sticky="ne")
+        ctk.CTkLabel(self, text="Due Date:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="ne")
         self.date_selector = DateSelectorFrame(self)
         self.date_selector.set_date(self.bill_data.get("due_date", ""))
-        self.date_selector.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.date_selector.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Paid
-        ctk.CTkLabel(self, text="Paid:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Paid:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.paid_var = ctk.BooleanVar(value=self.bill_data.get("paid", False))
         self.paid_checkbox = ctk.CTkCheckBox(self, variable=self.paid_var, text="Yes")
-        self.paid_checkbox.grid(row=row, column=1, padx=10, pady=5, sticky="w")
+        self.paid_checkbox.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="w")
         row += 1
         
         # Confirmation Number
-        ctk.CTkLabel(self, text="Confirmation Number:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
-        self.confirmation_entry = ctk.CTkEntry(self, placeholder_text="Enter confirmation number...")
+        ctk.CTkLabel(self, text="Confirmation Number:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
+        self.confirmation_entry = ctk.CTkEntry(self, placeholder_text="Enter confirmation number...", fg_color=BACKGROUND_COLOR, text_color=TEXT_COLOR)
         self.confirmation_entry.insert(0, self.bill_data.get("confirmation_number", ""))
-        self.confirmation_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.confirmation_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Billing Cycle (dropdown)
-        ctk.CTkLabel(self, text="Billing Cycle:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Billing Cycle:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.billing_cycle_var = StringVar(value=self.bill_data.get("billing_cycle", BILLING_CYCLES[2]))
         self.billing_cycle_combo = ttk.Combobox(self, textvariable=self.billing_cycle_var, values=BILLING_CYCLES, state="readonly")
-        self.billing_cycle_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.billing_cycle_combo.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Reminder Days (dropdown)
-        ctk.CTkLabel(self, text="Reminder Days:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Reminder Days:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.reminder_days_var = IntVar(value=self.bill_data.get("reminder_days", 7))
         self.reminder_days_combo = ttk.Combobox(self, textvariable=self.reminder_days_var, values=REMINDER_DAYS, state="readonly")
-        self.reminder_days_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.reminder_days_combo.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Payment Method (dropdown)
-        ctk.CTkLabel(self, text="Payment Method:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Payment Method:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.payment_method_var = StringVar(value="Not Set")
         self.payment_method_combo = ttk.Combobox(self, textvariable=self.payment_method_var, state="readonly")
-        self.payment_method_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.payment_method_combo.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         self._load_payment_methods()
         row += 1
         # Web Page
-        ctk.CTkLabel(self, text="Web Page:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Web Page:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.web_page_entry = ctk.CTkEntry(self)
         self.web_page_entry.insert(0, self.bill_data.get("web_page", ""))
-        self.web_page_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.web_page_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Company Email
-        ctk.CTkLabel(self, text="Company Email:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Company Email:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.company_email_entry = ctk.CTkEntry(self)
         self.company_email_entry.insert(0, self.bill_data.get("company_email", ""))
-        self.company_email_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.company_email_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Support Phone
-        ctk.CTkLabel(self, text="Support Phone:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Support Phone:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.support_phone_entry = ctk.CTkEntry(self)
         self.support_phone_entry.insert(0, self.bill_data.get("support_phone", ""))
-        self.support_phone_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.support_phone_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Account Number
-        ctk.CTkLabel(self, text="Account Number:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Account Number:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.account_number_entry = ctk.CTkEntry(self)
         self.account_number_entry.insert(0, self.bill_data.get("account_number", ""))
-        self.account_number_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.account_number_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         # Category (dropdown)
-        ctk.CTkLabel(self, text="Category:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Category:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.category_var = StringVar(value="Uncategorized")
         self.category_combo = ttk.Combobox(self, textvariable=self.category_var, state="readonly")
-        self.category_combo.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.category_combo.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         self._load_categories()
         row += 1
         # Error label
         self.error_label = ctk.CTkLabel(self, text="", text_color="red")
         self.error_label.grid(row=row, column=0, columnspan=2)
         row += 1
-        # Save button
-        self.save_button = ctk.CTkButton(self, text="Save", command=self._on_save)
-        self.save_button.grid(row=row, column=0, columnspan=2, pady=20)
+        # Save button with icon
+        self.save_button = icon_manager.get_button_with_icon(
+            self, text=" Save Changes", icon_name=ICON_SAVE, 
+            command=self._on_save, fg_color=ACCENT_COLOR, text_color="white"
+        )
+        self.save_button.grid(row=row, column=0, columnspan=2, pady=SPACING_MD)
 
     def _load_categories(self):
         """Load categories into the dropdown"""
@@ -575,22 +597,22 @@ class AddCategoryDialog(ctk.CTkToplevel):
         row = 0
         
         # Name
-        ctk.CTkLabel(self, text="Name:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Name:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.name_entry = ctk.CTkEntry(self)
-        self.name_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.name_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         
         # Color
-        ctk.CTkLabel(self, text="Color:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Color:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.color_var = ctk.StringVar(value="#1f538d")
         self.color_entry = ctk.CTkEntry(self, textvariable=self.color_var)
-        self.color_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.color_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         
         # Description
-        ctk.CTkLabel(self, text="Description:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Description:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.description_text = ctk.CTkTextbox(self, height=100)
-        self.description_text.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.description_text.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         
         # Error label
@@ -598,9 +620,12 @@ class AddCategoryDialog(ctk.CTkToplevel):
         self.error_label.grid(row=row, column=0, columnspan=2)
         row += 1
         
-        # Add button
-        self.add_button = ctk.CTkButton(self, text="Add", command=self._on_add)
-        self.add_button.grid(row=row, column=0, columnspan=2, pady=20)
+        # Add button with icon
+        self.add_button = icon_manager.get_button_with_icon(
+            self, text=" Add Category", icon_name=ICON_ADD, 
+            command=self._on_add, fg_color=ACCENT_COLOR, text_color="white"
+        )
+        self.add_button.grid(row=row, column=0, columnspan=2, pady=SPACING_MD)
 
     def _on_add(self):
         name = self.name_entry.get().strip()
@@ -649,24 +674,24 @@ class EditCategoryDialog(ctk.CTkToplevel):
         row = 0
         
         # Name
-        ctk.CTkLabel(self, text="Name:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Name:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.name_entry = ctk.CTkEntry(self)
         self.name_entry.insert(0, self.category_data.get("name", ""))
-        self.name_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.name_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         
         # Color
-        ctk.CTkLabel(self, text="Color:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Color:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.color_var = ctk.StringVar(value=self.category_data.get("color", "#1f538d"))
         self.color_entry = ctk.CTkEntry(self, textvariable=self.color_var)
-        self.color_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.color_entry.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         
         # Description
-        ctk.CTkLabel(self, text="Description:").grid(row=row, column=0, padx=10, pady=5, sticky="e")
+        ctk.CTkLabel(self, text="Description:").grid(row=row, column=0, padx=SPACING_SM, pady=SPACING_SM, sticky="e")
         self.description_text = ctk.CTkTextbox(self, height=100)
         self.description_text.insert("1.0", self.category_data.get("description", ""))
-        self.description_text.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+        self.description_text.grid(row=row, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         row += 1
         
         # Error label
@@ -674,9 +699,12 @@ class EditCategoryDialog(ctk.CTkToplevel):
         self.error_label.grid(row=row, column=0, columnspan=2)
         row += 1
         
-        # Save button
-        self.save_button = ctk.CTkButton(self, text="Save", command=self._on_save)
-        self.save_button.grid(row=row, column=0, columnspan=2, pady=20)
+        # Save button with icon
+        self.save_button = icon_manager.get_button_with_icon(
+            self, text=" Save Changes", icon_name=ICON_SAVE, 
+            command=self._on_save, fg_color=ACCENT_COLOR, text_color="white"
+        )
+        self.save_button.grid(row=row, column=0, columnspan=2, pady=SPACING_MD)
 
     def _on_save(self):
         name = self.name_entry.get().strip()
@@ -713,7 +741,11 @@ class MainWindow(ctk.CTk):
         super().__init__()
         self.title("Bills Tracker v3")
         self.geometry("1200x800")
+        self.minsize(800, 600)  # Set minimum window size for responsive design
 
+        # Configure the main window
+        self.configure(bg_color=BACKGROUND_COLOR)
+        
         # Cerrar toda la app si se cierra la ventana principal
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         
@@ -727,24 +759,49 @@ class MainWindow(ctk.CTk):
         self.show_bills_view()
     
     def _setup_ui(self):
-        # Configure grid
+        # Configure grid for responsive layout
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
-        # Sidebar
-        self.sidebar = ctk.CTkFrame(self, width=200)
-        self.sidebar.grid(row=0, column=0, sticky="nswe")
+        # Sidebar with improved styling
+        self.sidebar = ctk.CTkFrame(self, width=220, fg_color=PRIMARY_COLOR)
+        self.sidebar.grid(row=0, column=0, sticky="ns", padx=(SPACING_SM, 0), pady=SPACING_SM)
         self.sidebar.grid_rowconfigure(6, weight=1)  # Increased for auth buttons
+        self.sidebar.grid_columnconfigure(0, weight=1)
 
-        # Sidebar buttons
-        ctk.CTkLabel(self.sidebar, text="Bills Tracker", font=("Arial", 20, "bold")).grid(row=0, column=0, padx=20, pady=(20, 10))
-        ctk.CTkButton(self.sidebar, text="Bills", command=self.show_bills_view).grid(row=1, column=0, padx=20, pady=10)
-        ctk.CTkButton(self.sidebar, text="Categories", command=self.show_categories_view).grid(row=2, column=0, padx=20, pady=10)
-        ctk.CTkButton(self.sidebar, text="Settings", command=self.show_settings_view).grid(row=3, column=0, padx=20, pady=10)
+        # Sidebar header with icon
+        header_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        header_frame.grid(row=0, column=0, sticky="ew", padx=SPACING_SM, pady=(SPACING_MD, SPACING_LG))
+        header_frame.grid_columnconfigure(0, weight=1)
         
-        # Main content area
-        self.content = ctk.CTkFrame(self)
-        self.content.grid(row=0, column=1, sticky="nswe", padx=10, pady=10)
+        ctk.CTkLabel(header_frame, text="💰", font=("Arial", 24)).grid(row=0, column=0, pady=(0, SPACING_XS))
+        ctk.CTkLabel(header_frame, text="Bills Tracker", font=("Arial", 18, "bold"), text_color="white").grid(row=1, column=0)
+
+        # Sidebar navigation buttons with icons
+        nav_buttons = [
+            ("📋 Bills", self.show_bills_view),
+            ("🏷️ Categories", self.show_categories_view),
+            ("⚙️ Settings", self.show_settings_view)
+        ]
+        
+        for i, (text, command) in enumerate(nav_buttons, 1):
+            btn = ctk.CTkButton(
+                self.sidebar, 
+                text=text, 
+                command=command,
+                fg_color="transparent",
+                text_color="white",
+                hover_color=SECONDARY_COLOR,
+                anchor="w",
+                height=40
+            )
+            btn.grid(row=i, column=0, sticky="ew", padx=SPACING_SM, pady=SPACING_XS)
+        
+        # Main content area with improved responsive design
+        self.content = ctk.CTkFrame(self, fg_color="transparent")
+        self.content.grid(row=0, column=1, sticky="nswe", padx=SPACING_SM, pady=SPACING_SM)
+        self.content.grid_rowconfigure(0, weight=1)
+        self.content.grid_columnconfigure(0, weight=1)
 
     def clear_content(self):
         for widget in self.content.winfo_children():
@@ -753,65 +810,78 @@ class MainWindow(ctk.CTk):
     def show_bills_view(self):
         self.clear_content()
         
-        # Button frame for Add, Export, Import
-        btn_frame = ctk.CTkFrame(self.content)
-        btn_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(0, 10))
+        # Configure grid for responsive layout
+        self.content.grid_rowconfigure(3, weight=1)  # Table row gets the weight
+        self.content.grid_columnconfigure(0, weight=1)
+        
+        # Button frame for Add, Export, Import with icons
+        btn_frame = ctk.CTkFrame(self.content, fg_color=BACKGROUND_COLOR)
+        btn_frame.grid(row=0, column=0, sticky="ew", padx=SPACING_SM, pady=(0, SPACING_SM))
         btn_frame.grid_columnconfigure(3, weight=1)
         
-        add_btn = ctk.CTkButton(btn_frame, text="Add Bill", command=self.open_add_bill_dialog)
-        add_btn.grid(row=0, column=0, padx=(0, 10), pady=10)
+        add_btn = icon_manager.get_button_with_icon(
+            btn_frame, text=" Add Bill", icon_name=ICON_ADD, 
+            command=self.open_add_bill_dialog, fg_color=ACCENT_COLOR, text_color="white"
+        )
+        add_btn.grid(row=0, column=0, padx=(0, SPACING_SM), pady=SPACING_SM)
         
-        export_btn = ctk.CTkButton(btn_frame, text="Export CSV", command=self.export_bills)
-        export_btn.grid(row=0, column=1, padx=(0, 10), pady=10)
+        export_btn = icon_manager.get_button_with_icon(
+            btn_frame, text=" Export CSV", icon_name=ICON_EXPORT, 
+            command=self.export_bills, fg_color=SECONDARY_COLOR, text_color="white"
+        )
+        export_btn.grid(row=0, column=1, padx=(0, SPACING_SM), pady=SPACING_SM)
         
-        import_btn = ctk.CTkButton(btn_frame, text="Import CSV", command=self.import_bills)
-        import_btn.grid(row=0, column=2, padx=(0, 10), pady=10)
+        import_btn = icon_manager.get_button_with_icon(
+            btn_frame, text=" Import CSV", icon_name=ICON_IMPORT, 
+            command=self.import_bills, fg_color=SECONDARY_COLOR, text_color="white"
+        )
+        import_btn.grid(row=0, column=2, padx=(0, SPACING_SM), pady=SPACING_SM)
 
         # Filter options frame
         filter_frame = ctk.CTkFrame(self.content)
-        filter_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 10))
+        filter_frame.grid(row=1, column=0, sticky="ew", padx=SPACING_SM, pady=(0, SPACING_SM))
         filter_frame.grid_columnconfigure(1, weight=1)
         
         # Status filter (Pending/Auto-Pay/Paid/All)
-        ctk.CTkLabel(filter_frame, text="Status:").grid(row=0, column=0, padx=(10, 5), pady=10)
+        ctk.CTkLabel(filter_frame, text="Status:").grid(row=0, column=0, padx=(SPACING_SM, SPACING_SM), pady=SPACING_SM)
         self.status_filter_var = ctk.StringVar(value="Pending")
         status_combo = ttk.Combobox(filter_frame, textvariable=self.status_filter_var,
                                    values=["Pending", "Auto-Pay", "Paid", "All"], state="readonly", width=12)
-        status_combo.grid(row=0, column=1, padx=5, pady=10, sticky="w")
+        status_combo.grid(row=0, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="w")
         status_combo.bind("<<ComboboxSelected>>", self.apply_filters)
         
         # Period filter
-        ctk.CTkLabel(filter_frame, text="Period:").grid(row=0, column=2, padx=(20, 5), pady=10)
+        ctk.CTkLabel(filter_frame, text="Period:").grid(row=0, column=2, padx=(SPACING_MD, SPACING_SM), pady=SPACING_SM)
         self.period_filter_var = ctk.StringVar(value="All")
         period_combo = ttk.Combobox(filter_frame, textvariable=self.period_filter_var,
                                    values=["All", "This Month", "Last Month", "Previous Month", "Next Month", "This Year", "Last Year"], 
                                    state="readonly", width=15)
-        period_combo.grid(row=0, column=3, padx=5, pady=10)
+        period_combo.grid(row=0, column=3, padx=SPACING_SM, pady=SPACING_SM)
         period_combo.bind("<<ComboboxSelected>>", self.apply_filters)
         
         # Clear filters button
         clear_btn = ctk.CTkButton(filter_frame, text="Clear All", command=self.clear_all_filters, width=80)
-        clear_btn.grid(row=0, column=4, padx=5, pady=10)
+        clear_btn.grid(row=0, column=4, padx=SPACING_SM, pady=SPACING_SM)
 
         # Search bar
         search_frame = ctk.CTkFrame(self.content)
-        search_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=(0, 10))
+        search_frame.grid(row=2, column=0, sticky="ew", padx=SPACING_SM, pady=(0, SPACING_SM))
         search_frame.grid_columnconfigure(1, weight=1)
         
-        ctk.CTkLabel(search_frame, text="Search:").grid(row=0, column=0, padx=(10, 5), pady=10)
+        ctk.CTkLabel(search_frame, text="Search:").grid(row=0, column=0, padx=(SPACING_SM, SPACING_SM), pady=SPACING_SM)
         self.search_var = ctk.StringVar()
         self.search_entry = ctk.CTkEntry(search_frame, textvariable=self.search_var)
-        self.search_entry.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
+        self.search_entry.grid(row=0, column=1, padx=SPACING_SM, pady=SPACING_SM, sticky="ew")
         self.search_var.trace("w", self.apply_filters)
         
         self.search_field_var = ctk.StringVar(value="Name")
         search_field_combo = ttk.Combobox(search_frame, textvariable=self.search_field_var, 
                                          values=["Name", "Due Date", "Category", "Status", "Paid", "Confirmation"], 
                                          state="readonly", width=15)
-        search_field_combo.grid(row=0, column=2, padx=5, pady=10)
+        search_field_combo.grid(row=0, column=2, padx=SPACING_SM, pady=SPACING_SM)
         
         clear_search_btn = ctk.CTkButton(search_frame, text="Clear Search", command=self.clear_search, width=100)
-        clear_search_btn.grid(row=0, column=3, padx=5, pady=10)
+        clear_search_btn.grid(row=0, column=3, padx=SPACING_SM, pady=SPACING_SM)
 
         self.bills_table_frame = ctk.CTkFrame(self.content)
         self.bills_table_frame.grid(row=2, column=0, sticky="nswe")
@@ -846,22 +916,38 @@ class MainWindow(ctk.CTk):
 
         # Bills counter
         self.bills_counter_label = ctk.CTkLabel(self.content, text="", font=("Arial", 12))
-        self.bills_counter_label.grid(row=3, column=0, sticky="w", padx=10, pady=(5, 0))
+        self.bills_counter_label.grid(row=3, column=0, sticky="w", padx=SPACING_SM, pady=(SPACING_SM, 0))
         
         # Now populate the table after the counter label is created
         self.populate_bills_table(self._filtered_bills)
         
-        # Edit, Delete, Apply, and Refresh buttons
-        action_btn_frame = ctk.CTkFrame(self.content)
-        action_btn_frame.grid(row=4, column=0, sticky="ew", pady=(10, 0))
-        edit_btn = ctk.CTkButton(action_btn_frame, text="Edit", command=self.edit_selected_bill)
-        edit_btn.pack(side="left", padx=10)
-        delete_btn = ctk.CTkButton(action_btn_frame, text="Delete", command=self.delete_selected_bill)
-        delete_btn.pack(side="left", padx=10)
-        refresh_btn = ctk.CTkButton(action_btn_frame, text="Refresh Data", command=self.refresh_bills_data, fg_color="blue")
-        refresh_btn.pack(side="right", padx=10)
-        self.apply_btn = ctk.CTkButton(action_btn_frame, text="Apply Changes", command=self.apply_pending_changes, fg_color="green")
-        self.apply_btn.pack(side="right", padx=10)
+        # Edit, Delete, Apply, and Refresh buttons with icons
+        action_btn_frame = ctk.CTkFrame(self.content, fg_color=BACKGROUND_COLOR)
+        action_btn_frame.grid(row=4, column=0, sticky="ew", pady=(SPACING_SM, 0))
+        
+        edit_btn = icon_manager.get_button_with_icon(
+            action_btn_frame, text=" Edit", icon_name=ICON_EDIT, 
+            command=self.edit_selected_bill, fg_color=PRIMARY_COLOR, text_color="white"
+        )
+        edit_btn.pack(side="left", padx=SPACING_SM)
+        
+        delete_btn = icon_manager.get_button_with_icon(
+            action_btn_frame, text=" Delete", icon_name=ICON_DELETE, 
+            command=self.delete_selected_bill, fg_color=ERROR_COLOR, text_color="white"
+        )
+        delete_btn.pack(side="left", padx=SPACING_SM)
+        
+        refresh_btn = icon_manager.get_button_with_icon(
+            action_btn_frame, text=" Refresh", icon_name=ICON_REFRESH, 
+            command=self.refresh_bills_data, fg_color=SECONDARY_COLOR, text_color="white"
+        )
+        refresh_btn.pack(side="right", padx=SPACING_SM)
+        
+        self.apply_btn = icon_manager.get_button_with_icon(
+            action_btn_frame, text=" Apply Changes", icon_name=ICON_APPLY, 
+            command=self.apply_pending_changes, fg_color=SUCCESS_COLOR, text_color="white"
+        )
+        self.apply_btn.pack(side="right", padx=SPACING_SM)
 
     def apply_filters(self, *args):
         """Apply all filters: status, period, and search"""
@@ -1072,20 +1158,27 @@ class MainWindow(ctk.CTk):
     def show_categories_view(self):
         self.clear_content()
         
+        # Configure grid for responsive layout
+        self.content.grid_rowconfigure(2, weight=1)  # Table row gets the weight
+        self.content.grid_columnconfigure(0, weight=1)
+        
         # Title
-        title_label = ctk.CTkLabel(self.content, text="Categories Management", font=("Arial", 24, "bold"))
-        title_label.grid(row=0, column=0, pady=(20, 30))
+        title_label = ctk.CTkLabel(self.content, text="Categories Management", font=("Arial", 24, "bold"), text_color=TEXT_COLOR)
+        title_label.grid(row=0, column=0, pady=(SPACING_MD, SPACING_SM))
         
-        # Button frame
-        btn_frame = ctk.CTkFrame(self.content)
-        btn_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 20))
+        # Button frame with icons
+        btn_frame = ctk.CTkFrame(self.content, fg_color=BACKGROUND_COLOR)
+        btn_frame.grid(row=1, column=0, sticky="ew", padx=SPACING_SM, pady=(0, SPACING_SM))
         
-        add_category_btn = ctk.CTkButton(btn_frame, text="Add Category", command=self.open_add_category_dialog)
-        add_category_btn.pack(side="left", padx=10, pady=10)
+        add_category_btn = icon_manager.get_button_with_icon(
+            btn_frame, text=" Add Category", icon_name=ICON_ADD, 
+            command=self.open_add_category_dialog, fg_color=ACCENT_COLOR, text_color="white"
+        )
+        add_category_btn.pack(side="left", padx=SPACING_SM, pady=SPACING_SM)
         
         # Categories table frame
         table_frame = ctk.CTkFrame(self.content)
-        table_frame.grid(row=2, column=0, sticky="nswe", padx=10, pady=(0, 20))
+        table_frame.grid(row=2, column=0, sticky="nswe", padx=SPACING_SM, pady=(0, SPACING_SM))
         table_frame.grid_rowconfigure(0, weight=1)
         table_frame.grid_columnconfigure(0, weight=1)
         
@@ -1104,18 +1197,27 @@ class MainWindow(ctk.CTk):
         self.categories_table.grid(row=0, column=0, sticky="nswe")
         scrollbar.grid(row=0, column=1, sticky="ns")
         
-        # Action buttons
-        action_frame = ctk.CTkFrame(self.content)
-        action_frame.grid(row=3, column=0, sticky="ew", pady=(0, 20))
+        # Action buttons with icons
+        action_frame = ctk.CTkFrame(self.content, fg_color=BACKGROUND_COLOR)
+        action_frame.grid(row=3, column=0, sticky="ew", pady=(0, SPACING_SM))
         
-        edit_category_btn = ctk.CTkButton(action_frame, text="Edit", command=self.edit_selected_category)
-        edit_category_btn.pack(side="left", padx=10, pady=10)
+        edit_category_btn = icon_manager.get_button_with_icon(
+            action_frame, text=" Edit", icon_name=ICON_EDIT, 
+            command=self.edit_selected_category, fg_color=PRIMARY_COLOR, text_color="white"
+        )
+        edit_category_btn.pack(side="left", padx=SPACING_SM, pady=SPACING_SM)
         
-        delete_category_btn = ctk.CTkButton(action_frame, text="Delete", command=self.delete_selected_category)
-        delete_category_btn.pack(side="left", padx=10, pady=10)
+        delete_category_btn = icon_manager.get_button_with_icon(
+            action_frame, text=" Delete", icon_name=ICON_DELETE, 
+            command=self.delete_selected_category, fg_color=ERROR_COLOR, text_color="white"
+        )
+        delete_category_btn.pack(side="left", padx=SPACING_SM, pady=SPACING_SM)
         
-        refresh_btn = ctk.CTkButton(action_frame, text="Refresh", command=self.refresh_categories)
-        refresh_btn.pack(side="right", padx=10, pady=10)
+        refresh_btn = icon_manager.get_button_with_icon(
+            action_frame, text=" Refresh", icon_name=ICON_REFRESH, 
+            command=self.refresh_categories, fg_color=SECONDARY_COLOR, text_color="white"
+        )
+        refresh_btn.pack(side="right", padx=SPACING_SM, pady=SPACING_SM)
         
         # Populate categories
         self.populate_categories_table()
@@ -1125,7 +1227,7 @@ class MainWindow(ctk.CTk):
         self.settings_frame = ctk.CTkFrame(self.content)
         self.settings_frame.grid(row=0, column=0, sticky="nswe")
         label = ctk.CTkLabel(self.settings_frame, text="Settings View (Coming Soon)", font=("Arial", 18))
-        label.pack(padx=40, pady=40)
+        label.pack(padx=SPACING_MD, pady=SPACING_MD)
 
     def edit_selected_bill(self):
         selected = self.bills_table.selection()
@@ -1153,7 +1255,7 @@ class MainWindow(ctk.CTk):
                 except:
                     pass
             
-            ctk.CTkLabel(confirm, text=f"Delete bill '{bill.get('name', '')}'?").pack(pady=20)
+            ctk.CTkLabel(confirm, text=f"Delete bill '{bill.get('name', '')}'?").pack(pady=SPACING_SM)
             
             def do_delete():
                 try:
@@ -1164,8 +1266,8 @@ class MainWindow(ctk.CTk):
                     show_popup(self, "Error", f"Failed to delete bill: {str(e)}", color="red")
                 safe_destroy()
             
-            ctk.CTkButton(confirm, text="Delete", fg_color="red", command=do_delete).pack(side="left", padx=20, pady=10)
-            ctk.CTkButton(confirm, text="Cancel", command=safe_destroy).pack(side="right", padx=20, pady=10)
+            ctk.CTkButton(confirm, text="Delete", fg_color="red", command=do_delete).pack(side="left", padx=SPACING_SM, pady=SPACING_SM)
+            ctk.CTkButton(confirm, text="Cancel", command=safe_destroy).pack(side="right", padx=SPACING_SM, pady=SPACING_SM)
             
             # Use after() to delay the focus operations
             def set_focus():
@@ -1488,7 +1590,7 @@ class MainWindow(ctk.CTk):
                         pass
                 
                 ctk.CTkLabel(confirm, text=f"You have {len(self.pending_changes)} pending changes.\nDo you want to discard them and refresh?", 
-                            font=("Arial", 12)).pack(pady=20)
+                            font=("Arial", 12)).pack(pady=SPACING_SM)
                 
                 def do_refresh():
                     try:
@@ -1509,8 +1611,8 @@ class MainWindow(ctk.CTk):
                 def cancel_refresh():
                     safe_destroy()
                 
-                ctk.CTkButton(confirm, text="Discard & Refresh", fg_color="red", command=do_refresh).pack(side="left", padx=20, pady=10)
-                ctk.CTkButton(confirm, text="Cancel", command=cancel_refresh).pack(side="right", padx=20, pady=10)
+                ctk.CTkButton(confirm, text="Discard & Refresh", fg_color="red", command=do_refresh).pack(side="left", padx=SPACING_SM, pady=SPACING_SM)
+                ctk.CTkButton(confirm, text="Cancel", command=cancel_refresh).pack(side="right", padx=SPACING_SM, pady=SPACING_SM)
                 
                 # Use after() to delay the focus operations
                 def set_focus():
@@ -1620,7 +1722,7 @@ class MainWindow(ctk.CTk):
                 except:
                     pass
             
-            ctk.CTkLabel(confirm, text=f"Delete category '{category_name}'?", font=("Arial", 12)).pack(pady=20)
+            ctk.CTkLabel(confirm, text=f"Delete category '{category_name}'?", font=("Arial", 12)).pack(pady=SPACING_SM)
             
             def do_delete():
                 try:
@@ -1642,8 +1744,8 @@ class MainWindow(ctk.CTk):
                     show_popup(self, "Error", f"Failed to delete category: {str(e)}", color="red")
                 safe_destroy()
             
-            ctk.CTkButton(confirm, text="Delete", fg_color="red", command=do_delete).pack(side="left", padx=20, pady=10)
-            ctk.CTkButton(confirm, text="Cancel", command=safe_destroy).pack(side="right", padx=20, pady=10)
+            ctk.CTkButton(confirm, text="Delete", fg_color="red", command=do_delete).pack(side="left", padx=SPACING_SM, pady=SPACING_SM)
+            ctk.CTkButton(confirm, text="Cancel", command=safe_destroy).pack(side="right", padx=SPACING_SM, pady=SPACING_SM)
             
             def set_focus():
                 try:
@@ -1664,10 +1766,24 @@ class MainWindow(ctk.CTk):
         self.populate_categories_table()
 
     def _on_close(self):
-        import sys
-        self.destroy()
-        self.update()
-        sys.exit(0)
+        """Handle window close event"""
+        try:
+            # Cancel any pending after() calls to prevent invalid command errors
+            for after_id in self.tk.eval('after info').split():
+                if after_id.isdigit():
+                    try:
+                        self.after_cancel(int(after_id))
+                    except:
+                        pass
+            
+            self.quit()
+        except Exception as e:
+            print(f"Error during close: {e}")
+        finally:
+            try:
+                self.destroy()
+            except:
+                pass
 
 class PaymentConfirmationDialog(ctk.CTkToplevel):
     def __init__(self, master, bill_name, on_confirm):
@@ -1695,27 +1811,33 @@ class PaymentConfirmationDialog(ctk.CTkToplevel):
     def _setup_ui(self, bill_name):
         # Title
         title_label = ctk.CTkLabel(self, text="Payment Confirmation", font=("Arial", 16, "bold"))
-        title_label.pack(pady=(20, 10))
+        title_label.pack(pady=(SPACING_SM, SPACING_SM))
         
         # Bill name
         bill_label = ctk.CTkLabel(self, text=f"Bill: {bill_name}", font=("Arial", 12))
-        bill_label.pack(pady=(0, 20))
+        bill_label.pack(pady=(0, SPACING_SM))
         
         # Confirmation number entry
-        ctk.CTkLabel(self, text="Confirmation Number (optional):", font=("Arial", 12)).pack(pady=(0, 5))
-        self.confirmation_entry = ctk.CTkEntry(self, width=300, placeholder_text="Enter confirmation number...")
-        self.confirmation_entry.pack(pady=(0, 20))
+        ctk.CTkLabel(self, text="Confirmation Number (optional):", font=("Arial", 12)).pack(pady=(0, SPACING_SM))
+        self.confirmation_entry = ctk.CTkEntry(self, width=300, placeholder_text="Enter confirmation number...", fg_color=BACKGROUND_COLOR, text_color=TEXT_COLOR)
+        self.confirmation_entry.pack(pady=(0, SPACING_SM))
         self.confirmation_entry.focus()
         
         # Buttons frame
         btn_frame = ctk.CTkFrame(self)
-        btn_frame.pack(pady=(0, 20))
+        btn_frame.pack(pady=(0, SPACING_SM))
         
-        confirm_btn = ctk.CTkButton(btn_frame, text="Confirm Payment", command=self._on_confirm, fg_color="green")
-        confirm_btn.pack(side="left", padx=10)
+        confirm_btn = icon_manager.get_button_with_icon(
+            btn_frame, text=" Confirm Payment", icon_name=ICON_SAVE, 
+            command=self._on_confirm, fg_color=SUCCESS_COLOR, text_color="white"
+        )
+        confirm_btn.pack(side="left", padx=SPACING_SM)
         
-        cancel_btn = ctk.CTkButton(btn_frame, text="Cancel", command=self._on_cancel, fg_color="red")
-        cancel_btn.pack(side="left", padx=10)
+        cancel_btn = icon_manager.get_button_with_icon(
+            btn_frame, text=" Cancel", icon_name=ICON_CANCEL, 
+            command=self._on_cancel, fg_color=ERROR_COLOR, text_color="white"
+        )
+        cancel_btn.pack(side="left", padx=SPACING_SM)
         
         # Bind Enter key to confirm
         self.bind("<Return>", lambda e: self._on_confirm())
@@ -1732,4 +1854,9 @@ class PaymentConfirmationDialog(ctk.CTkToplevel):
 
 if __name__ == "__main__":
     app = MainWindow()
-    app.mainloop() 
+    try:
+        app.mainloop()
+    except Exception as e:
+        print(f"Application error: {e}")
+        import traceback
+        traceback.print_exc() 

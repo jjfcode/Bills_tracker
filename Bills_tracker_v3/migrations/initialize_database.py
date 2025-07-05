@@ -12,7 +12,7 @@ import secrets
 from datetime import datetime
 
 # Add src to path to import modules
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from src.core.db import (
     CATEGORIES_SCHEMA, PAYMENT_METHODS_SCHEMA, BILLS_SCHEMA, TEMPLATES_SCHEMA,
