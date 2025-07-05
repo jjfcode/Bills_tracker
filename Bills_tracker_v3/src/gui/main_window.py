@@ -903,8 +903,54 @@ class MainWindow(ctk.CTk):
         self.bills_table_frame.grid_rowconfigure(0, weight=1)
         self.bills_table_frame.grid_columnconfigure(0, weight=1)
 
+        # Enhanced table styling
+        style = ttk.Style()
+        
+        # Configure Treeview style for better visual separation
+        style.theme_use("default")
+        style.configure("Enhanced.Treeview",
+                       background=BACKGROUND_COLOR,
+                       foreground=TEXT_COLOR,
+                       rowheight=30,
+                       fieldbackground=BACKGROUND_COLOR,
+                       borderwidth=1,
+                       relief="solid")
+        
+        # Configure alternating row colors using tags
+        style.configure("Enhanced.Treeview",
+                       background=BACKGROUND_COLOR,
+                       foreground=TEXT_COLOR,
+                       rowheight=30,
+                       fieldbackground=BACKGROUND_COLOR,
+                       borderwidth=1,
+                       relief="solid")
+        
+        # Configure alternate row style
+        style.configure("Alternate.Treeview",
+                       background="#f0f0f0",
+                       foreground=TEXT_COLOR,
+                       rowheight=30,
+                       fieldbackground="#f0f0f0",
+                       borderwidth=1,
+                       relief="solid")
+        
+        # Configure header style
+        style.configure("Enhanced.Treeview.Heading",
+                       background=PRIMARY_COLOR,
+                       foreground="white",
+                       relief="flat",
+                       borderwidth=1,
+                       font=("Arial", 10, "bold"))
+        
+        # Configure header hover effect
+        style.map("Enhanced.Treeview.Heading",
+                 background=[("active", SECONDARY_COLOR)])
+
         columns = ("Select", "Paid", "Name", "Due Date", "Amount", "Category", "Status", "Payment Method", "Confirmation")
-        self.bills_table = ttk.Treeview(self.bills_table_frame, columns=columns, show="headings", height=15)
+        self.bills_table = ttk.Treeview(self.bills_table_frame, columns=columns, show="headings", height=15, style="Enhanced.Treeview")
+        
+        # Configure tag colors for alternating rows
+        self.bills_table.tag_configure("alternate", background="#f0f0f0")
         self._sort_column = None
         self._sort_reverse = False
         self._selected_bills = set()  # Track selected bill IDs
@@ -1162,7 +1208,7 @@ class MainWindow(ctk.CTk):
         self.bills_by_id = {}
         
         # Populate current page
-        for bill in current_page_bills:
+        for i, bill in enumerate(current_page_bills):
             paid_status = "✓" if bill.get("paid", False) else "☐"
             category_name = bill.get("category_name", "Uncategorized")
             payment_method_name = bill.get("payment_method_name", "Not Set")
@@ -1190,6 +1236,11 @@ class MainWindow(ctk.CTk):
                 bill.get("confirmation_number", "")
             )
             item_id = self.bills_table.insert("", "end", values=row)
+            
+            # Apply alternating row colors using tags
+            if i % 2 == 1:  # Odd rows (0-indexed, so i=1,3,5...)
+                self.bills_table.item(item_id, tags=("alternate",))
+            
             self.bills_by_id[item_id] = bill
         
         # Update bills counter
@@ -1274,9 +1325,45 @@ class MainWindow(ctk.CTk):
         table_frame.grid_rowconfigure(0, weight=1)
         table_frame.grid_columnconfigure(0, weight=1)
         
+        # Enhanced table styling for categories
+        style = ttk.Style()
+        
+        # Configure Treeview style for categories table
+        style.configure("Categories.Treeview",
+                       background=BACKGROUND_COLOR,
+                       foreground=TEXT_COLOR,
+                       rowheight=30,
+                       fieldbackground=BACKGROUND_COLOR,
+                       borderwidth=1,
+                       relief="solid")
+        
+        # Configure alternating row colors for categories using tags
+        style.configure("Categories.Treeview",
+                       background=BACKGROUND_COLOR,
+                       foreground=TEXT_COLOR,
+                       rowheight=30,
+                       fieldbackground=BACKGROUND_COLOR,
+                       borderwidth=1,
+                       relief="solid")
+        
+        # Configure header style for categories
+        style.configure("Categories.Treeview.Heading",
+                       background=PRIMARY_COLOR,
+                       foreground="white",
+                       relief="flat",
+                       borderwidth=1,
+                       font=("Arial", 10, "bold"))
+        
+        # Configure header hover effect for categories
+        style.map("Categories.Treeview.Heading",
+                 background=[("active", SECONDARY_COLOR)])
+        
         # Categories table
         columns = ("Name", "Color", "Description", "Bills Count")
-        self.categories_table = ttk.Treeview(table_frame, columns=columns, show="headings", height=15)
+        self.categories_table = ttk.Treeview(table_frame, columns=columns, show="headings", height=15, style="Categories.Treeview")
+        
+        # Configure tag colors for alternating rows
+        self.categories_table.tag_configure("alternate", background="#f0f0f0")
         
         # Configure columns
         for col in columns:
@@ -1967,7 +2054,7 @@ class MainWindow(ctk.CTk):
         
         try:
             categories = fetch_all_categories()
-            for category in categories:
+            for i, category in enumerate(categories):
                 # Count bills in this category
                 bill_count = sum(1 for bill in self._bills_data if bill.get('category_id') == category['id'])
                 
@@ -1977,7 +2064,12 @@ class MainWindow(ctk.CTk):
                     category.get('description', ''),
                     str(bill_count)
                 )
-                self.categories_table.insert("", "end", values=row)
+                item_id = self.categories_table.insert("", "end", values=row)
+                
+                # Apply alternating row colors using tags
+                if i % 2 == 1:  # Odd rows (0-indexed, so i=1,3,5...)
+                    self.categories_table.item(item_id, tags=("alternate",))
+                    
         except Exception as e:
             print(f"Error populating categories table: {e}")
 

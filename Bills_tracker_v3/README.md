@@ -100,6 +100,14 @@ A modern, feature-rich desktop application for managing bills and recurring paym
 5. **Select All on Page**: The select-all checkbox only affects bills visible on the current page.
 6. **Performance**: Pagination ensures smooth performance even with hundreds or thousands of bills.
 
+### **Enhanced Table Styling**
+1. **Alternating Row Colors**: Rows alternate between light and darker backgrounds for better readability.
+2. **Enhanced Headers**: Table headers have a distinctive primary color background with bold white text.
+3. **Header Hover Effects**: Headers change color when you hover over them for better interactivity.
+4. **Increased Row Height**: Rows are taller (30px) for better readability and touch-friendly interaction.
+5. **Consistent Borders**: Clean borders and styling that match the overall app theme.
+6. **Visual Separation**: Clear visual separation between rows and columns for easier scanning.
+
 ## 📁 Project Structure
 
 ```
