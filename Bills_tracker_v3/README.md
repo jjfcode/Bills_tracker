@@ -9,7 +9,13 @@ A modern, feature-rich desktop application for managing bills and recurring paym
 - **Smart Checkbox System** - Mark bills as paid with automatic next cycle generation
 - **Apply Changes** - Review and confirm multiple changes before saving
 - **Recurring Bill Cycles** - Automatic next due date calculation (weekly, bi-weekly, monthly, quarterly, semi-annually, annually)
-- **Input Validation** - Email, phone, web page, and date format validation
+- **Comprehensive Input Validation** - Complete validation system for all fields:
+  - **Required Fields**: Name, Due Date, Category Name, Color enforced
+  - **Format Validation**: Email, phone, URL, account number, confirmation number formats
+  - **Length Validation**: Character limits (1-100 for bills, 1-50 for categories)
+  - **Character Validation**: Invalid character prevention for names and IDs
+  - **Date Validation**: YYYY-MM-DD format with ±10 year range validation
+  - **Business Rules**: Billing cycles and reminder days from predefined lists
 - **Modal Dialogs** - Clean, modern interface for adding/editing bills
 
 ### 📅 **Advanced Date Selection** 🆕
@@ -77,6 +83,13 @@ A modern, feature-rich desktop application for managing bills and recurring paym
 - **Session Management** - Automatic session expiration (24 hours)
 - **Role-based Access** - Admin and regular user roles
 - **Security Features** - SHA-256 password hashing with salt
+
+### ✅ Comprehensive Validation System 🆕
+- **Bill Validation** - Complete validation for all bill fields with user-friendly error messages
+- **Category Validation** - Validation for category names, colors, and descriptions
+- **Real-time Validation** - Immediate feedback as users type
+- **Error Handling** - Field-specific error messages with clear guidance
+- **Data Integrity** - Prevents invalid data entry and maintains database consistency
 
 ## 📁 Project Structure
 
@@ -306,6 +319,7 @@ The new date selector provides multiple ways to choose dates:
 ## 🔄 Version History
 
 ### **v3.1** (Current)
+- ✅ **Comprehensive Validation System** - Complete input validation for all fields with user-friendly error messages
 - ✅ **Advanced Filtering System** - Default pending view, status/period filters, bill counter
 - ✅ **Advanced Date Selection** - Visual calendar picker and direct input
 - ✅ **Payment Confirmation Number** - Add, edit, search, and display confirmation numbers for paid bills

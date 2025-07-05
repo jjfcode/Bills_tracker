@@ -13,6 +13,7 @@ from tkinter import filedialog
 from tkcalendar import DateEntry
 from tkinter import messagebox
 from .icon_utils import icon_manager, ICON_ADD, ICON_EDIT, ICON_DELETE, ICON_SAVE, ICON_CANCEL, ICON_SEARCH, ICON_CALENDAR, ICON_EXPORT, ICON_IMPORT, ICON_REFRESH, ICON_SETTINGS, ICON_CATEGORIES, ICON_BILLS, ICON_APPLY, ICON_CLEAR
+from .validation import BillValidator, CategoryValidator, ValidationError, validate_field_in_real_time
 
 BILLING_CYCLES = [
     "weekly", "bi-weekly", "monthly", "quarterly", "semi-annually", "annually", "one-time"
@@ -319,71 +320,70 @@ class AddBillDialog(ctk.CTkToplevel):
             self.payment_method_combo['values'] = ["Not Set"]
 
     def _on_add(self):
-        name = self.name_entry.get().strip()
-        due_date = self.date_selector.get_date().strip()
-        paid = self.paid_var.get()
-        confirmation_number = self.confirmation_entry.get().strip()
-        billing_cycle = self.billing_cycle_var.get()
-        reminder_days = self.reminder_days_var.get()
-        web_page = self.web_page_entry.get().strip()
-        company_email = self.company_email_entry.get().strip()
-        support_phone = self.support_phone_entry.get().strip()
-        account_number = self.account_number_entry.get().strip()
-        # Basic validation
-        if not name or not due_date:
-            self.error_label.configure(text="Name and Due Date are required.")
-            show_popup(self, "Error", "Name and Due Date are required.", color="red")
-            return
+        """Add a new bill with comprehensive validation"""
         try:
-            datetime.strptime(due_date, "%Y-%m-%d")
-        except ValueError:
-            self.error_label.configure(text="Invalid date format. Use YYYY-MM-DD.")
-            show_popup(self, "Error", "Invalid date format. Use YYYY-MM-DD.", color="red")
-            return
-        if company_email and not re.match(EMAIL_REGEX, company_email):
-            self.error_label.configure(text="Invalid email address.")
-            show_popup(self, "Error", "Invalid email address.", color="red")
-            return
-        if support_phone and not re.match(PHONE_REGEX, support_phone):
-            self.error_label.configure(text="Invalid phone number.")
-            show_popup(self, "Error", "Invalid phone number.", color="red")
-            return
-        if web_page and not (web_page.startswith("http://") or web_page.startswith("https://")):
-            self.error_label.configure(text="Web page must start with http:// or https://")
-            show_popup(self, "Error", "Web page must start with http:// or https://", color="red")
-            return
-        # Get category ID
-        category_id = None
-        if self.category_var.get() != "Uncategorized":
-            for category in self.categories:
-                if category['name'] == self.category_var.get():
-                    category_id = category['id']
-                    break
-        # Get payment method ID
-        payment_method_id = None
-        if self.payment_method_var.get() != "Not Set":
-            for pm in self.payment_methods:
-                if pm['name'] == self.payment_method_var.get():
-                    payment_method_id = pm['id']
-                    break
-        bill_data = {
-            "name": name,
-            "due_date": due_date,
-            "paid": paid,
-            "confirmation_number": confirmation_number,
-            "billing_cycle": billing_cycle,
-            "reminder_days": reminder_days,
-            "web_page": web_page,
-            "company_email": company_email,
-            "support_phone": support_phone,
-            "account_number": account_number,
-            "category_id": category_id,
-            "payment_method_id": payment_method_id
-        }
-        insert_bill(bill_data)
-        show_popup(self, "Success", "Bill added successfully!", color="green")
-        self.on_success()
-        self.destroy()
+            # Collect all field values
+            bill_data = {
+                "name": self.name_entry.get().strip(),
+                "due_date": self.date_selector.get_date().strip(),
+                "paid": self.paid_var.get(),
+                "confirmation_number": self.confirmation_entry.get().strip(),
+                "billing_cycle": self.billing_cycle_var.get(),
+                "reminder_days": self.reminder_days_var.get(),
+                "web_page": self.web_page_entry.get().strip(),
+                "company_email": self.company_email_entry.get().strip(),
+                "support_phone": self.support_phone_entry.get().strip(),
+                "account_number": self.account_number_entry.get().strip(),
+                "reference_id": "",  # Not in current UI but validated
+                "login_info": "",    # Not in current UI but validated
+                "password": "",      # Not in current UI but validated
+                "customer_service_hours": "",  # Not in current UI but validated
+                "mobile_app": "",    # Not in current UI but validated
+                "support_chat_url": ""  # Not in current UI but validated
+            }
+            
+            # Validate all fields using the comprehensive validator
+            validated_data = BillValidator.validate_bill_data(bill_data)
+            
+            # Get category ID
+            category_id = None
+            if self.category_var.get() != "Uncategorized":
+                for category in self.categories:
+                    if category['name'] == self.category_var.get():
+                        category_id = category['id']
+                        break
+            
+            # Get payment method ID
+            payment_method_id = None
+            if self.payment_method_var.get() != "Not Set":
+                for pm in self.payment_methods:
+                    if pm['name'] == self.payment_method_var.get():
+                        payment_method_id = pm['id']
+                        break
+            
+            # Add IDs to validated data
+            validated_data['category_id'] = category_id
+            validated_data['payment_method_id'] = payment_method_id
+            
+            # Clear any previous error messages
+            self.error_label.configure(text="")
+            
+            # Insert the bill
+            insert_bill(validated_data)
+            show_popup(self, "Success", "Bill added successfully!", color="green")
+            self.on_success()
+            self.destroy()
+            
+        except ValidationError as e:
+            # Show validation error
+            error_message = str(e)
+            self.error_label.configure(text=error_message)
+            show_popup(self, "Validation Error", error_message, color="red")
+        except Exception as e:
+            # Show general error
+            error_message = f"Failed to add bill: {str(e)}"
+            self.error_label.configure(text=error_message)
+            show_popup(self, "Error", error_message, color="red")
 
 class EditBillDialog(ctk.CTkToplevel):
     def __init__(self, master, bill_data, on_success):
@@ -515,71 +515,72 @@ class EditBillDialog(ctk.CTkToplevel):
             self.payment_method_combo['values'] = ["Not Set"]
 
     def _on_save(self):
-        name = self.name_entry.get().strip()
-        due_date = self.date_selector.get_date().strip()
-        paid = self.paid_var.get()
-        confirmation_number = self.confirmation_entry.get().strip()
-        billing_cycle = self.billing_cycle_var.get()
-        reminder_days = self.reminder_days_var.get()
-        web_page = self.web_page_entry.get().strip()
-        company_email = self.company_email_entry.get().strip()
-        support_phone = self.support_phone_entry.get().strip()
-        account_number = self.account_number_entry.get().strip()
-        if not name or not due_date:
-            self.error_label.configure(text="Name and Due Date are required.")
-            show_popup(self, "Error", "Name and Due Date are required.", color="red")
-            return
+        """Save bill changes with comprehensive validation"""
         try:
-            datetime.strptime(due_date, "%Y-%m-%d")
-        except ValueError:
-            self.error_label.configure(text="Invalid date format. Use YYYY-MM-DD.")
-            show_popup(self, "Error", "Invalid date format. Use YYYY-MM-DD.", color="red")
-            return
-        if company_email and not re.match(EMAIL_REGEX, company_email):
-            self.error_label.configure(text="Invalid email address.")
-            show_popup(self, "Error", "Invalid email address.", color="red")
-            return
-        if support_phone and not re.match(PHONE_REGEX, support_phone):
-            self.error_label.configure(text="Invalid phone number.")
-            show_popup(self, "Error", "Invalid phone number.", color="red")
-            return
-        if web_page and not (web_page.startswith("http://") or web_page.startswith("https://")):
-            self.error_label.configure(text="Web page must start with http:// or https://")
-            show_popup(self, "Error", "Web page must start with http:// or https://", color="red")
-            return
-        
-        # Get category ID
-        category_id = None
-        if self.category_var.get() != "Uncategorized":
-            for category in self.categories:
-                if category['name'] == self.category_var.get():
-                    category_id = category['id']
-                    break
-        # Get payment method ID
-        payment_method_id = None
-        if self.payment_method_var.get() != "Not Set":
-            for pm in self.payment_methods:
-                if pm['name'] == self.payment_method_var.get():
-                    payment_method_id = pm['id']
-                    break
-        
-        bill_data = self.bill_data.copy()
-        bill_data["name"] = name
-        bill_data["due_date"] = due_date
-        bill_data["paid"] = paid
-        bill_data["confirmation_number"] = confirmation_number
-        bill_data["billing_cycle"] = billing_cycle
-        bill_data["reminder_days"] = reminder_days
-        bill_data["web_page"] = web_page
-        bill_data["company_email"] = company_email
-        bill_data["support_phone"] = support_phone
-        bill_data["account_number"] = account_number
-        bill_data["category_id"] = category_id
-        bill_data["payment_method_id"] = payment_method_id
-        update_bill(bill_data["id"], bill_data)
-        show_popup(self, "Success", "Bill updated successfully!", color="green")
-        self.on_success()
-        self.destroy()
+            # Collect all field values
+            bill_data = {
+                "name": self.name_entry.get().strip(),
+                "due_date": self.date_selector.get_date().strip(),
+                "paid": self.paid_var.get(),
+                "confirmation_number": self.confirmation_entry.get().strip(),
+                "billing_cycle": self.billing_cycle_var.get(),
+                "reminder_days": self.reminder_days_var.get(),
+                "web_page": self.web_page_entry.get().strip(),
+                "company_email": self.company_email_entry.get().strip(),
+                "support_phone": self.support_phone_entry.get().strip(),
+                "account_number": self.account_number_entry.get().strip(),
+                "reference_id": self.bill_data.get("reference_id", ""),
+                "login_info": self.bill_data.get("login_info", ""),
+                "password": self.bill_data.get("password", ""),
+                "customer_service_hours": self.bill_data.get("customer_service_hours", ""),
+                "mobile_app": self.bill_data.get("mobile_app", ""),
+                "support_chat_url": self.bill_data.get("support_chat_url", "")
+            }
+            
+            # Validate all fields using the comprehensive validator
+            validated_data = BillValidator.validate_bill_data(bill_data)
+            
+            # Get category ID
+            category_id = None
+            if self.category_var.get() != "Uncategorized":
+                for category in self.categories:
+                    if category['name'] == self.category_var.get():
+                        category_id = category['id']
+                        break
+            
+            # Get payment method ID
+            payment_method_id = None
+            if self.payment_method_var.get() != "Not Set":
+                for pm in self.payment_methods:
+                    if pm['name'] == self.payment_method_var.get():
+                        payment_method_id = pm['id']
+                        break
+            
+            # Update the bill data with validated values and IDs
+            bill_data = self.bill_data.copy()
+            bill_data.update(validated_data)
+            bill_data["category_id"] = category_id
+            bill_data["payment_method_id"] = payment_method_id
+            
+            # Clear any previous error messages
+            self.error_label.configure(text="")
+            
+            # Update the bill
+            update_bill(bill_data["id"], bill_data)
+            show_popup(self, "Success", "Bill updated successfully!", color="green")
+            self.on_success()
+            self.destroy()
+            
+        except ValidationError as e:
+            # Show validation error
+            error_message = str(e)
+            self.error_label.configure(text=error_message)
+            show_popup(self, "Validation Error", error_message, color="red")
+        except Exception as e:
+            # Show general error
+            error_message = f"Failed to update bill: {str(e)}"
+            self.error_label.configure(text=error_message)
+            show_popup(self, "Error", error_message, color="red")
 
 class AddCategoryDialog(ctk.CTkToplevel):
     def __init__(self, master, on_success):
@@ -628,34 +629,38 @@ class AddCategoryDialog(ctk.CTkToplevel):
         self.add_button.grid(row=row, column=0, columnspan=2, pady=SPACING_MD)
 
     def _on_add(self):
-        name = self.name_entry.get().strip()
-        color = self.color_var.get().strip()
-        description = self.description_text.get("1.0", "end-1c").strip()
-        
-        if not name:
-            self.error_label.configure(text="Name is required.")
-            show_popup(self, "Error", "Name is required.", color="red")
-            return
-        
-        # Validate color format
-        if not color.startswith("#") or len(color) != 7:
-            self.error_label.configure(text="Color must be in #RRGGBB format.")
-            show_popup(self, "Error", "Color must be in #RRGGBB format.", color="red")
-            return
-        
+        """Add a new category with comprehensive validation"""
         try:
-            from db import insert_category
+            # Collect field values
             category_data = {
-                "name": name,
-                "color": color,
-                "description": description
+                "name": self.name_entry.get().strip(),
+                "color": self.color_var.get().strip(),
+                "description": self.description_text.get("1.0", "end-1c").strip()
             }
-            insert_category(category_data)
+            
+            # Validate all fields using the comprehensive validator
+            validated_data = CategoryValidator.validate_category_data(category_data)
+            
+            # Clear any previous error messages
+            self.error_label.configure(text="")
+            
+            # Insert the category
+            from db import insert_category
+            insert_category(validated_data)
             show_popup(self, "Success", "Category added successfully!", color="green")
             self.on_success()
             self.destroy()
+            
+        except ValidationError as e:
+            # Show validation error
+            error_message = str(e)
+            self.error_label.configure(text=error_message)
+            show_popup(self, "Validation Error", error_message, color="red")
         except Exception as e:
-            show_popup(self, "Error", f"Failed to add category: {str(e)}", color="red")
+            # Show general error
+            error_message = f"Failed to add category: {str(e)}"
+            self.error_label.configure(text=error_message)
+            show_popup(self, "Error", error_message, color="red")
 
 class EditCategoryDialog(ctk.CTkToplevel):
     def __init__(self, master, category_data, on_success):
@@ -707,34 +712,38 @@ class EditCategoryDialog(ctk.CTkToplevel):
         self.save_button.grid(row=row, column=0, columnspan=2, pady=SPACING_MD)
 
     def _on_save(self):
-        name = self.name_entry.get().strip()
-        color = self.color_var.get().strip()
-        description = self.description_text.get("1.0", "end-1c").strip()
-        
-        if not name:
-            self.error_label.configure(text="Name is required.")
-            show_popup(self, "Error", "Name is required.", color="red")
-            return
-        
-        # Validate color format
-        if not color.startswith("#") or len(color) != 7:
-            self.error_label.configure(text="Color must be in #RRGGBB format.")
-            show_popup(self, "Error", "Color must be in #RRGGBB format.", color="red")
-            return
-        
+        """Save category changes with comprehensive validation"""
         try:
-            from db import update_category
+            # Collect field values
             category_data = {
-                "name": name,
-                "color": color,
-                "description": description
+                "name": self.name_entry.get().strip(),
+                "color": self.color_var.get().strip(),
+                "description": self.description_text.get("1.0", "end-1c").strip()
             }
-            update_category(self.category_data["id"], category_data)
+            
+            # Validate all fields using the comprehensive validator
+            validated_data = CategoryValidator.validate_category_data(category_data)
+            
+            # Clear any previous error messages
+            self.error_label.configure(text="")
+            
+            # Update the category
+            from db import update_category
+            update_category(self.category_data["id"], validated_data)
             show_popup(self, "Success", "Category updated successfully!", color="green")
             self.on_success()
             self.destroy()
+            
+        except ValidationError as e:
+            # Show validation error
+            error_message = str(e)
+            self.error_label.configure(text=error_message)
+            show_popup(self, "Validation Error", error_message, color="red")
         except Exception as e:
-            show_popup(self, "Error", f"Failed to update category: {str(e)}", color="red")
+            # Show general error
+            error_message = f"Failed to update category: {str(e)}"
+            self.error_label.configure(text=error_message)
+            show_popup(self, "Error", error_message, color="red")
 
 class MainWindow(ctk.CTk):
     def __init__(self):
